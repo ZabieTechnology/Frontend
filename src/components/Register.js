@@ -6,10 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 const Register = () => {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState(""); // Added email state
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); // For error handling
   const navigate = useNavigate();
+  const apiUrl = process.env.REACT_APP_API_URL; 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,17 +23,25 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/register", {
+      // Sending the POST request to the backend
+      const response = await axios.post(`${apiUrl}/register`, {
         username,
         password,
+        email, // Sending email along with username and password
       });
-      
+
+      // If registration is successful
       if (response.status === 201) {
         setError(""); // Clear any previous errors
-        navigate("/login");
+        navigate("/login"); // Redirect to login page
       }
     } catch (err) {
-      setError("Error creating account. Try again.");
+      if (err.response) {
+        // Handle specific backend error responses
+        setError(err.response.data.message); // Display message from backend
+      } else {
+        setError("Error creating account. Please try again."); // General error handling
+      }
     }
   };
 
@@ -46,6 +56,15 @@ const Register = () => {
             margin="normal"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            margin="normal"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)} // Handling email state change
             required
           />
           <TextField
@@ -66,7 +85,7 @@ const Register = () => {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
-          {error && <Typography color="error">{error}</Typography>}
+          {error && <Typography color="error">{error}</Typography>} {/* Error message display */}
           <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
             Register
           </Button>

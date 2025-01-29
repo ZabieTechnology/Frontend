@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, Link } from "react-router-dom";
 import { Drawer, List, ListItem, ListItemText, ListItemIcon, Box, Divider, InputBase, Typography, Avatar, IconButton } from "@mui/material";
 import { Home, Info, Logout, Search, ChevronLeft, ChevronRight, Work, AccountBalance, AccountBalanceWallet, Receipt, Money, ListAlt, Report } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
+import { jwtDecode } from "jwt-decode"; // Import jwt-decode
 
 const Layout = ({ setToken }) => {
   const theme = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [username, setUsername] = useState("");
 
   // Handle logout
   const handleLogout = () => {
@@ -16,14 +18,27 @@ const Layout = ({ setToken }) => {
 
   // Mock user data (replace with actual data from API or state)
   const user = {
-    name: "Jane Doe",
-    avatar: "https://i.pravatar.cc/100", // Example avatar URL
+    name: username || "Guest", // Display username or fallback to "Guest"
+    avatar: `https://via.placeholder.com/100x100.png?text=${username || "Guest"}`
   };
 
   // Toggle sidebar state
   const toggleSidebar = () => {
     setSidebarOpen((prevState) => !prevState); // Toggle sidebar visibility
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token"); // Get the token from localStorage
+
+    if (token) {
+      try {
+        const decodedToken = jwtDecode(token); // Decode the JWT token
+        setUsername(decodedToken.sub); // Assuming the username is stored in 'identity'
+      } catch (err) {
+        console.error("Error decoding token:", err);
+      }
+    }
+  }, []);
 
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>

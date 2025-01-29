@@ -4,19 +4,36 @@ import { TextField, Button, Box, Typography, InputAdornment } from "@mui/materia
 import { useNavigate } from "react-router-dom"; // For navigation
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LockIcon from "@mui/icons-material/Lock";
+import axios from "axios"; // Import Axios for HTTP requests
 
 const Login = ({ setToken }) => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");  // Assuming username is used for username
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");  // To handle errors (like invalid credentials)
   const navigate = useNavigate();
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   const handleLogin = async () => {
-    // Perform login logic (API call, etc.)
-    // For now, we're just simulating successful login with a mock token.
-    const mockToken = "mock_jwt_token";
-    localStorage.setItem("token", mockToken);
-    setToken(mockToken);
-    navigate("/home"); // Redirect to home page after successful login
+    try {
+      // Send POST request to backend API
+      const response = await axios.post(`${apiUrl}/login`, {
+        username: username,  // Assuming you use username as the username
+        password: password,
+      });
+
+      // On success, save the token and navigate
+      const { access_token } = response.data;
+      localStorage.setItem("token", access_token);
+      setToken(access_token);
+      navigate("/home"); // Redirect to home page after successful login
+    } catch (err) {
+      // Handle login errors (e.g., user not found, wrong password)
+      if (err.response) {
+        setError(err.response.data.message); // Display error message from the backend
+      } else {
+        setError("An error occurred. Please try again."); // General error handling
+      }
+    }
   };
 
   return (
@@ -39,13 +56,13 @@ const Login = ({ setToken }) => {
         Login
       </Typography>
 
-      {/* Email Input */}
+      {/* username Input */}
       <TextField
-        label="Email"
+        label="username"
         variant="outlined"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        type="username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
         fullWidth
         margin="normal"
         size="small"
@@ -76,6 +93,13 @@ const Login = ({ setToken }) => {
           ),
         }}
       />
+
+      {/* Show error message if login fails */}
+      {error && (
+        <Typography color="error" variant="body2" sx={{ marginTop: 2 }}>
+          {error}
+        </Typography>
+      )}
 
       {/* Login Button */}
       <Button
