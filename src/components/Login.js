@@ -16,7 +16,7 @@ const Login = ({ setToken }) => {
   const handleLogin = async () => {
     try {
       // Send POST request to backend API
-      const response = await axios.post(`${apiUrl}/login`, {
+      const response = await axios.post(`${apiUrl}/api/auth/login`, {
         username: username,  // Assuming you use username as the username
         password: password,
       });
