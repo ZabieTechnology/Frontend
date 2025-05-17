@@ -1,9 +1,12 @@
+// src/components/Layout.js
+
 import React, { useState, useEffect } from "react";
 import { Outlet, Link } from "react-router-dom";
 import {
   Drawer,
   List,
   ListItem,
+  ListItemButton, // Use ListItemButton for better semantics and ripple effect
   ListItemText,
   ListItemIcon,
   Box,
@@ -14,6 +17,7 @@ import {
   IconButton,
   Collapse,
   Popover,
+  Tooltip // Import Tooltip
 } from "@mui/material";
 import {
   Home,
@@ -26,673 +30,345 @@ import {
   AccountBalance,
   AccountBalanceWallet,
   Receipt,
-  Money,
+  Money, // Icon for Expenses
   ListAlt,
   Report,
   Settings as SettingsIcon,
   Business as BusinessIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Contacts as ContactsIcon,
-  Description as DescriptionIcon,
   AttachMoney as AttachMoneyIcon,
   Gavel as GavelIcon,
-  Inventory as InventoryIcon,
-  AccountBalance as BankIcon,
-  Payment as PayrollIcon,
   Tune as AdvancedSettingsIcon,
+  People as PeopleIcon,
+  Store as VendorIcon,
+  Ballot as ChartOfAccountsIcon,
+  Groups as StaffIcon,
+  Assessment, 
+  RequestQuote, 
+  Build 
 } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
-import { jwtDecode } from "jwt-decode"; // Import jwt-decode
+import { jwtDecode } from "jwt-decode";
+
+// Helper component for sidebar items
+const SidebarListItem = ({ to, icon, primaryText, sidebarOpen, onClick, children, nested = false }) => {
+  const theme = useTheme();
+  const commonSx = {
+    color: theme.palette.text.primary,
+    textDecoration: 'none',
+    py: 1, 
+    minHeight: 48, 
+    justifyContent: sidebarOpen ? 'initial' : 'center',
+    px: 2.5, 
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+    ...(nested && sidebarOpen && { pl: 4 }), 
+  };
+
+  const itemContent = (
+    <>
+      <ListItemIcon
+        sx={{
+          minWidth: 0,
+          mr: sidebarOpen ? 3 : 'auto', 
+          justifyContent: 'center',
+          color: 'inherit', 
+        }}
+      >
+        {icon}
+      </ListItemIcon>
+      <ListItemText
+        primary={primaryText}
+        sx={{ opacity: sidebarOpen ? 1 : 0, whiteSpace: 'nowrap' }} 
+      />
+      {children} {/* For Expand/Collapse icons */}
+    </>
+  );
+
+  const button = to ? (
+    <ListItemButton component={Link} to={to} sx={commonSx}>
+      {itemContent}
+    </ListItemButton>
+  ) : (
+    <ListItemButton onClick={onClick} sx={commonSx}>
+      {itemContent}
+    </ListItemButton>
+  );
+
+  return (
+    <Tooltip title={!sidebarOpen ? primaryText : ""} placement="right">
+        <ListItem disablePadding sx={{ display: 'block' }}>
+             {button}
+        </ListItem>
+    </Tooltip>
+  );
+};
+
 
 const Layout = ({ setToken }) => {
   const theme = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [username, setUsername] = useState("");
-  const [openSettings, setOpenSettings] = useState(false); // State for Settings submenu
-  const [openOrganizationDetails, setOpenOrganizationDetails] = useState(false); // State for Organization Details submenu
-  const [openTaxCompliance, setOpenTaxCompliance] = useState(false); // State for Tax/Compliance submenu
-  const [anchorEl, setAnchorEl] = useState(null); // State for Popover
+  const [openSettings, setOpenSettings] = useState(false);
+  const [openOrganizationDetails, setOpenOrganizationDetails] = useState(false);
+  const [openTaxCompliance, setOpenTaxCompliance] = useState(false);
+  const [openAccountTransaction, setOpenAccountTransaction] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
 
-  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("token");
-    setToken(null);
+    setToken(null); 
   };
 
-  // Mock user data (replace with actual data from API or state)
   const user = {
-    name: username || "Guest", // Display username or fallback to "Guest"
-    avatar: `https://via.placeholder.com/100x100.png?text=${username || "Guest"}`,
+    name: username || "Guest",
+    avatarInitial: (username || "G")[0].toUpperCase(),
   };
 
-  // Toggle sidebar state
   const toggleSidebar = () => {
-    setSidebarOpen((prevState) => !prevState); // Toggle sidebar visibility
+    setSidebarOpen((prevState) => !prevState);
   };
 
-  // Handle submenu click
-  const handleSubmenuClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const handleSettingsToggle = () => setOpenSettings(!openSettings);
+  const handleOrganizationDetailsToggle = () => setOpenOrganizationDetails(!openOrganizationDetails);
+  const handleTaxComplianceToggle = () => setOpenTaxCompliance(!openTaxCompliance);
+  const handleAccountTransactionToggle = () => setOpenAccountTransaction(!openAccountTransaction);
 
-  // Close submenu
-  const handleSubmenuClose = () => {
-    setAnchorEl(null);
-  };
+  const handlePopoverOpen = (event) => setAnchorEl(event.currentTarget);
+  const handlePopoverClose = () => setAnchorEl(null);
+  const popoverOpen = Boolean(anchorEl);
+  const popoverId = popoverOpen ? "submenu-popover" : undefined;
 
-  const open = Boolean(anchorEl);
-  const id = open ? "submenu-popover" : undefined;
 
   useEffect(() => {
-    const token = localStorage.getItem("token"); // Get the token from localStorage
-
+    const token = localStorage.getItem("token");
     if (token) {
       try {
-        const decodedToken = jwtDecode(token); // Decode the JWT token
-        setUsername(decodedToken.sub); // Assuming the username is stored in 'identity'
+        const decodedToken = jwtDecode(token);
+        setUsername(decodedToken.sub); 
       } catch (err) {
         console.error("Error decoding token:", err);
       }
     }
-  }, []);
+  }, []); 
+
 
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
       {/* Sidebar */}
       <Drawer
-        sx={{
-          width: sidebarOpen ? 240 : 72, // Adjust width based on state
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: sidebarOpen ? 240 : 72, // Animated transition
-            backgroundColor: theme.palette.background.paper,
-            color: theme.palette.text.primary,
-            display: "flex",
-            flexDirection: "column",
-            transition: "width 0.3s ease",
-          },
-        }}
         variant="permanent"
         anchor="left"
+        sx={{
+          width: sidebarOpen ? 240 : 72,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: {
+            width: sidebarOpen ? 240 : 72,
+            boxSizing: 'border-box',
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            overflowX: 'hidden',
+            transition: theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+          },
+        }}
       >
-        {/* Sidebar Header with Logo (aligned with the top bar) */}
         <Box
           sx={{
-            height: 64, // Matches the top bar height
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            position: "relative",
+            height: 64, 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-            Co-book
-          </Typography>
-          {/* Centered Divider */}
-          <Divider
-            sx={{
-              width: "80%", // Make the line shorter
-              height: "1px",
-              backgroundColor: theme.palette.divider,
-              position: "absolute",
-              bottom: 0, // Position at the bottom of the header
-            }}
-          />
+           {sidebarOpen ? (
+             <Typography variant="h6" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                Co-book
+             </Typography>
+           ) : (
+             <BusinessIcon /> 
+           )}
+           <Divider sx={{ width: '80%', position: 'absolute', bottom: 0, left: '10%', right: '10%' }} />
         </Box>
 
-        {/* Sidebar Links */}
-        <List>
-          {/* Dashboard */}
-          <ListItem
-            button
-            component={Link}
-            to="/home"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none", // Remove purple link styles
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Home />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Dashboard" />}
-          </ListItem>
+        <List sx={{ pt: 1 }}>
+          <SidebarListItem to="/home" icon={<Home />} primaryText="Dashboard" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/info" icon={<Info />} primaryText="Info" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/sales" icon={<Work />} primaryText="Sales" sidebarOpen={sidebarOpen} />
+          {/* Updated Expenses Link */}
+          <SidebarListItem to="/Expenses" icon={<Money />} primaryText="Expenses" sidebarOpen={sidebarOpen} /> 
+          <SidebarListItem to="/info" icon={<AccountBalance />} primaryText="Inventory" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/info" icon={<AccountBalanceWallet />} primaryText="Bank" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/info" icon={<Receipt />} primaryText="Cash" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/info" icon={<ListAlt />} primaryText="Payroll" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/info" icon={<Report />} primaryText="Reimbursement" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/info" icon={<RequestQuote />} primaryText="Taxation" sidebarOpen={sidebarOpen} />
+          <SidebarListItem to="/info" icon={<Assessment />} primaryText="C-Reports" sidebarOpen={sidebarOpen} />
 
-          {/* Info */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none", // Remove purple link styles
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
+          <SidebarListItem
+            icon={<AttachMoneyIcon />}
+            primaryText="Account Transaction"
+            sidebarOpen={sidebarOpen}
+            onClick={handleAccountTransactionToggle}
           >
-            <ListItemIcon>
-              <Info />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Info" />}
-          </ListItem>
-
-          {/* Sales */}
-          <ListItem
-            button
-            component={Link}
-            to="/sales"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Work />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Sales" />}
-          </ListItem>
-
-          {/* Expenses */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Money />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Expenses" />}
-          </ListItem>
-
-          {/* Inventory */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <AccountBalance />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Inventory" />}
-          </ListItem>
-
-          {/* Bank */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <AccountBalanceWallet />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Bank" />}
-          </ListItem>
-
-          {/* Cash */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Receipt />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Cash" />}
-          </ListItem>
-
-          {/* Payroll */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <ListAlt />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Payroll" />}
-          </ListItem>
-
-          {/* Reimbursement */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Report />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Reimbursement" />}
-          </ListItem>
-
-          {/* Taxation */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Work />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Taxation" />}
-          </ListItem>
-
-          {/* C-Reports */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Work />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="C-Reports" />}
-          </ListItem>
-
-          {/* Co-book Tools */}
-          <ListItem
-            button
-            component={Link}
-            to="/info"
-            sx={{
-              color: theme.palette.text.primary,
-              textDecoration: "none",
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Info />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Co-book Tools" />}
-          </ListItem>
-
-          {/* Settings */}
-          <ListItem button onClick={() => setOpenSettings(!openSettings)}>
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Settings" />}
-            {openSettings ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </ListItem>
-          <Collapse in={openSettings} timeout="auto" unmountOnExit>
+            {sidebarOpen && (openAccountTransaction ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
+          </SidebarListItem>
+          <Collapse in={openAccountTransaction && sidebarOpen} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {/* Organization Details */}
-              <ListItem button onClick={() => setOpenOrganizationDetails(!openOrganizationDetails)}>
-                <ListItemIcon>
-                  <BusinessIcon />
-                </ListItemIcon>
-                <ListItemText primary="Organization Details" />
-                {openOrganizationDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </ListItem>
-              <Collapse in={openOrganizationDetails} timeout="auto" unmountOnExit>
+              <SidebarListItem to="/account-transaction/customer" icon={<PeopleIcon />} primaryText="Customer" sidebarOpen={sidebarOpen} nested />
+              <SidebarListItem to="/account-transaction/vendor" icon={<VendorIcon />} primaryText="Vendor" sidebarOpen={sidebarOpen} nested />
+              <SidebarListItem to="/account-transaction/chart-of-accounts" icon={<ChartOfAccountsIcon />} primaryText="Chart of Accounts" sidebarOpen={sidebarOpen} nested />
+              <SidebarListItem to="/account-transaction/staff" icon={<StaffIcon />} primaryText="Staff" sidebarOpen={sidebarOpen} nested />
+            </List>
+          </Collapse>
+
+          <SidebarListItem to="/info" icon={<Build />} primaryText="Co-book Tools" sidebarOpen={sidebarOpen} />
+
+          <SidebarListItem
+            icon={<SettingsIcon />}
+            primaryText="Settings"
+            sidebarOpen={sidebarOpen}
+            onClick={handleSettingsToggle}
+          >
+             {sidebarOpen && (openSettings ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
+          </SidebarListItem>
+          <Collapse in={openSettings && sidebarOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <SidebarListItem
+                icon={<BusinessIcon />}
+                primaryText="Organization Details"
+                sidebarOpen={sidebarOpen}
+                onClick={handleOrganizationDetailsToggle}
+                nested
+              >
+                 {sidebarOpen && (openOrganizationDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
+              </SidebarListItem>
+              <Collapse in={openOrganizationDetails && sidebarOpen} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
-                  {/* Company Information */}
-                  <ListItem
-                    button
-                    component={Link}
-                    to="/settings/organizationsetting/companyinformation"
-                    sx={{
-                      color: theme.palette.text.primary,
-                      textDecoration: "none",
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
-                  >
-                    <ListItemText primary="Company Information" />
-                  </ListItem>
-
-                  {/* Contact Details */}
-                  <ListItem
-                    button
-                    component={Link}
-                    to="/settings/organizationsettings/contactdetails"
-                    sx={{
-                      color: theme.palette.text.primary,
-                      textDecoration: "none",
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
-                  >
-                    <ListItemText primary="Contact Details" />
-                  </ListItem>
-
-                  {/* Nature of Business */}
-                  <ListItem
-                    button
-                    component={Link}
-                    to="/settings/organizationsettings/natureofbusiness"
-                    sx={{
-                      color: theme.palette.text.primary,
-                      textDecoration: "none",
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
-                  >
-                    <ListItemText primary="Nature of Business" />
-                  </ListItem>
-
-                  {/* Financial Details */}
-                  <ListItem
-                    button
-                    component={Link}
-                    to="/settings/organizationsettings/financialdetails"
-                    sx={{
-                      color: theme.palette.text.primary,
-                      textDecoration: "none",
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
-                  >
-                    <ListItemText primary="Financial Details" />
-                  </ListItem>
-
-                  {/* Dropdown Management */}
-                  <ListItem
-                    button
-                    component={Link}
-                    to="/settings/global-settings/dropdown"
-                    sx={{
-                      color: theme.palette.text.primary,
-                      textDecoration: "none",
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
-                  >
-                    <ListItemText primary="Dropdown Management" />
-                  </ListItem>
+                  <SidebarListItem to="/settings/organizationsetting/companyinformation" icon={<Info />} primaryText="Company Information" sidebarOpen={sidebarOpen} nested />
+                  <SidebarListItem to="/settings/organizationsettings/contactdetails" icon={<PeopleIcon />} primaryText="Contact Details" sidebarOpen={sidebarOpen} nested />
+                  <SidebarListItem to="/settings/organizationsettings/natureofbusiness" icon={<Work />} primaryText="Nature of Business" sidebarOpen={sidebarOpen} nested />
+                  <SidebarListItem to="/settings/organizationsettings/financialdetails" icon={<AttachMoneyIcon />} primaryText="Financial Details" sidebarOpen={sidebarOpen} nested />
+                  <SidebarListItem to="/settings/global-settings/dropdown" icon={<ListAlt />} primaryText="Dropdown Management" sidebarOpen={sidebarOpen} nested />
                 </List>
               </Collapse>
 
-              {/* Tax/Compliance Details */}
-              <ListItem button onClick={() => setOpenTaxCompliance(!openTaxCompliance)}>
-                <ListItemIcon>
-                  <GavelIcon />
-                </ListItemIcon>
-                <ListItemText primary="Tax/Compliance Details" />
-                {openTaxCompliance ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </ListItem>
-              <Collapse in={openTaxCompliance} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
-                  {/* GST */}
-                  <ListItem
-  button
-  component={Link}
-  to="/settings/taxcompliancedetails/GSTManagement"
-  sx={{
-    color: theme.palette.text.primary,
-    textDecoration: "none",
-    "&:hover": {
-      backgroundColor: theme.palette.action.hover,
-    },
-  }}
->
-  <ListItemIcon>
-    <GavelIcon />
-  </ListItemIcon>
-  <ListItemText primary="GST" />
-</ListItem>
-<ListItem
-  button
-  component={Link}
-  to="/settings/taxcompliancedetails/vat-management"
-  sx={{
-    color: theme.palette.text.primary,
-    textDecoration: "none",
-    "&:hover": {
-      backgroundColor: theme.palette.action.hover,
-    },
-  }}
->
-  <ListItemIcon>
-    <GavelIcon />
-  </ListItemIcon>
-  <ListItemText primary="VAT" />
-</ListItem>
-                  <ListItem button onClick={handleSubmenuClick}>
-                    <ListItemText primary="TDS" />
-                  </ListItem>
-                  <ListItem button onClick={handleSubmenuClick}>
-                    <ListItemText primary="TCS" />
-                  </ListItem>
-                  <ListItem button onClick={handleSubmenuClick}>
-                    <ListItemText primary="Advance TAX" />
-                  </ListItem>
+              <SidebarListItem
+                icon={<GavelIcon />}
+                primaryText="Tax/Compliance Details"
+                sidebarOpen={sidebarOpen}
+                onClick={handleTaxComplianceToggle}
+                nested
+              >
+                 {sidebarOpen && (openTaxCompliance ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
+              </SidebarListItem>
+              <Collapse in={openTaxCompliance && sidebarOpen} timeout="auto" unmountOnExit>
+                 <List component="div" disablePadding>
+                     <SidebarListItem to="/settings/taxcompliancedetails/GSTManagement" icon={<></>} primaryText="GST" sidebarOpen={sidebarOpen} nested />
+                     <SidebarListItem to="/settings/taxcompliancedetails/vat-management" icon={<></>} primaryText="VAT" sidebarOpen={sidebarOpen} nested />
+                     <SidebarListItem icon={<></>} primaryText="TDS" sidebarOpen={sidebarOpen} onClick={handlePopoverOpen} nested />
+                     <SidebarListItem icon={<></>} primaryText="TCS" sidebarOpen={sidebarOpen} onClick={handlePopoverOpen} nested />
+                     <SidebarListItem icon={<></>} primaryText="Advance TAX" sidebarOpen={sidebarOpen} onClick={handlePopoverOpen} nested />
                 </List>
               </Collapse>
-
-              {/* Other Settings */}
-              <ListItem button onClick={handleSubmenuClick}>
-                <ListItemIcon>
-                  <Receipt />
-                </ListItemIcon>
-                <ListItemText primary="Invoice" />
-              </ListItem>
-              <ListItem button onClick={handleSubmenuClick}>
-                <ListItemIcon>
-                  <Money />
-                </ListItemIcon>
-                <ListItemText primary="Expenses" />
-              </ListItem>
-              <ListItem button onClick={handleSubmenuClick}>
-                <ListItemIcon>
-                  <InventoryIcon />
-                </ListItemIcon>
-                <ListItemText primary="Inventory" />
-              </ListItem>
-              <ListItem button onClick={handleSubmenuClick}>
-                <ListItemIcon>
-                  <BankIcon />
-                </ListItemIcon>
-                <ListItemText primary="Bank & Cash" />
-              </ListItem>
-              <ListItem button onClick={handleSubmenuClick}>
-                <ListItemIcon>
-                  <PayrollIcon />
-                </ListItemIcon>
-                <ListItemText primary="Payroll" />
-              </ListItem>
-              <ListItem button onClick={handleSubmenuClick}>
-                <ListItemIcon>
-                  <AdvancedSettingsIcon />
-                </ListItemIcon>
-                <ListItemText primary="Advanced Settings" />
-              </ListItem>
+              <SidebarListItem icon={<Receipt />} primaryText="Invoice Settings" sidebarOpen={sidebarOpen} onClick={handlePopoverOpen} nested />
+              <SidebarListItem icon={<Money />} primaryText="Expense Settings" sidebarOpen={sidebarOpen} onClick={handlePopoverOpen} nested />
+              <SidebarListItem icon={<AdvancedSettingsIcon />} primaryText="Advanced Settings" sidebarOpen={sidebarOpen} onClick={handlePopoverOpen} nested />
             </List>
           </Collapse>
         </List>
 
-        <Divider sx={{ mt: "auto" }} />
-
-        {/* Sidebar Toggle Button - Above Logout */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            padding: 1,
-          }}
-        >
-          <IconButton
-            onClick={toggleSidebar} // Toggle sidebar visibility
-            sx={{
-              color: theme.palette.text.primary,
-              transform: sidebarOpen ? "rotate(360deg)" : "rotate(0deg)",
-              transition: "transform 0.3s ease",
-            }}
-          >
-            {sidebarOpen ? <ChevronLeft /> : <ChevronRight />}
-          </IconButton>
-        </Box>
-
-        {/* Logout Button */}
-        <List>
-          <ListItem
-            button
+        <Box sx={{ flexGrow: 1 }} /> 
+        <Tooltip title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"} placement="right">
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+              <IconButton onClick={toggleSidebar} sx={{ color: theme.palette.text.primary }}>
+                {sidebarOpen ? <ChevronLeft /> : <ChevronRight />}
+              </IconButton>
+            </Box>
+        </Tooltip>
+        <Divider />
+         <SidebarListItem
+            icon={<Logout />}
+            primaryText="Logout"
+            sidebarOpen={sidebarOpen}
             onClick={handleLogout}
-            sx={{
-              color: theme.palette.text.primary,
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Logout />
-            </ListItemIcon>
-            {sidebarOpen && <ListItemText sx={{ fontSize: "12px" }} disableTypography primary="Logout" />}
-          </ListItem>
-        </List>
+        />
       </Drawer>
 
-      {/* Main Content with Top Bar */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* Top Bar */}
         <Box
+          component="header"
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: 2,
+            px: 2,
+            py: 1,
             backgroundColor: theme.palette.background.paper,
             color: theme.palette.text.primary,
-            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-            height: 64, // Matches the sidebar header height
-            zIndex: 1,
+            boxShadow: theme.shadows[1],
+            height: 64,
+            zIndex: theme.zIndex.drawer + 1,
           }}
         >
-          {/* Search Bar */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1,
-              flexGrow: 1,
-              maxWidth: "500px",
-              backgroundColor: theme.palette.background.default,
-              borderRadius: 1,
-              padding: "4px 8px",
+              backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[700] : theme.palette.grey[100],
+              borderRadius: theme.shape.borderRadius,
+              p: '4px 8px',
+              flexGrow: { xs: 1, md: 0 },
+              maxWidth: { md: '400px' },
             }}
           >
-            <Search />
+            <Search sx={{ mr: 1, color: theme.palette.text.secondary }} />
             <InputBase
-              placeholder="Search"
-              sx={{
-                flexGrow: 1,
-                fontFamily: theme.typography.fontFamily,
-                color: theme.palette.text.primary,
-              }}
+              placeholder="Search…"
+              sx={{ flexGrow: 1, color: 'inherit' }}
+              inputProps={{ 'aria-label': 'search' }}
             />
           </Box>
-
-          {/* User Info */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Avatar src={user.avatar} alt={user.name} />
-            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+           <Box sx={{ flexGrow: { xs: 0, md: 1 } }} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>{user.avatarInitial}</Avatar>
+            <Typography variant="body1" sx={{ fontWeight: 500, display: { xs: 'none', sm: 'block' } }}>
               {user.name}
             </Typography>
           </Box>
         </Box>
 
-        {/* Main Content */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
             bgcolor: theme.palette.background.default,
-            padding: 3,
-            overflow: "auto",
+            p: 3,
+            overflowY: "auto",
+            position: 'relative',
           }}
         >
-          <Outlet />
+          <Outlet /> 
         </Box>
       </Box>
 
-      {/* Submenu Popover */}
       <Popover
-        id={id}
-        open={open}
+        id={popoverId}
+        open={popoverOpen}
         anchorEl={anchorEl}
-        onClose={handleSubmenuClose}
-        anchorOrigin={{
-          vertical: "center",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
+        onClose={handlePopoverClose}
+        anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+         PaperProps={{
+           sx: { p: 1.5, backgroundColor: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}` }
+         }}
       >
-        <Typography sx={{ p: 2 }}>Submenu Content Here</Typography>
+        <Typography variant="body2">Popover content for {anchorEl?.id || 'selected item'}</Typography>
       </Popover>
     </Box>
   );
