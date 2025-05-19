@@ -159,33 +159,6 @@ const Login = ({ setToken }) => {
           </Grid>
         </Box>
 
-        {/* Section to display test users */}
-        <Divider sx={{ width: '100%', my: 3 }}>
-          <Typography variant="caption">Test DB Connection</Typography>
-        </Divider>
-        {loadingTestUsers ? (
-          <CircularProgress size={24} />
-        ) : testUsers.length > 0 ? (
-          <Box sx={{ width: '100%', textAlign: 'left' }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Sample Users from DB (for testing):
-            </Typography>
-            <List dense sx={{ bgcolor: 'action.hover', borderRadius: 1, p:1 }}>
-              {testUsers.map((user, index) => (
-                <ListItem key={index} disablePadding>
-                  <ListItemText
-                    primary={`Username: ${user.username}`}
-                    secondary={`Email: ${user.email || 'N/A'}`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        ) : (
-          <Typography variant="caption" color="textSecondary">
-            No test users found or failed to fetch.
-          </Typography>
-        )}
       </Box>
     </Container>
   );

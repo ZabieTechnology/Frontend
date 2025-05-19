@@ -20,6 +20,7 @@ import FinancialDetails from "./pages/settings/organizationsettings/financialdet
 import DropdownManagement from "./pages/settings/globalsettings/DropdownManagement";
 import GSTManagement from "./pages/settings/taxcompliancedetails/GSTManagement";
 import VATManagement from "./pages/settings/taxcompliancedetails/VATManagement";
+import InvoiceSettingsPage from './pages/settings/invoicesettings/InvoiceSettingsPage';
 
 // Account Transaction Pages
 import CustomerListPage from "./pages/AccountTransaction/customer"; // Assuming customer.js is the list page
@@ -86,6 +87,7 @@ function App() {
             <Route path="/settings/global-settings/dropdown" element={<DropdownManagement />} />
             <Route path="/settings/taxcompliancedetails/GSTManagement" element={<GSTManagement />} />
             <Route path="/settings/taxcompliancedetails/vat-management" element={<VATManagement />} />
+            <Route path="/settings/invoicesettings/InvoiceSettingsPage" element={<InvoiceSettingsPage />} />
 
             {/* Account Transaction - Customer Routes */}
             <Route path="/account-transaction/customer" element={<CustomerListPage />} />
