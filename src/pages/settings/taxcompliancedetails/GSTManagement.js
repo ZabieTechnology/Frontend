@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// src/pages/settings/taxcompliancedetails/GSTManagement.js
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,176 +10,273 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-} from "@mui/material";
+  IconButton,
+  CircularProgress,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import axios from 'axios';
+import useConfirmationDialog from '../../../hooks/useConfirmationDialog';
+
+const initialNewTaxState = {
+  taxName: "",
+  taxRate: "",
+  head: "",
+};
+
+// const headOptions = ["Outward", "Inward", "TCS", "TDS", "RCM", "GST Output", "GST Input", "GST on TCS", "GST on TDS", "General"]; // Will be fetched
 
 function GSTManagement() {
-  const [gstTdsApplicable, setGstTdsApplicable] = useState("No");
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedTax, setSelectedTax] = useState(null);
+  const [taxRates, setTaxRates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
-  // Sample data for the table
-  const taxData = [
-    { id: 1, taxName: "25%", head: "Outward", sgst: "12.5%", cgst: "12.5%", igst: "25%" },
-    { id: 2, taxName: "18%", head: "Inward", sgst: "9%", cgst: "9%", igst: "18%" },
-    { id: 3, taxName: "18%", head: "Outward", sgst: "9%", cgst: "9%", igst: "18%" },
-    { id: 4, taxName: "18%", head: "TCS", sgst: "9%", cgst: "9%", igst: "18%" },
-    { id: 5, taxName: "18%", head: "TDS", sgst: "9%", cgst: "9%", igst: "18%" },
-    { id: 6, taxName: "18%", head: "RCM", sgst: "9%", cgst: "9%", igst: "18%" },
-  ];
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [newTaxData, setNewTaxData] = useState(initialNewTaxState);
+  const [currentEditTax, setCurrentEditTax] = useState(null);
+  const [gstHeadOptions, setGstHeadOptions] = useState([]); // State for GST Head dropdown options
 
-  // Handle GST TDS Applicable change
-  const handleGstTdsChange = (event) => {
-    setGstTdsApplicable(event.target.value);
+  const { confirm, ConfirmationDialog } = useConfirmationDialog();
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
+  const fetchTaxRates = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/gst-rates`, { params: { limit: -1 }, withCredentials: true });
+      if (response.data && Array.isArray(response.data.data)) {
+        setTaxRates(response.data.data);
+      } else {
+        setTaxRates([]);
+        setError("Failed to fetch GST rates: Invalid data format.");
+      }
+    } catch (err) {
+      console.error("Error fetching GST rates:", err);
+      setError(`Error fetching GST rates: ${err.response?.data?.message || err.message}`);
+      setTaxRates([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE_URL]);
+
+  // Fetch GST Head options from dropdown collection
+  const fetchGstHeadOptions = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/dropdown?type=GST_Head`, { withCredentials: true });
+      if (response.data && Array.isArray(response.data.data)) {
+        setGstHeadOptions(response.data.data);
+      } else {
+        console.warn("Failed to fetch GST Head options or invalid format:", response.data);
+        setGstHeadOptions([]);
+      }
+    } catch (err) {
+      console.error("Error fetching GST Head options:", err);
+      // Optionally set an error state for this specific fetch
+      setGstHeadOptions([]);
+    }
+  }, [API_BASE_URL]);
+
+  useEffect(() => {
+    fetchTaxRates();
+    fetchGstHeadOptions(); // Fetch head options on mount
+  }, [fetchTaxRates, fetchGstHeadOptions]);
+
+  const handleOpenAddDialog = () => {
+    setNewTaxData(initialNewTaxState);
+    setOpenAddDialog(true);
+  };
+  const handleCloseAddDialog = () => setOpenAddDialog(false);
+  const handleNewTaxChange = (event) => {
+    const { name, value } = event.target;
+    setNewTaxData(prev => ({ ...prev, [name]: value }));
+  };
+  const handleSaveNewTax = async () => {
+    if (!newTaxData.taxName || newTaxData.taxRate === '' || !newTaxData.head) {
+      setError("Tax Name, Tax Rate, and Head are required.");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    setLoading(true); setError(null); setSuccess(null);
+    try {
+      await axios.post(`${API_BASE_URL}/api/gst-rates`, newTaxData, { withCredentials: true });
+      setSuccess("New GST % added successfully.");
+      fetchTaxRates();
+      handleCloseAddDialog();
+    } catch (err) {
+      setError(`Failed to add GST rate: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setLoading(false); setTimeout(() => setSuccess(null), 3000);
+    }
   };
 
-  // Handle row click to show tax details
-  const handleRowClick = (tax) => {
-    setSelectedTax(tax);
+  const handleOpenEditDialog = (tax) => {
+    setCurrentEditTax({
+        _id: tax._id,
+        taxName: tax.taxName,
+        taxRate: tax.taxRate.toString(),
+        head: tax.head,
+    });
+    setOpenEditDialog(true);
+  };
+  const handleCloseEditDialog = () => { setOpenEditDialog(false); setCurrentEditTax(null); };
+  const handleEditTaxChange = (event) => {
+    const { name, value } = event.target;
+    setCurrentEditTax(prev => ({ ...prev, [name]: value }));
+  };
+  const handleSaveEditTax = async () => {
+    if (!currentEditTax || !currentEditTax.taxName || currentEditTax.taxRate === '' || !currentEditTax.head) {
+      setError("Tax Name, Tax Rate, and Head are required for update.");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    setLoading(true); setError(null); setSuccess(null);
+    try {
+      await axios.put(`${API_BASE_URL}/api/gst-rates/${currentEditTax._id}`, currentEditTax, { withCredentials: true });
+      setSuccess("GST rate updated successfully.");
+      fetchTaxRates();
+      handleCloseEditDialog();
+    } catch (err) {
+      setError(`Failed to update GST rate: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setLoading(false); setTimeout(() => setSuccess(null), 3000);
+    }
   };
 
-  // Handle close tax details popup
-  const handleClosePopup = () => {
-    setSelectedTax(null);
+  const handleDeleteTax = async (taxId) => {
+    setLoading(true); setError(null); setSuccess(null);
+    try {
+      await axios.delete(`${API_BASE_URL}/api/gst-rates/${taxId}`, { withCredentials: true });
+      setSuccess("GST rate deleted successfully.");
+      fetchTaxRates();
+    } catch (err) {
+      setError(`Failed to delete GST rate: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setLoading(false); setTimeout(() => setSuccess(null), 3000);
+    }
+  };
+
+  const confirmDelete = (taxId, taxName) => {
+    confirm({
+      title: "Confirm Deletion",
+      message: `Are you sure you want to delete tax "${taxName || taxId}"? This action cannot be revoked.`,
+      onConfirmAction: () => handleDeleteTax(taxId),
+    });
   };
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        GST Number
+      <ConfirmationDialog />
+      <Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+        GST Settings
       </Typography>
 
-      {/* GST TDS Applicable Section */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          GST TDS applicable
-        </Typography>
-        <RadioGroup
-          row
-          value={gstTdsApplicable}
-          onChange={handleGstTdsChange}
-        >
-          <FormControlLabel value="No" control={<Radio />} label="No" />
-          <FormControlLabel value="Yes" control={<Radio />} label="Yes" />
-        </RadioGroup>
-        {gstTdsApplicable === "Yes" && (
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            All the ledgers will be available if the option is yes.
-          </Typography>
-        )}
-      </Box>
+      {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>{success}</Alert>}
 
-      {/* GST Number Table */}
-      <TableContainer component={Paper} sx={{ mb: 3 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>S1 No</TableCell>
-              <TableCell>Tax Name</TableCell>
-              <TableCell>Head</TableCell>
-              <TableCell>SGST</TableCell>
-              <TableCell>CGST</TableCell>
-              <TableCell>IGST</TableCell>
-              <TableCell>Options</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {taxData.map((row) => (
-              <TableRow key={row.id} onClick={() => handleRowClick(row)}>
-                <TableCell>{row.id}</TableCell>
-                <TableCell>{row.taxName}</TableCell>
-                <TableCell>{row.head}</TableCell>
-                <TableCell>{row.sgst}</TableCell>
-                <TableCell>{row.cgst}</TableCell>
-                <TableCell>{row.igst}</TableCell>
-                <TableCell>
-                  <Button>Edit</Button>
-                  <Button>Delete</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Add New GST % Button */}
-      <Button
-        variant="contained"
-        onClick={() => setOpenDialog(true)}
-        sx={{ mb: 3 }}
-      >
+      <Button variant="contained" onClick={handleOpenAddDialog} startIcon={<AddIcon />} sx={{ mb: 3 }}>
         Add New GST %
       </Button>
 
-      {/* Tax Details Popup */}
-      {selectedTax && (
-        <Dialog open={!!selectedTax} onClose={handleClosePopup}>
-          <DialogTitle>Tax Details</DialogTitle>
-          <DialogContent>
-            <Typography variant="body1">
-              <strong>Output CGST:</strong> {selectedTax.cgst}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Output SGST:</strong> {selectedTax.sgst}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Output IGST:</strong> {selectedTax.igst}
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClosePopup}>Close</Button>
-          </DialogActions>
-        </Dialog>
+      {loading && <Box sx={{ display: 'flex', justifyContent: 'center', my:3 }}><CircularProgress /></Box>}
+
+      {!loading && (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead sx={{ bgcolor: 'grey.200' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold' }}>S.No</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tax Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Head</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>SGST</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>CGST</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>IGST</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }} align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {taxRates.map((row, index) => (
+                <TableRow key={row._id} hover>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{row.taxName}</TableCell>
+                  <TableCell>{row.head}</TableCell>
+                  <TableCell>{row.sgstRate?.toFixed(2)}%</TableCell>
+                  <TableCell>{row.cgstRate?.toFixed(2)}%</TableCell>
+                  <TableCell>{row.igstRate?.toFixed(2)}%</TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" color="primary" onClick={() => handleOpenEditDialog(row)} aria-label="edit tax rate">
+                      <EditIcon fontSize="small"/>
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => confirmDelete(row._id, row.taxName)} aria-label="delete tax rate">
+                      <DeleteIcon fontSize="small"/>
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {taxRates.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">No GST rates configured yet.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       {/* Add New GST % Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Add New GST %</DialogTitle>
+      <Dialog open={openAddDialog} onClose={handleCloseAddDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Add New GST Rate</DialogTitle>
         <DialogContent>
-          <TextField
-            margin="normal"
-            fullWidth
-            label="Tax Name"
-            placeholder="e.g., 18%"
-          />
-          <TextField
-            margin="normal"
-            fullWidth
-            label="Head"
-            placeholder="e.g., Outward"
-          />
-          <TextField
-            margin="normal"
-            fullWidth
-            label="SGST"
-            placeholder="e.g., 9%"
-          />
-          <TextField
-            margin="normal"
-            fullWidth
-            label="CGST"
-            placeholder="e.g., 9%"
-          />
-          <TextField
-            margin="normal"
-            fullWidth
-            label="IGST"
-            placeholder="e.g., 18%"
-          />
+          <TextField autoFocus margin="dense" name="taxName" label="Tax Name" placeholder="e.g., GST 18%" fullWidth value={newTaxData.taxName} onChange={handleNewTaxChange} required/>
+          <TextField margin="dense" name="taxRate" label="Tax Rate (%)" placeholder="e.g., 18" type="number" fullWidth value={newTaxData.taxRate} onChange={handleNewTaxChange} required InputProps={{ inputProps: { min: 0, step: "0.01" } }}/>
+          <FormControl fullWidth margin="dense" required>
+            <InputLabel>Head</InputLabel>
+            <Select name="head" value={newTaxData.head} label="Head" onChange={handleNewTaxChange}>
+              <MenuItem value=""><em>Select Head</em></MenuItem>
+              {gstHeadOptions.map(opt => <MenuItem key={opt.value || opt._id} value={opt.value}>{opt.label}</MenuItem>)}
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={() => setOpenDialog(false)}>Save</Button>
+          <Button onClick={handleCloseAddDialog}>Cancel</Button>
+          <Button onClick={handleSaveNewTax} variant="contained" disabled={loading}>Save</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Edit GST % Dialog */}
+      {currentEditTax && (
+        <Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="xs" fullWidth>
+          <DialogTitle>Edit GST Rate</DialogTitle>
+          <DialogContent>
+            <TextField autoFocus margin="dense" name="taxName" label="Tax Name" fullWidth value={currentEditTax.taxName} onChange={handleEditTaxChange} required/>
+            <TextField margin="dense" name="taxRate" label="Tax Rate (%)" type="number" fullWidth value={currentEditTax.taxRate} onChange={handleEditTaxChange} required InputProps={{ inputProps: { min: 0, step: "0.01" } }}/>
+            <FormControl fullWidth margin="dense" required>
+                <InputLabel>Head</InputLabel>
+                <Select name="head" value={currentEditTax.head} label="Head" onChange={handleEditTaxChange}>
+                <MenuItem value=""><em>Select Head</em></MenuItem>
+                {gstHeadOptions.map(opt => <MenuItem key={opt.value || opt._id} value={opt.value}>{opt.label}</MenuItem>)}
+                </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseEditDialog}>Cancel</Button>
+            <Button onClick={handleSaveEditTax} variant="contained" disabled={loading}>Update</Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 }

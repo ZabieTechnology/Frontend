@@ -9,41 +9,53 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Checkbox, // Keep if you plan to implement bulk actions
+  Checkbox,
   Paper,
   Tabs,
   Tab,
   IconButton,
   TableSortLabel,
-  Typography, // Added for page title
-  TextField, // For search
-  Select, // For items per page
-  MenuItem, // For items per page
-  Pagination, // For pagination
-  CircularProgress, // For loading state
-  Alert, // For error/success messages
-  Link, // For clickable account name
+  Typography,
+  TextField,
+  Select,
+  MenuItem,
+  Pagination,
+  CircularProgress,
+  Alert,
+  Link,
   Tooltip
 } from '@mui/material';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import StarIcon from '@mui/icons-material/Star'; // For favorited items
+import StarIcon from '@mui/icons-material/Star';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility'; // View icon
-import AddIcon from '@mui/icons-material/Add'; // Add icon
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useConfirmationDialog from '../../hooks/useConfirmationDialog'; // Adjust path if needed
+
+// Moved tabCategories outside the component to prevent re-creation on every render
+const tabCategories = [
+    "All Accounts", // Index 0
+    "Asset",        // Index 1
+    "Liability",    // Index 2
+    "Equity",       // Index 3
+    "Expense",      // Index 4
+    "Income",       // Index 5 (Revenue)
+    "Tax",          // Index 6 (This will fetch from ca_tax)
+    "Inactive"      // Index 7
+];
 
 const AccountListPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null); // For delete/update success
+  const [success, setSuccess] = useState(null);
 
-  const [currentTab, setCurrentTab] = useState(0); // Index of the current tab
+  const [currentTab, setCurrentTab] = useState(0);
   const [order, setOrder] = useState('asc');
-  const [orderBy, setOrderBy] = useState('name'); // Default sort by name
+  const [orderBy, setOrderBy] = useState('name');
 
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -55,31 +67,39 @@ const AccountListPage = () => {
   const { confirm, ConfirmationDialog } = useConfirmationDialog();
   const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
-  const tabCategories = [
-    "All Accounts", // Index 0
-    "Asset",        // Index 1
-    "Liability",    // Index 2
-    "Equity",       // Index 3
-    "Expense",      // Index 4
-    "Income",       // Index 5 (Revenue)
-    "Tax",          // Index 6
-    "Inactive"      // Index 7
-  ];
-
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const params = {
+    let endpoint = `${API_BASE_URL}/api/chart-of-accounts`;
+    let params = {
+      page,
+      limit: itemsPerPage,
+      search: searchTerm,
+      // Send category only if it's not "All Accounts" or "Tax" (handled differently)
+      // Backend needs to know that "All Accounts" means no category filter or a specific value.
+      // And "Tax" tab has its own endpoint.
+    };
+
+    const currentCategory = tabCategories[currentTab];
+
+    if (currentCategory === "Tax") {
+      endpoint = `${API_BASE_URL}/api/gst-rates/derived-tax-accounts`;
+      // For the "Tax" tab, only send parameters that its specific endpoint expects.
+      // If it doesn't support search, page, limit, remove them or adjust.
+      // Keeping them for now, assuming the backend might handle them.
+      params = {
         page,
         limit: itemsPerPage,
         search: searchTerm,
-        category: tabCategories[currentTab], // Send current tab as category filter
-        // You might want to add sortBy and sortOrder params if API supports it
-        // sortBy: orderBy,
-        // sortOrder: order,
       };
-      const response = await axios.get(`${API_BASE_URL}/api/chart-of-accounts`, { params, withCredentials: true });
+    } else if (currentCategory !== "All Accounts") {
+      // For specific categories like "Asset", "Liability", etc.
+      params.category = currentCategory;
+    }
+    // For "All Accounts", params.category will not be set, so backend should fetch all (excluding inactive if that's the logic)
+
+    try {
+      const response = await axios.get(endpoint, { params, withCredentials: true });
       if (response.data && Array.isArray(response.data.data)) {
         setAccounts(response.data.data);
         setTotalItems(response.data.total || 0);
@@ -88,36 +108,37 @@ const AccountListPage = () => {
         setAccounts([]);
         setTotalItems(0);
         setTotalPages(0);
-        setError("Failed to fetch accounts: Invalid data format.");
+        setError(`Failed to fetch data for ${currentCategory}: Invalid data format.`);
       }
     } catch (err) {
-      console.error("Error fetching accounts:", err);
-      setError(`Error fetching accounts: ${err.response?.data?.message || err.message}`);
+      console.error(`Error fetching ${currentCategory}:`, err);
+      setError(`Error fetching ${currentCategory}: ${err.response?.data?.message || err.message}`);
       setAccounts([]);
       setTotalItems(0);
       setTotalPages(0);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, page, itemsPerPage, searchTerm, currentTab, tabCategories, orderBy, order]); // Added orderBy, order
+  }, [API_BASE_URL, page, itemsPerPage, searchTerm, currentTab, orderBy, order]); // Removed tabCategories from here as it's a constant
 
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]); // Re-fetch when any of these params change
+  }, [fetchAccounts]);
 
   const handleChangeTab = (event, newValue) => {
     setCurrentTab(newValue);
-    setPage(1); // Reset to first page when tab changes
+    setPage(1);
+    setOrderBy('name'); // Reset orderBy when tab changes
+    setOrder('asc');
   };
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
-    // Fetching will be triggered by useEffect due to orderBy/order change
+    setPage(1); // Reset to first page when sorting changes
   };
 
-  // Client-side sorting (can be removed if backend handles sorting)
   const stableSort = (array, comparator) => {
     const stabilizedThis = array.map((el, index) => [el, index]);
     stabilizedThis.sort((a, b) => {
@@ -135,25 +156,38 @@ const AccountListPage = () => {
   };
 
   const descendingComparator = (a, b, sortBy) => {
-    if (b[sortBy] < a[sortBy]) return -1;
-    if (b[sortBy] > a[sortBy]) return 1;
+    const isTaxTab = tabCategories[currentTab] === "Tax";
+    // Use 'taxRate' for sorting if on Tax tab and orderBy is 'gstTaxRate' (which is the ID in coaHeadCells)
+    // or if orderBy is directly 'taxRate' (which is the ID in caTaxHeadCells)
+    const actualSortByField = isTaxTab && (sortBy === 'gstTaxRate' || sortBy === 'taxRate') ? 'taxRate' : sortBy;
+
+    if (b[actualSortByField] < a[actualSortByField]) return -1;
+    if (b[actualSortByField] > a[actualSortByField]) return 1;
     return 0;
   };
-  // Use accounts directly from state if backend sorts, or apply client-side sort:
+
   const sortedAccounts = accounts ? stableSort(accounts, getComparator(order, orderBy)) : [];
 
-
-  const headCells = [
-    // { id: 'select', numeric: false, disablePadding: true, label: 'Select' }, // Optional for bulk actions
+  const coaHeadCells = [
     { id: 'isFavorite', numeric: false, disablePadding: true, label: '', sortable: true },
     { id: 'code', numeric: false, disablePadding: false, label: 'Code', sortable: true },
     { id: 'name', numeric: false, disablePadding: false, label: 'Name', sortable: true },
-    { id: 'parentCategory', numeric: false, disablePadding: false, label: 'Heads/Category', sortable: true }, // Maps to parentCategory
-    { id: 'gstTaxRate', numeric: false, disablePadding: false, label: 'Tax Rate', sortable: true },
+    { id: 'parentCategory', numeric: false, disablePadding: false, label: 'Heads/Category', sortable: true },
+    { id: 'gstTaxRate', numeric: false, disablePadding: false, label: 'Default Tax', sortable: true },
     { id: 'description', numeric: false, disablePadding: false, label: 'Description', sortable: true },
     { id: 'status', numeric: false, disablePadding: false, label: 'Status', sortable: true },
     { id: 'actions', numeric: false, disablePadding: false, label: 'Actions', sortable: false },
   ];
+
+  const caTaxHeadCells = [
+    { id: 'code', numeric: false, disablePadding: false, label: 'Code', sortable: true },
+    { id: 'name', numeric: false, disablePadding: false, label: 'Name', sortable: true },
+    { id: 'taxType', numeric: false, disablePadding: false, label: 'Tax Type', sortable: true },
+    { id: 'head', numeric: false, disablePadding: false, label: 'Heads', sortable: true },
+    { id: 'taxRate', numeric: false, disablePadding: false, label: 'Tax Rate (%)', sortable: true },
+  ];
+
+  const currentHeadCells = tabCategories[currentTab] === "Tax" ? caTaxHeadCells : coaHeadCells;
 
   const handleAddAccountClick = () => {
     navigate('/account-transaction/chart-of-accounts/new');
@@ -168,12 +202,11 @@ const AccountListPage = () => {
   };
 
   const handleDeleteAccount = async (accountId, accountName) => {
-    setError(null);
-    setSuccess(null);
+    setError(null); setSuccess(null);
     try {
       await axios.delete(`${API_BASE_URL}/api/chart-of-accounts/${accountId}`, { withCredentials: true });
       setSuccess(`Account "${accountName}" deleted successfully.`);
-      fetchAccounts(); // Refresh the list
+      fetchAccounts();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(`Failed to delete account: ${err.response?.data?.message || err.message}`);
@@ -200,7 +233,7 @@ const AccountListPage = () => {
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
-    setPage(1); // Reset page to 1 when search term changes
+    setPage(1);
   };
 
   return (
@@ -215,21 +248,18 @@ const AccountListPage = () => {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
         <TextField
-            label="Search Accounts (Name, Code, Description)"
+            label={`Search ${tabCategories[currentTab]}`}
             variant="outlined"
             size="small"
             value={searchTerm}
             onChange={handleSearchChange}
             sx={{ minWidth: '300px' }}
         />
-        <Box>
+        {tabCategories[currentTab] !== "Tax" && (
             <Button variant="outlined" sx={{ mr: 1 }} onClick={handleAddAccountClick} startIcon={<AddIcon />}>
-            Add Account
+                Add Account
             </Button>
-            {/* Add other buttons like Import/Export if needed */}
-            {/* <Button variant="outlined" sx={{ mr: 1 }}>Import</Button>
-            <Button variant="outlined">Export</Button> */}
-        </Box>
+        )}
       </Box>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
@@ -247,7 +277,7 @@ const AccountListPage = () => {
           <Table sx={{ minWidth: 750 }} aria-label="chart of accounts table">
             <TableHead>
               <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                {headCells.map((headCell) => (
+                {currentHeadCells.map((headCell) => (
                   <TableCell
                     key={headCell.id}
                     align={headCell.numeric ? 'right' : 'left'}
@@ -272,41 +302,56 @@ const AccountListPage = () => {
             <TableBody>
               {sortedAccounts.length > 0 ? sortedAccounts.map((account) => (
                 <TableRow key={account._id} hover>
-                  {/* <TableCell padding="checkbox"><Checkbox /></TableCell> */}
-                  <TableCell padding="checkbox">
-                    <IconButton size="small" onClick={() => alert('Toggle favorite not implemented yet')}>
-                      {account.isFavorite ? <StarIcon color="warning" /> : <StarBorderIcon />}
-                    </IconButton>
-                  </TableCell>
+                  {tabCategories[currentTab] !== "Tax" && (
+                    <TableCell padding="checkbox">
+                      <IconButton size="small" onClick={() => alert('Toggle favorite not implemented yet for COA')}>
+                        {account.isFavorite ? <StarIcon color="warning" /> : <StarBorderIcon />}
+                      </IconButton>
+                    </TableCell>
+                  )}
                   <TableCell>{account.code}</TableCell>
                   <TableCell>
-                    <Link component="button" variant="body2" onClick={() => handleViewAccountClick(account._id)} sx={{ textAlign: 'left' }}>
-                      {account.name}
-                    </Link>
+                    {tabCategories[currentTab] !== "Tax" ? (
+                      <Link component="button" variant="body2" onClick={() => handleViewAccountClick(account._id)} sx={{ textAlign: 'left' }}>
+                        {account.name}
+                      </Link>
+                    ) : (
+                      account.name
+                    )}
                   </TableCell>
-                  <TableCell>{account.parentCategory || account.accountType || 'N/A'}</TableCell>
-                  <TableCell>{account.gstTaxRate ? `${account.gstTaxRate}%` : 'N/A'}</TableCell>
-                  <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <Tooltip title={account.description || ''}>
-                        <span>{account.description || 'N/A'}</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>{account.status || 'Active'}</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="View">
-                        <IconButton size="small" onClick={() => handleViewAccountClick(account._id)}><VisibilityIcon fontSize="small"/></IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                        <IconButton size="small" color="primary" onClick={() => handleEditAccountClick(account._id)}><EditIcon fontSize="small"/></IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton size="small" color="error" onClick={() => confirmDeleteAccount(account._id, account.name)}><DeleteIcon fontSize="small"/></IconButton>
-                    </Tooltip>
-                  </TableCell>
+                  {tabCategories[currentTab] === "Tax" ? (
+                    <>
+                      <TableCell>{account.taxType}</TableCell>
+                      <TableCell>{account.head}</TableCell>
+                      <TableCell>{account.taxRate?.toFixed(2)}%</TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>{account.parentCategory || account.accountType || 'N/A'}</TableCell>
+                      <TableCell>{account.gstTaxRate ? `${account.gstTaxRate}%` : 'N/A'}</TableCell>
+                      <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <Tooltip title={account.description || ''}>
+                            <span>{account.description || 'N/A'}</span>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>{account.status || 'Active'}</TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="View">
+                            <IconButton size="small" onClick={() => handleViewAccountClick(account._id)}><VisibilityIcon fontSize="small"/></IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                            <IconButton size="small" color="primary" onClick={() => handleEditAccountClick(account._id)}><EditIcon fontSize="small"/></IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton size="small" color="error" onClick={() => confirmDeleteAccount(account._id, account.name)}><DeleteIcon fontSize="small"/></IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </>
+                  )}
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={headCells.length} align="center">
+                  <TableCell colSpan={currentHeadCells.length} align="center">
                     No accounts found for the selected criteria.
                   </TableCell>
                 </TableRow>
@@ -329,8 +374,8 @@ const AccountListPage = () => {
           </Box>
           <Pagination
             count={totalPages}
-            page={page}
-            onChange={handleChangePage}
+            page={page} // MUI Pagination is 1-based for 'page' prop when displaying, but 0-based for onChange
+            onChange={(event, newPage) => handleChangePage(event, newPage)} // Pass newPage directly
             color="primary"
             variant="outlined"
             shape="rounded"
