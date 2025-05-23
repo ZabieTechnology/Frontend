@@ -24,13 +24,11 @@ import {
     UploadFile as UploadFileIcon,
     ArrowBack as ArrowBackIcon,
     Save as SaveIcon,
-    RateReview as ReviewIcon,
     Publish as PublishIcon,
-    MoveToInbox as MoveToInboxIcon,
     Add as AddIcon,
     Delete as DeleteIcon,
     InfoOutlined as InfoOutlinedIcon,
-    Edit as EditIcon, // <<< Added EditIcon here
+    Edit as EditIcon,
 } from '@mui/icons-material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -43,28 +41,22 @@ const initialExpenseData = {
     _id: null,
     invoiceFile: null,
     invoicePreviewUrl: null,
-    inventoryEnabled: false,
     billNo: '',
     billDate: null,
     supplierGst: '',
-    supplier: '',
+    supplierId: '',
     dueDate: null,
-    expenseHead: '',
-    productService: '',
+    expenseHeadId: '',
     narration: '',
     currency: 'INR',
     totalAmount: '',
     tdsPercentage: '',
-    gstVatPercentage: '',
+    gstRateId: '',
     gstVatAmount: '',
     netAmount: '',
-    publishAs: 'Expense',
-    unit: '',
-    qty: '',
-    price: '',
-    hsnCode: '',
-    addedToFixedAssets: false,
-    lineItems: [{ description: '', price: '', qty: '', subtotal: '' }],
+    paymentMethodPublish: '',
+    billSource: '',
+    lineItems: [{ description: '', price: '', qty: '', hsnCode: '', subtotal: '' }],
     subTotalFromItems: '',
     discountAmount: '',
     taxFromItems: '',
@@ -72,19 +64,23 @@ const initialExpenseData = {
     status: 'Draft',
 };
 
-const currencyOptions = [ { value: 'INR', label: 'INR - Indian Rupee' }, { value: 'USD', label: 'USD - US Dollar' }];
-const expenseHeadOptions = [ { value: 'travel', label: 'Travel' }, { value: 'office_supplies', label: 'Office Supplies' }, { value: 'rent', label: 'Rent' }];
-const supplierOptions = [ { value: 'supplier1', label: 'ABC Limited' }, { value: 'supplier2', label: 'XYZ Corp'}];
-const publishAsOptions = [ { value: 'Expense', label: 'Expense'}, { value: 'Bill', label: 'Bill'}];
-
 
 const AddExpensePage = () => {
     const [formData, setFormData] = useState(initialExpenseData);
-    const [loading, setLoading] = useState(false); // General loading for save
-    const [extractionLoading, setExtractionLoading] = useState(false); // Loading for AI extraction
+    const [loading, setLoading] = useState(false);
+    const [extractionLoading, setExtractionLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [isViewMode, setIsViewMode] = useState(false);
+
+    // State for dropdown options
+    const [supplierOptions, setSupplierOptions] = useState([]);
+    const [expenseHeadOptions, setExpenseHeadOptions] = useState([]);
+    const [gstRateOptions, setGstRateOptions] = useState([]);
+    const [currencyOptions, setCurrencyOptions] = useState([]);
+    const [paymentMethodPublishOptions, setPaymentMethodPublishOptions] = useState([]);
+    const [billSourceOptions, setBillSourceOptions] = useState([]);
+
 
     const { expenseId } = useParams();
     const location = useLocation();
@@ -92,10 +88,69 @@ const AddExpensePage = () => {
 
     const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
+    const fetchDropdownData = useCallback(async (type, setter, labelField = 'label', valueField = 'value') => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/dropdown?type=${type}`, { withCredentials: true });
+            if (response.data && Array.isArray(response.data.data)) {
+                setter(response.data.data.map(opt => ({ value: opt[valueField], label: opt[labelField] })));
+            } else {
+                setter([]);
+            }
+        } catch (err) {
+            console.error(`Error fetching ${type} options:`, err);
+            setError(prev => `${prev || ''} Failed to load ${type} options. `);
+            setter([]);
+        }
+    }, [API_BASE_URL]);
+
+    const fetchSuppliers = useCallback(async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/vendors?limit=-1`, { withCredentials: true });
+            if (response.data && Array.isArray(response.data.data)) {
+                setSupplierOptions(response.data.data.map(vendor => ({ value: vendor._id, label: vendor.displayName || vendor.vendorName })));
+            }
+        } catch (err) {
+            console.error("Error fetching suppliers:", err);
+        }
+    }, [API_BASE_URL]);
+
+    const fetchExpenseHeads = useCallback(async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/chart-of-accounts?limit=-1&accountType=Expense`, { withCredentials: true });
+            if (response.data && Array.isArray(response.data.data)) {
+                setExpenseHeadOptions(response.data.data.map(acc => ({ value: acc._id, label: `${acc.name} (${acc.code})` })));
+            } else {
+                 setExpenseHeadOptions([]);
+            }
+        } catch (err) {
+            console.error("Error fetching expense heads:", err);
+             setExpenseHeadOptions([]);
+        }
+    }, [API_BASE_URL]);
+
+    const fetchGstRates = useCallback(async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/gst-rates/derived-tax-accounts?limit=-1`, { withCredentials: true });
+            if (response.data && Array.isArray(response.data.data)) {
+                setGstRateOptions(response.data.data.map(rate => ({ value: rate._id, label: rate.name, rateValue: rate.taxRate })));
+            }
+        } catch (err) {
+            console.error("Error fetching GST/VAT rates:", err);
+        }
+    }, [API_BASE_URL]);
+
+
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         const viewMode = queryParams.get('view') === 'true';
         setIsViewMode(viewMode);
+
+        fetchSuppliers();
+        fetchExpenseHeads();
+        fetchGstRates();
+        fetchDropdownData('currency', setCurrencyOptions);
+        fetchDropdownData('Expense_Payment_Publish', setPaymentMethodPublishOptions);
+        fetchDropdownData('Expense_Bill_Source', setBillSourceOptions);
 
         if (expenseId) {
             console.log("Fetching expense data for ID:", expenseId);
@@ -104,7 +159,31 @@ const AddExpensePage = () => {
             setFormData(initialExpenseData);
             if (viewMode) setIsViewMode(false);
         }
-    }, [expenseId, location.search]);
+    }, [expenseId, location.search, fetchSuppliers, fetchExpenseHeads, fetchGstRates, fetchDropdownData]);
+
+    useEffect(() => {
+        if (!expenseId) {
+            let defaultPaymentMethodPublish = '';
+            const awaitingPaymentOpt = paymentMethodPublishOptions.find(opt => opt.label === 'Awaiting Payment');
+            if (awaitingPaymentOpt) {
+                defaultPaymentMethodPublish = awaitingPaymentOpt.value;
+            }
+
+            let defaultBillSource = '';
+            const directUploadOpt = billSourceOptions.find(opt => opt.label === 'Direct Upload');
+            if (directUploadOpt) {
+                defaultBillSource = directUploadOpt.value;
+            }
+
+            if (defaultPaymentMethodPublish || defaultBillSource) {
+                 setFormData(prev => ({
+                    ...prev,
+                    paymentMethodPublish: defaultPaymentMethodPublish || prev.paymentMethodPublish,
+                    billSource: defaultBillSource || prev.billSource,
+                }));
+            }
+        }
+    }, [paymentMethodPublishOptions, billSourceOptions, expenseId]);
 
 
     const handleChange = (event) => {
@@ -145,15 +224,17 @@ const AddExpensePage = () => {
 
                 if (response.data && response.data.extractedData) {
                     const extracted = response.data.extractedData;
-                    console.log("Data extracted by Azure AI:", extracted);
+                    const matchedSupplier = supplierOptions.find(s => s.label === extracted.supplier);
+                    const matchedExpenseHead = expenseHeadOptions.find(eh => eh.label.startsWith(extracted.expenseHead || ""));
 
                     setFormData(prev => ({
                         ...prev,
                         billNo: extracted.billNo || prev.billNo,
                         billDate: extracted.billDate ? parseDateFns(extracted.billDate, 'yyyy-MM-dd', new Date()) : prev.billDate,
-                        supplier: extracted.supplier || prev.supplier,
+                        supplierId: matchedSupplier ? matchedSupplier.value : prev.supplierId,
                         supplierGst: extracted.supplierGst || prev.supplierGst,
                         dueDate: extracted.dueDate ? parseDateFns(extracted.dueDate, 'yyyy-MM-dd', new Date()) : prev.dueDate,
+                        expenseHeadId: matchedExpenseHead ? matchedExpenseHead.value : prev.expenseHeadId,
                         totalAmount: extracted.totalAmount !== undefined && extracted.totalAmount !== null ? String(extracted.totalAmount) : prev.totalAmount,
                         gstVatAmount: extracted.gstVatAmount !== undefined && extracted.gstVatAmount !== null ? String(extracted.gstVatAmount) : prev.gstVatAmount,
                         lineItems: extracted.lineItems && extracted.lineItems.length > 0
@@ -161,6 +242,7 @@ const AddExpensePage = () => {
                                 description: item.description || '',
                                 price: item.price !== undefined && item.price !== null ? String(item.price) : '',
                                 qty: item.qty !== undefined && item.qty !== null ? String(item.qty) : '',
+                                hsnCode: item.productCode || '',
                                 subtotal: item.subtotal !== undefined && item.subtotal !== null ? String(item.subtotal) : '',
                             }))
                             : prev.lineItems,
@@ -172,10 +254,12 @@ const AddExpensePage = () => {
                     setTimeout(() => setSuccess(null), 5000);
                 } else {
                     setError(response.data.message || "Failed to extract data from invoice.");
+                     setTimeout(() => setError(null), 5000);
                 }
             } catch (err) {
                 console.error("Error during Azure AI invoice extraction:", err);
                 setError(`Invoice extraction failed: ${err.response?.data?.message || err.message}`);
+                 setTimeout(() => setError(null), 5000);
             } finally {
                 setExtractionLoading(false);
             }
@@ -200,7 +284,7 @@ const AddExpensePage = () => {
         if (isViewMode) return;
         setFormData(prev => ({
             ...prev,
-            lineItems: [...prev.lineItems, { description: '', price: '', qty: '', subtotal: '' }],
+            lineItems: [...prev.lineItems, { description: '', price: '', qty: '', hsnCode: '', subtotal: '' }],
         }));
     };
 
@@ -218,9 +302,10 @@ const AddExpensePage = () => {
     const calculateTotals = useCallback((lineItems) => {
         const subTotal = lineItems.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
         const discount = parseFloat(formData.discountAmount) || 0;
-        const taxRate = parseFloat(formData.gstVatPercentage) || 0;
+        const selectedGstRateObject = gstRateOptions.find(opt => opt.value === formData.gstRateId);
+        const taxRatePercentage = selectedGstRateObject ? parseFloat(selectedGstRateObject.rateValue) : 0;
         const taxableAmount = subTotal - discount;
-        const taxAmount = (taxableAmount * taxRate) / 100;
+        const taxAmount = (taxableAmount * taxRatePercentage) / 100;
         const grandTotal = taxableAmount + taxAmount;
 
         setFormData(prev => ({
@@ -232,13 +317,13 @@ const AddExpensePage = () => {
             gstVatAmount: prev.gstVatAmount || taxAmount.toFixed(2),
             netAmount: grandTotal.toFixed(2),
         }));
-    }, [formData.discountAmount, formData.gstVatPercentage, formData.totalAmount, formData.gstVatAmount]);
+    }, [formData.discountAmount, formData.gstRateId, gstRateOptions, formData.totalAmount, formData.gstVatAmount]);
 
     useEffect(() => {
         if (formData.lineItems.length > 0) {
             calculateTotals(formData.lineItems);
         }
-    }, [formData.lineItems, formData.discountAmount, formData.gstVatPercentage, calculateTotals]);
+    }, [formData.lineItems, formData.discountAmount, formData.gstRateId, calculateTotals]);
 
 
     const handleSubmit = async (event) => {
@@ -248,14 +333,14 @@ const AddExpensePage = () => {
         setError(null);
         setSuccess(null);
 
-        if (!formData.billDate || !formData.supplier || !formData.expenseHead || !formData.totalAmount) {
+        if (!formData.billDate || !formData.supplierId || !formData.expenseHeadId || !formData.totalAmount) {
             setError("Bill Date, Supplier, Expense Head, and Total Amount are required.");
             setLoading(false);
+            setTimeout(() => setError(null), 3000);
             return;
         }
 
         const submissionPayload = new FormData();
-
         Object.entries(formData).forEach(([key, value]) => {
             if (key === 'invoiceFile' || key === 'invoicePreviewUrl' || key === 'lineItems') return;
             if (value instanceof Date) {
@@ -266,9 +351,7 @@ const AddExpensePage = () => {
                 submissionPayload.append(key, value);
             }
         });
-
         submissionPayload.append('lineItems', JSON.stringify(formData.lineItems));
-
         if (formData.invoiceFile instanceof File) {
             submissionPayload.append('invoice', formData.invoiceFile, formData.invoiceFile.name);
         }
@@ -280,7 +363,6 @@ const AddExpensePage = () => {
                 withCredentials: true
             });
             setSuccess("Expense created successfully! (Review & Publish next)");
-
             if (response.data && response.data.data) {
                 setFormData(initialExpenseData);
             }
@@ -304,7 +386,6 @@ const AddExpensePage = () => {
                 <Paper sx={{ p: 2, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h5" sx={{ color: '#4CAF50', fontWeight: 'bold' }}>{title}</Typography>
                     <Box>
-                        <Button variant="outlined" size="small" sx={{ mr: 1 }} disabled={isViewMode || loading || extractionLoading}>Details</Button>
                         <Button variant="outlined" size="small" sx={{ mr: 1 }} disabled={isViewMode || loading || extractionLoading}>Note</Button>
                         <Button variant="outlined" size="small" sx={{ mr: 1 }} disabled={isViewMode || loading || extractionLoading}>History</Button>
                         <IconButton onClick={() => navigate('/expenses')} aria-label="back to expenses list" disabled={loading || extractionLoading}>
@@ -352,21 +433,27 @@ const AddExpensePage = () => {
                         <Paper sx={paperStyle}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6} md={4}>
-                                    <FormControlLabel control={<Switch name="inventoryEnabled" checked={formData.inventoryEnabled} onChange={handleChange} disabled={isViewMode} />} label="Inventory Enabled" />
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={4}>
                                     <TextField name="billNo" label="Bill No." value={formData.billNo} onChange={handleChange} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} disabled={isViewMode} />
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={4}>
                                     <DatePicker label="Bill Date *" value={formData.billDate} onChange={(date) => handleDateChange('billDate', date)} slotProps={{ textField: { fullWidth: true, size: 'small', variant: 'outlined', required: true, InputLabelProps:inputLabelProps } }} disabled={isViewMode} />
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={4}>
+                                    <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode}>
+                                        <InputLabel shrink htmlFor="bill-source-select">Bill Source</InputLabel>
+                                        <Select label="Bill Source" name="billSource" value={formData.billSource} onChange={handleChange} inputProps={{id: 'bill-source-select'}}>
+                                            <MenuItem value=""><em>None</em></MenuItem>
+                                            {billSourceOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={4}>
                                     <TextField name="supplierGst" label="Supplier GST" value={formData.supplierGst} onChange={handleChange} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} disabled={isViewMode} />
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={4}>
-                                     <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode}>
+                                     <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode} required>
                                         <InputLabel shrink htmlFor="supplier-select">Supplier *</InputLabel>
-                                        <Select label="Supplier *" name="supplier" value={formData.supplier} onChange={handleChange} required inputProps={{id: 'supplier-select'}}>
+                                        <Select label="Supplier *" name="supplierId" value={formData.supplierId} onChange={handleChange} inputProps={{id: 'supplier-select'}}>
                                             <MenuItem value=""><em>None</em></MenuItem>
                                             {supplierOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
                                         </Select>
@@ -378,15 +465,13 @@ const AddExpensePage = () => {
                                 <Grid item xs={12} sm={6} md={4}>
                                      <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode} required>
                                         <InputLabel shrink htmlFor="expense-head-select">Expense Head *</InputLabel>
-                                        <Select label="Expense Head *" name="expenseHead" value={formData.expenseHead} onChange={handleChange} required inputProps={{id: 'expense-head-select'}}>
+                                        <Select label="Expense Head *" name="expenseHeadId" value={formData.expenseHeadId} onChange={handleChange} inputProps={{id: 'expense-head-select'}}>
                                             <MenuItem value=""><em>None</em></MenuItem>
                                             {expenseHeadOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
                                         </Select>
                                     </FormControl>
                                 </Grid>
-                                <Grid item xs={12} sm={6} md={8}>
-                                    <TextField name="productService" label="Product/Service (Overall)" value={formData.productService} onChange={handleChange} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} disabled={isViewMode}/>
-                                </Grid>
+
                                 <Grid item xs={12}>
                                     <TextField name="narration" label="Narration / Description" value={formData.narration} onChange={handleChange} fullWidth size="small" variant="outlined" multiline rows={2} InputLabelProps={inputLabelProps} disabled={isViewMode}/>
                                 </Grid>
@@ -397,11 +482,12 @@ const AddExpensePage = () => {
                                     <Typography variant="subtitle1" gutterBottom sx={{fontWeight: 'medium'}}>Line Items</Typography>
                                     {formData.lineItems.map((item, index) => (
                                         <Grid container spacing={1} key={index} alignItems="center" sx={{mb: 1}}>
-                                            <Grid item xs={12} sm={5} md={4}><TextField name="description" label={`Item ${index + 1} Desc.`} value={item.description} onChange={(e) => handleLineItemChange(index, e)} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} disabled={isViewMode}/></Grid>
-                                            <Grid item xs={6} sm={2} md={2}><TextField name="price" label="Price" type="number" value={item.price} onChange={(e) => handleLineItemChange(index, e)} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start">$</InputAdornment>}} disabled={isViewMode}/></Grid>
+                                            <Grid item xs={12} sm={4} md={3}><TextField name="description" label={`Item ${index + 1} Desc.`} value={item.description} onChange={(e) => handleLineItemChange(index, e)} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} disabled={isViewMode}/></Grid>
+                                            <Grid item xs={12} sm={4} md={2.5}><TextField name="hsnCode" label="HSN Code" value={item.hsnCode} onChange={(e) => handleLineItemChange(index, e)} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} disabled={isViewMode}/></Grid>
+                                            <Grid item xs={6} sm={2} md={2}><TextField name="price" label="Price" type="number" value={item.price} onChange={(e) => handleLineItemChange(index, e)} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start"></InputAdornment>}} disabled={isViewMode}/></Grid>
                                             <Grid item xs={6} sm={2} md={1.5}><TextField name="qty" label="Qty" type="number" value={item.qty} onChange={(e) => handleLineItemChange(index, e)} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} disabled={isViewMode}/></Grid>
-                                            <Grid item xs={12} sm={3} md={2.5}><TextField name="subtotal" label="Subtotal" type="number" value={item.subtotal} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start">$</InputAdornment>}} disabled readOnly/></Grid>
-                                            <Grid item xs={12} sm={12} md={2} sx={{textAlign: {md: 'right'}}}>
+                                            <Grid item xs={12} sm={3} md={2}><TextField name="subtotal" label="Subtotal" type="number" value={item.subtotal} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start"></InputAdornment>}} disabled readOnly/></Grid>
+                                            <Grid item xs={12} sm={1} md={1} sx={{textAlign: {md: 'right'}}}>
                                                 {formData.lineItems.length > 1 && !isViewMode && (
                                                     <IconButton onClick={() => removeLineItem(index)} color="error" size="small" aria-label="remove item">
                                                         <DeleteIcon />
@@ -415,28 +501,42 @@ const AddExpensePage = () => {
 
                                 <Grid item xs={12}><Divider sx={{ my: 1.5 }} /></Grid>
 
-                                <Grid item xs={12} sm={6} md={3}> <TextField name="currency" label="Currency" value={formData.currency} onChange={handleChange} fullWidth size="small" variant="outlined" InputLabelProps={inputLabelProps} select disabled={isViewMode}> {currencyOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)} </TextField> </Grid>
-                                <Grid item xs={12} sm={6} md={3}> <TextField name="totalAmount" label="Total Amount *" value={formData.totalAmount} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start">$</InputAdornment>}} required disabled={isViewMode}/> </Grid>
-                                <Grid item xs={12} sm={6} md={3}> <TextField name="tdsPercentage" label="TDS %" value={formData.tdsPercentage} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{endAdornment: <InputAdornment position="end">%</InputAdornment>}} disabled={isViewMode}/> </Grid>
-                                <Grid item xs={12} sm={6} md={3}> <TextField name="gstVatPercentage" label="GST/VAT %" value={formData.gstVatPercentage} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{endAdornment: <InputAdornment position="end">%</InputAdornment>}} disabled={isViewMode}/> </Grid>
-                                <Grid item xs={12} sm={6} md={3}> <TextField name="gstVatAmount" label="GST/VAT Amount" value={formData.gstVatAmount} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start">$</InputAdornment>}} disabled={isViewMode}/> </Grid>
-                                <Grid item xs={12} sm={6} md={3}> <TextField name="netAmount" label="Net Amount" value={formData.netAmount} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start">$</InputAdornment>}} disabled={isViewMode}/> </Grid>
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode}>
-                                        <InputLabel shrink htmlFor="publishas-select">Publish as</InputLabel>
-                                        <Select label="Publish as" name="publishAs" value={formData.publishAs} onChange={handleChange} inputProps={{id: 'publishas-select'}}>
-                                            {publishAsOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+                                     <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode}>
+                                        <InputLabel shrink htmlFor="currency-select">Currency</InputLabel>
+                                        <Select label="Currency" name="currency" value={formData.currency} onChange={handleChange} inputProps={{id: 'currency-select'}}>
+                                            {currencyOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
                                         </Select>
                                     </FormControl>
                                 </Grid>
-                                <Grid item xs={12} sm={6} md={3}> <FormControlLabel control={<Switch name="addedToFixedAssets" checked={formData.addedToFixedAssets} onChange={handleChange} disabled={isViewMode} />} label="Added to Fixed Assets" /> <Tooltip title="Note: Will only be shown for fixed assets"><IconButton size="small"><InfoOutlinedIcon fontSize="inherit"/></IconButton></Tooltip> </Grid>
+                                <Grid item xs={12} sm={6} md={3}> <TextField name="totalAmount" label="Total Amount *" value={formData.totalAmount} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start"></InputAdornment>}} required disabled={isViewMode}/> </Grid>
+                                <Grid item xs={12} sm={6} md={3}> <TextField name="tdsPercentage" label="TDS %" value={formData.tdsPercentage} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{endAdornment: <InputAdornment position="end">%</InputAdornment>}} disabled={isViewMode}/> </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                     <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode}>
+                                        <InputLabel shrink htmlFor="gst-vat-select">GST/VAT %</InputLabel>
+                                        <Select label="GST/VAT %" name="gstRateId" value={formData.gstRateId} onChange={handleChange} inputProps={{id: 'gst-vat-select'}}>
+                                            <MenuItem value=""><em>None</em></MenuItem>
+                                            {gstRateOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}> <TextField name="gstVatAmount" label="GST/VAT Amount" value={formData.gstVatAmount} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start"></InputAdornment>}} disabled={isViewMode}/> </Grid>
+                                <Grid item xs={12} sm={6} md={3}> <TextField name="netAmount" label="Net Amount" value={formData.netAmount} onChange={handleChange} fullWidth size="small" variant="outlined" type="number" InputLabelProps={inputLabelProps} InputProps={{startAdornment: <InputAdornment position="start"></InputAdornment>}} disabled={isViewMode}/> </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                     <FormControl fullWidth size="small" variant="outlined" disabled={isViewMode}>
+                                        <InputLabel shrink htmlFor="payment-method-publish-select">Payment Status</InputLabel>
+                                        <Select label="Payment Status" name="paymentMethodPublish" value={formData.paymentMethodPublish} onChange={handleChange} inputProps={{id: 'payment-method-publish-select'}}>
+                                            <MenuItem value=""><em>None</em></MenuItem>
+                                            {paymentMethodPublishOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
                             </Grid>
                         </Paper>
                     </Grid>
                 </Grid>
 
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                     {!isViewMode && <Button variant="outlined" color="info" startIcon={<ReviewIcon />} disabled={loading || extractionLoading}>Review</Button>}
                      {!isViewMode && <Button type="submit" variant="contained" color="primary" startIcon={<PublishIcon />} disabled={loading || extractionLoading}> {loading ? <CircularProgress size={20}/> : (formData._id ? 'Update & Publish' : 'Save & Publish')} </Button>}
                      {isViewMode && <Button variant="contained" color="secondary" startIcon={<EditIcon />} onClick={() => navigate(`/expenses/edit/${expenseId}`)}>Edit Expense</Button>}
                 </Box>
