@@ -36,7 +36,8 @@ const initialNewTaxState = {
   head: "",
 };
 
-// const headOptions = ["Outward", "Inward", "TCS", "TDS", "RCM", "GST Output", "GST Input", "GST on TCS", "GST on TDS", "General"]; // Will be fetched
+const headOptions = ["Outward", "Inward", "TCS", "TDS", "RCM", "GST Output", "GST Input", "GST on TCS", "GST on TDS", "Compensation Cess", "Other Cess", "General"];
+
 
 function GSTManagement() {
   const [taxRates, setTaxRates] = useState([]);
@@ -48,7 +49,7 @@ function GSTManagement() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [newTaxData, setNewTaxData] = useState(initialNewTaxState);
   const [currentEditTax, setCurrentEditTax] = useState(null);
-  const [gstHeadOptions, setGstHeadOptions] = useState([]); // State for GST Head dropdown options
+  const [gstHeadOptions, setGstHeadOptions] = useState([]);
 
   const { confirm, ConfirmationDialog } = useConfirmationDialog();
   const API_BASE_URL = process.env.REACT_APP_API_URL || '';
@@ -73,26 +74,27 @@ function GSTManagement() {
     }
   }, [API_BASE_URL]);
 
-  // Fetch GST Head options from dropdown collection
   const fetchGstHeadOptions = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/dropdown?type=GST_Head`, { withCredentials: true });
       if (response.data && Array.isArray(response.data.data)) {
-        setGstHeadOptions(response.data.data);
+        // Combine with predefined headOptions and remove duplicates if necessary
+        const fetchedHeads = response.data.data.map(opt => opt.label);
+        const combinedHeads = Array.from(new Set([...headOptions, ...fetchedHeads]));
+        setGstHeadOptions(combinedHeads.map(head => ({value: head, label: head})));
       } else {
         console.warn("Failed to fetch GST Head options or invalid format:", response.data);
-        setGstHeadOptions([]);
+        setGstHeadOptions(headOptions.map(head => ({value: head, label: head}))); // Fallback to predefined
       }
     } catch (err) {
       console.error("Error fetching GST Head options:", err);
-      // Optionally set an error state for this specific fetch
-      setGstHeadOptions([]);
+      setGstHeadOptions(headOptions.map(head => ({value: head, label: head}))); // Fallback
     }
   }, [API_BASE_URL]);
 
   useEffect(() => {
     fetchTaxRates();
-    fetchGstHeadOptions(); // Fetch head options on mount
+    fetchGstHeadOptions();
   }, [fetchTaxRates, fetchGstHeadOptions]);
 
   const handleOpenAddDialog = () => {
@@ -127,7 +129,7 @@ function GSTManagement() {
     setCurrentEditTax({
         _id: tax._id,
         taxName: tax.taxName,
-        taxRate: tax.taxRate.toString(),
+        taxRate: tax.taxRate !== undefined ? tax.taxRate.toString() : '', // Handle undefined taxRate
         head: tax.head,
     });
     setOpenEditDialog(true);
@@ -201,6 +203,7 @@ function GSTManagement() {
                 <TableCell sx={{ fontWeight: 'bold' }}>S.No</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Tax Name</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Head</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tax Rate</TableCell> {/* Added Tax Rate Column */}
                 <TableCell sx={{ fontWeight: 'bold' }}>SGST</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>CGST</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>IGST</TableCell>
@@ -213,6 +216,7 @@ function GSTManagement() {
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{row.taxName}</TableCell>
                   <TableCell>{row.head}</TableCell>
+                  <TableCell>{row.taxRate?.toFixed(2)}%</TableCell> {/* Display main Tax Rate */}
                   <TableCell>{row.sgstRate?.toFixed(2)}%</TableCell>
                   <TableCell>{row.cgstRate?.toFixed(2)}%</TableCell>
                   <TableCell>{row.igstRate?.toFixed(2)}%</TableCell>
@@ -228,7 +232,7 @@ function GSTManagement() {
               ))}
               {taxRates.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">No GST rates configured yet.</TableCell>
+                  <TableCell colSpan={8} align="center">No GST rates configured yet.</TableCell> {/* Adjusted colSpan */}
                 </TableRow>
               )}
             </TableBody>
@@ -240,13 +244,13 @@ function GSTManagement() {
       <Dialog open={openAddDialog} onClose={handleCloseAddDialog} maxWidth="xs" fullWidth>
         <DialogTitle>Add New GST Rate</DialogTitle>
         <DialogContent>
-          <TextField autoFocus margin="dense" name="taxName" label="Tax Name" placeholder="e.g., GST 18%" fullWidth value={newTaxData.taxName} onChange={handleNewTaxChange} required/>
-          <TextField margin="dense" name="taxRate" label="Tax Rate (%)" placeholder="e.g., 18" type="number" fullWidth value={newTaxData.taxRate} onChange={handleNewTaxChange} required InputProps={{ inputProps: { min: 0, step: "0.01" } }}/>
+          <TextField autoFocus margin="dense" name="taxName" label="Tax Name" placeholder="e.g., GST 18% or Compensation Cess 12%" fullWidth value={newTaxData.taxName} onChange={handleNewTaxChange} required/>
+          <TextField margin="dense" name="taxRate" label="Tax Rate (%)" placeholder="e.g., 18 or 12 for Cess" type="number" fullWidth value={newTaxData.taxRate} onChange={handleNewTaxChange} required InputProps={{ inputProps: { min: 0, step: "0.01" } }}/>
           <FormControl fullWidth margin="dense" required>
             <InputLabel>Head</InputLabel>
             <Select name="head" value={newTaxData.head} label="Head" onChange={handleNewTaxChange}>
               <MenuItem value=""><em>Select Head</em></MenuItem>
-              {gstHeadOptions.map(opt => <MenuItem key={opt.value || opt._id} value={opt.value}>{opt.label}</MenuItem>)}
+              {gstHeadOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
             </Select>
           </FormControl>
         </DialogContent>
@@ -267,7 +271,7 @@ function GSTManagement() {
                 <InputLabel>Head</InputLabel>
                 <Select name="head" value={currentEditTax.head} label="Head" onChange={handleEditTaxChange}>
                 <MenuItem value=""><em>Select Head</em></MenuItem>
-                {gstHeadOptions.map(opt => <MenuItem key={opt.value || opt._id} value={opt.value}>{opt.label}</MenuItem>)}
+                {gstHeadOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
                 </Select>
             </FormControl>
           </DialogContent>
