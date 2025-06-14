@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
-import theme from "./theme"; // Assuming theme.js is in the same directory or src/
+import theme from "./theme";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import Layout from "./components/Layout"; // Your main layout component
+import Layout from "./components/Layout";
 import Home from "./components/Home";
 import Info from "./components/Info";
-import Sales from "./components/Sales";
-import Protected from "./components/Protected"; // Your protection HOC/component
-import Expenses from "./pages/Expenses/AccountingPage";
-import Expensesform from "./pages/Expenses/AddExpensePage";
+import Protected from "./components/Protected";
 
 // Settings Pages
 import CompanyInformation from "./pages/settings/organizationsettings/companyinformation";
@@ -20,20 +17,54 @@ import FinancialDetails from "./pages/settings/organizationsettings/financialdet
 import DropdownManagement from "./pages/settings/globalsettings/DropdownManagement";
 import GSTManagement from "./pages/settings/taxcompliancedetails/GSTManagement";
 import VATManagement from "./pages/settings/taxcompliancedetails/VATManagement";
-import InvoiceSettingsPage from './pages/settings/invoicesettings/InvoiceSettingsPage';
+import InvoiceSettingsPage from "./pages/settings/invoicesettings/InvoiceSettingsPage";
+// import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
-import CustomerListPage from "./pages/AccountTransaction/customer"; // Assuming customer.js is the list page
-import CustomerForm from "./pages/AccountTransaction/CustomerForm";   // Your customer form component
+import CustomerListPage from "./pages/AccountTransaction/customer";
+import CustomerForm from "./pages/AccountTransaction/CustomerForm";
 import VendorListPage from "./pages/AccountTransaction/vendor";
-import ChartOfAccounts from "./pages/AccountTransaction/chartofaccounts";
-import Staff from "./pages/AccountTransaction/staff";
-import Staffdetails from "./pages/AccountTransaction/StaffForm";
-import VendorDetailsPage from "./pages/AccountTransaction/VendorDetailsPage";
-import ChartOfAccountsForm from "./pages/AccountTransaction/ChartOfAccountsForm";
 
-// Optional: A component for 404 Not Found
-// import NotFoundPage from './pages/NotFoundPage';
+// VendorDetailsPage was pointing to vendor list, assuming it's a form like CustomerForm
+import VendorForm from "./pages/AccountTransaction/VendorDetailsPage"; // Corrected: Assuming VendorDetailsPage is a form like CustomerForm
+import ChartOfAccountsListPage from "./pages/AccountTransaction/chartofaccounts";
+import ChartOfAccountsForm from "./pages/AccountTransaction/ChartOfAccountsForm";
+import StaffListPage from "./pages/AccountTransaction/staff";
+import StaffForm from "./pages/AccountTransaction/StaffForm";
+
+// Expenses Page
+import ExpenseListPage from "./pages/Expenses/ExpenseListPage";
+import AddExpensePage from "./pages/Expenses/AddExpensePage";
+
+// Sales Page (Invoice was the old folder name based on comments)
+import OverviewSales from "./pages/Invoice/overviewsales";
+import SalesPage from "./pages/Invoice/Salesinvoicedash";
+import SalesInvoiceCreate from "./pages/Invoice/SalesInvoiceCreate";
+import Creditnotepagedash from "./pages/Invoice/creditnotepagedash";
+import Creditnotecreate from "./pages/Invoice/creditnotecreate";
+import Quotationdash from "./pages/Invoice/estimatedash";
+import Quotecreate from "./pages/Invoice/estimate";
+import OtherPlatform from "./pages/Invoice/Otherplatforms";
+
+
+// Payroll Page
+import Payrolllist from "./pages/Payroll/Payroll";
+//import AddExpensePage from "./pages/Expenses/AddExpensePage";
+
+// Inventory Page
+import Inventorylist from "./pages/Inventory/inventorylist";
+import DeliveryChallan from "./pages/Inventory/deliverychallandash";
+import StockAdjustment from "./pages/Inventory/stockadjustment";
+
+// Inventory Page
+import BankFront from "./pages/Bank/bankfrontpage";
+import BankRecord from "./pages/Bank/bankrecopage";
+
+
+// Reimbursement Page
+import Reimbursement from "./pages/Reimbursement/CobookReimbursement";
+import Reimbursementexclaim from "./pages/Reimbursement/ExpenseClaim";
+import Reimbursementmiclaim from "./pages/Reimbursement/Milagechaims";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -42,9 +73,8 @@ function App() {
     const handleStorageChange = () => {
       setToken(localStorage.getItem("token"));
     };
-    // Listen for changes to localStorage from other tabs/windows if needed
     window.addEventListener('storage', handleStorageChange);
-    // Initial check
+    // Ensure initial state matches localStorage
     const storedToken = localStorage.getItem("token");
     if (token !== storedToken) {
         setToken(storedToken);
@@ -52,13 +82,11 @@ function App() {
     return () => {
         window.removeEventListener('storage', handleStorageChange);
     };
-  }, [token]); // Rerun if token state changes, or if localStorage changes
+  }, [token]); // Dependency array includes token to re-run if token changes programmatically
 
-  // This component will be the element for the parent route.
-  // Layout.js should contain an <Outlet /> from react-router-dom for child routes to render into.
   const ProtectedRoutesWrapper = () => (
     <Protected token={token}>
-      <Layout setToken={setToken} /> {/* Layout component contains the UI shell and <Outlet /> */}
+      <Layout setToken={setToken} />
     </Protected>
   );
 
@@ -67,64 +95,85 @@ function App() {
       <CssBaseline />
       <Router>
         <Routes>
-          {/* Public Routes */}
           <Route path="/login" element={<Login setToken={setToken} />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Protected Routes - All children of this route will render inside Layout's <Outlet /> */}
           <Route element={<ProtectedRoutesWrapper />}>
-            {/* Default protected route, e.g., dashboard or home */}
-            <Route path="/home" element={<Home />} />
-            {/* Add other top-level protected routes here if they also use the Layout */}
-            <Route path="/info" element={<Info />} />
-            <Route path="/sales" element={<Sales />} />
+            {/* Redirect from root based on token */}
+            <Route path="/" element={<Navigate replace to={token ? "/home" : "/login"} />} />
+            <Route path="home" element={<Home />} />
+            <Route path="info" element={<Info />} />
+
+            {/* Sales Routes */}
+            <Route path="Overviewsale" element={<OverviewSales />} />
+            <Route path="sales" element={<SalesPage />} />
+            <Route path="sales/new" element={<SalesInvoiceCreate />} />
+            <Route path="CreditNote" element={<Creditnotepagedash />} />
+            <Route path="CreditNote/new" element={<Creditnotecreate />} />
+            <Route path="quote" element={<Quotationdash />} />
+            <Route path="quote/new" element={<Quotecreate />} />
+            <Route path="OtherPlatform" element={<OtherPlatform />} />
+
+            {/* <Route path="sales/edit/:invoiceId" element={<CreateSalesInvoicePage />} />  // Example edit route */}
+
+
+            {/* Expenses Routes */}
+            <Route path="expenses" element={<ExpenseListPage />} />
+            <Route path="expenses/new" element={<AddExpensePage />} />
+            <Route path="expenses/edit/:expenseId" element={<AddExpensePage />} />
 
             {/* Settings Routes */}
-            <Route path="/settings/organizationsetting/companyinformation" element={<CompanyInformation />} />
-            <Route path="/settings/organizationsettings/contactdetails" element={<ContactDetails />} />
-            <Route path="/settings/organizationsettings/natureofbusiness" element={<NatureOfBusiness />} />
-            <Route path="/settings/organizationsettings/financialdetails" element={<FinancialDetails />} />
-            <Route path="/settings/global-settings/dropdown" element={<DropdownManagement />} />
-            <Route path="/settings/taxcompliancedetails/GSTManagement" element={<GSTManagement />} />
-            <Route path="/settings/taxcompliancedetails/vat-management" element={<VATManagement />} />
-            <Route path="/settings/invoicesettings/InvoiceSettingsPage" element={<InvoiceSettingsPage />} />
+            <Route path="settings/organizationsetting/companyinformation" element={<CompanyInformation />} />
+            <Route path="settings/organizationsettings/contactdetails" element={<ContactDetails />} />
+            <Route path="settings/organizationsettings/natureofbusiness" element={<NatureOfBusiness />} />
+            <Route path="settings/organizationsettings/financialdetails" element={<FinancialDetails />} />
+            <Route path="settings/global-settings/dropdown" element={<DropdownManagement />} />
+            <Route path="settings/taxcompliancedetails/GSTManagement" element={<GSTManagement />} />
+            <Route path="settings/taxcompliancedetails/vat-management" element={<VATManagement />} />
+            {/* Corrected Invoice Settings Route to match Layout.js link */}
+            <Route path="settings/invoicesettings/InvoiceSettingsPage" element={<InvoiceSettingsPage />} />
 
-            {/* Account Transaction - Customer Routes */}
-            <Route path="/account-transaction/customer" element={<CustomerListPage />} />
-            <Route path="/account-transaction/customer/new" element={<CustomerForm />} />
-            <Route path="/account-transaction/customer/edit/:customerId" element={<CustomerForm />} />
-            {/* Account Transaction - Vendor Routes */}
-            <Route path="/account-transaction/vendor" element={<VendorListPage />} />
-            <Route path="/account-transaction/vendor/new" element={<VendorDetailsPage />} />
-            <Route path="/account-transaction/vendor/edit/:vendorId" element={<VendorDetailsPage />} />
-            {/* Account Transaction - Staff Routes */}
-            <Route path="/account-transaction/staff" element={<Staff />} />
-            <Route path="/account-transaction/staff/new" element={<Staffdetails />} />
-            <Route path="/account-transaction/staff/edit/:staffId" element={<Staffdetails />} />
-            {/* Account Transaction - Charts Routes */}
-            <Route path="/account-transaction/chart-of-accounts" element={<ChartOfAccounts />} />
-            <Route path="/account-transaction/chart-of-accounts/new" element={<ChartOfAccountsForm />} />
-            <Route path="/account-transaction/chart-of-accounts/edit/:chartofaccountsId" element={<ChartOfAccountsForm />} />
+            {/* Account Transaction Routes */}
+            <Route path="account-transaction/customer" element={<CustomerListPage />} />
+            <Route path="account-transaction/customer/new" element={<CustomerForm />} />
+            <Route path="account-transaction/customer/edit/:customerId" element={<CustomerForm />} />
 
-            <Route path="/Expenses" element={<Expenses/>} />
-            <Route path="/Expenses/new" element={<Expensesform/>} />
-            <Route path="/Expenses/edit/:expenseId" element={<Expensesform/>} />
+            <Route path="account-transaction/vendor" element={<VendorListPage />} />
+            <Route path="account-transaction/vendor/new" element={<VendorForm />} /> {/* Assuming VendorForm component */}
+            <Route path="account-transaction/vendor/edit/:vendorId" element={<VendorForm />} /> {/* Assuming VendorForm component */}
 
+            <Route path="account-transaction/staff" element={<StaffListPage />} />
+            <Route path="account-transaction/staff/new" element={<StaffForm />} />
+            <Route path="account-transaction/staff/edit/:staffId" element={<StaffForm />} />
 
-             {/* If you want a default page for the root of protected routes,
-                 ensure /home or another path is handled, or add an index route here.
-                 For example, if accessing "/" when logged in should go to "/home":
-                 The Navigate component below handles this.
-             */}
+            <Route path="account-transaction/chart-of-accounts" element={<ChartOfAccountsListPage />} />
+            <Route path="account-transaction/chart-of-accounts/new" element={<ChartOfAccountsForm />} />
+            <Route path="account-transaction/chart-of-accounts/edit/:accountId" element={<ChartOfAccountsForm />} />
+
+            {/* Payroll Routes */}
+            <Route path="Payroll" element={<Payrolllist />} />
+
+            {/* Reimbursement Routes */}
+            <Route path="Reimbursement" element={<Reimbursement />} />
+            <Route path="Reimbursement/eclaim" element={<Reimbursementexclaim />} />
+            <Route path="Reimbursement/mclaim" element={<Reimbursementmiclaim />} />
+
+            {/* Inventory */}
+            <Route path="Inventory" element={<Inventorylist />} />
+            <Route path="DeliveryChallan" element={<DeliveryChallan />} />
+            <Route path="StockManagement" element={<StockAdjustment />} />
+
+            {/* Bank */}
+            <Route path="Bank" element={<BankFront />} />
+            <Route path="Bank/new" element={<BankRecord />} />
+
+            {/* Catch-all for undefined protected routes, redirect to home */}
+            <Route path="*" element={<Navigate replace to="/home" />} />
           </Route>
 
-          {/* Fallback route: Navigate to /home if logged in, otherwise to /login */}
-          <Route path="/" element={<Navigate replace to={token ? "/home" : "/login"} />} />
-
-          {/* Optional: Catch-all 404 Not Found Route - place it last */}
-          {/* <Route path="*" element={<ProtectedRoutesWrapper><NotFoundPage /></ProtectedRoutesWrapper>} /> */}
-          {/* Or a simpler 404 without layout: <Route path="*" element={<NotFoundPage />} /> */}
-
+          {/* Fallback for any other non-matched routes, redirect to login or home based on token */}
+          {/* This catch-all should be outside the ProtectedRoutesWrapper if it's meant to catch truly unhandled paths */}
+          <Route path="*" element={<Navigate replace to={token ? "/home" : "/login"} />} />
         </Routes>
       </Router>
     </ThemeProvider>

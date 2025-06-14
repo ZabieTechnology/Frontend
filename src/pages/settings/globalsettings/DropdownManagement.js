@@ -1,655 +1,352 @@
-import React, { useState, useEffect } from "react";
-
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-
 import {
-
-Box,
-
-Typography,
-
-TextField,
-
-Button,
-
-Table,
-
-TableBody,
-
-TableCell,
-
-TableContainer,
-
-TableHead,
-
-TableRow,
-
-Paper,
-
-IconButton,
-
-Dialog,
-
-DialogTitle,
-
-DialogContent,
-
-DialogActions,
-
-Select,
-
-MenuItem,
-
-FormControl,
-
-InputLabel,
-
+    Box, Typography, TextField, Button, Table, TableBody, TableCell,
+    TableContainer, TableHead, TableRow, Paper, IconButton, Dialog,
+    DialogTitle, DialogContent, DialogActions, Select, MenuItem,
+    FormControl, InputLabel, CircularProgress, Alert
 } from "@mui/material";
-
-import { Edit, Delete, CloudUpload } from "@mui/icons-material";
-
-
+import { Edit, Delete, CloudUpload, Add as AddIcon } from "@mui/icons-material";
 
 function DropdownManagement() {
+    const [dropdownValues, setDropdownValues] = useState([]);
+    const [filteredValues, setFilteredValues] = useState([]);
+    const [openDialog, setOpenDialog] = useState(false);
+    const [currentValue, setCurrentValue] = useState({
+        _id: "",
+        type: "",
+        value: "",
+        label: "",
+    });
+    const [file, setFile] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
+    const [totalItems, setTotalItems] = useState(0);
+    const [filter, setFilter] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
-const [dropdownValues, setDropdownValues] = useState([]);
+    const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
-const [filteredValues, setFilteredValues] = useState([]); // For filtered data
+    const fetchDropdownValues = useCallback(async (page = 1, limit = 25) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/dropdown`, {
+                params: { page, limit },
+                withCredentials: true,
+            });
+            console.log("API Response (fetchDropdownValues):", response.data); // Crucial for debugging
 
-const [openDialog, setOpenDialog] = useState(false);
+            if (response.data && Array.isArray(response.data.data)) {
+                setDropdownValues(response.data.data);
+                setFilteredValues(response.data.data);
+                setTotalItems(response.data.total || 0);
+            } else {
+                console.error("Invalid API response format:", response.data);
+                setError("Failed to fetch dropdowns: Invalid response format.");
+                setDropdownValues([]);
+                setFilteredValues([]);
+                setTotalItems(0);
+            }
+        } catch (err) {
+            console.error("Error fetching dropdown values:", err);
+            setError(`Error fetching dropdown values: ${err.response?.data?.message || err.message}`);
+            setDropdownValues([]);
+            setFilteredValues([]);
+            setTotalItems(0);
+        } finally {
+            setLoading(false);
+        }
+    }, [API_BASE_URL]); // currentPage and itemsPerPage are passed as args, so not needed in deps here
 
-const [currentValue, setCurrentValue] = useState({
+    useEffect(() => {
+        fetchDropdownValues(currentPage, itemsPerPage);
+    }, [currentPage, itemsPerPage, fetchDropdownValues]);
 
-id: "",
+    useEffect(() => {
+        if (filter) {
+            const lowercasedFilter = filter.toLowerCase();
+            const filtered = dropdownValues.filter(
+                (item) =>
+                    item.type?.toLowerCase().includes(lowercasedFilter) ||
+                    item.value?.toLowerCase().includes(lowercasedFilter) ||
+                    item.label?.toLowerCase().includes(lowercasedFilter)
+            );
+            setFilteredValues(filtered);
+        } else {
+            setFilteredValues(dropdownValues);
+        }
+    }, [filter, dropdownValues]);
 
-type: "",
+    const handleSave = async () => {
+        setError(null);
+        setSuccessMessage(null);
+        if (!currentValue.type || !currentValue.value || !currentValue.label) {
+            setError("Type, Value, and Label are required.");
+            return;
+        }
+        try {
+            const updatedUser = "Admin"; // Replace with actual logged-in user
+            const payload = {
+                type: currentValue.type,
+                value: currentValue.value,
+                label: currentValue.label,
+                updated_user: updatedUser,
+            };
 
-value: "",
+            if (currentValue._id) {
+                await axios.put(`${API_BASE_URL}/api/dropdown/${currentValue._id}`, payload, { withCredentials: true });
+                setSuccessMessage("Dropdown value updated successfully.");
+            } else {
+                await axios.post(`${API_BASE_URL}/api/dropdown`, payload, { withCredentials: true });
+                setSuccessMessage("Dropdown value added successfully.");
+            }
+            setOpenDialog(false);
+            fetchDropdownValues(1, itemsPerPage);
+            setCurrentPage(1);
+        } catch (err) {
+            console.error("Error saving dropdown value:", err);
+            setError(`Error saving dropdown value: ${err.response?.data?.message || err.message}`);
+        }
+    };
 
-label: "",
+    const handleDelete = async (id) => {
+        setError(null);
+        setSuccessMessage(null);
+        if (window.confirm("Are you sure you want to delete this item?")) {
+            try {
+                await axios.delete(`${API_BASE_URL}/api/dropdown/${id}`, { withCredentials: true });
+                setSuccessMessage("Dropdown value deleted successfully.");
+                // If the deleted item was on the last page and was the only item, adjust current page
+                if (filteredValues.length === 1 && currentPage > 1) {
+                    setCurrentPage(currentPage - 1);
+                } else {
+                    fetchDropdownValues(currentPage, itemsPerPage);
+                }
+            } catch (err) {
+                console.error("Error deleting dropdown value:", err);
+                setError(`Error deleting dropdown value: ${err.response?.data?.message || err.message}`);
+            }
+        }
+    };
 
-});
+    const handleFileUpload = async () => {
+        if (!file) {
+            setError("Please select a file to upload.");
+            return;
+        }
+        setError(null);
+        setSuccessMessage(null);
+        const formData = new FormData();
+        formData.append("file", file);
 
-const [file, setFile] = useState(null);
+        try {
+            await axios.post(`${API_BASE_URL}/api/dropdown/upload`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+                withCredentials: true,
+            });
+            setSuccessMessage("Dropdown values uploaded successfully.");
+            fetchDropdownValues(1, itemsPerPage);
+            setCurrentPage(1);
+            setFile(null);
+            const fileInput = document.getElementById('upload-file');
+            if (fileInput) fileInput.value = "";
+        } catch (err) {
+            console.error("Error uploading file:", err);
+            setError(`Error uploading file: ${err.response?.data?.message || err.message}`);
+        }
+    };
 
-const [currentPage, setCurrentPage] = useState(1);
+    const handleItemsPerPageChange = (event) => {
+        setItemsPerPage(parseInt(event.target.value, 10));
+        setCurrentPage(1);
+    };
 
-const [itemsPerPage, setItemsPerPage] = useState(25);
+    const handleNextPage = () => {
+        if (currentPage < Math.ceil(totalItems / itemsPerPage)) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
 
-const [totalItems, setTotalItems] = useState(0);
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
 
-const [filter, setFilter] = useState(""); // For filter input
+    const handleOpenDialog = (item = null) => {
+        if (item) {
+            setCurrentValue({
+                _id: item._id,
+                type: item.type || "",
+                value: item.value || "",
+                label: item.label || "",
+            });
+        } else {
+            setCurrentValue({ _id: "", type: "", value: "", label: "" });
+        }
+        setError(null);
+        setOpenDialog(true);
+    };
 
+    return (
+        <Box sx={{ p: 3 }}>
+            <Typography variant="h4" gutterBottom>Manage Dropdown Values</Typography>
 
+            {successMessage && <Alert severity="success" onClose={() => setSuccessMessage(null)} sx={{ mb: 2 }}>{successMessage}</Alert>}
+            {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
 
-// Fetch dropdown values from the backend
+            <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    onChange={(e) => setFile(e.target.files[0])}
+                    style={{ display: "none" }}
+                    id="upload-file"
+                />
+                <label htmlFor="upload-file">
+                    <Button variant="outlined" component="span" startIcon={<CloudUpload />}>
+                        Select Excel File
+                    </Button>
+                </label>
+                {file && <Typography variant="caption" sx={{ml:1}}>{file.name}</Typography>}
+                <Button variant="contained" onClick={handleFileUpload} disabled={!file} sx={{ml: {xs: 0, sm:1}, mt: {xs:1, sm:0}}}>
+                    Upload & Submit
+                </Button>
+            </Box>
 
-const fetchDropdownValues = async () => {
+            <Button variant="contained" onClick={() => handleOpenDialog()} sx={{ mb: 3 }} startIcon={<AddIcon />}>
+                Add New Value
+            </Button>
 
-try {
+            <TextField
+                fullWidth
+                label="Filter by Type, Value, or Label"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                sx={{ mb: 3 }}
+                variant="outlined"
+                size="small"
+            />
 
-const apiUrl = process.env.REACT_APP_API_URL; // Use environment variable
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: 'wrap', gap: 2 }}>
+                <Box>
+                    <Button onClick={handlePreviousPage} disabled={currentPage === 1 || loading}>
+                        Previous
+                    </Button>
+                    <Typography variant="body2" component="span" sx={{px:2}}>
+                        Page {currentPage} of {Math.ceil(totalItems / itemsPerPage) || 1}
+                    </Typography>
+                    <Button onClick={handleNextPage} disabled={currentPage >= Math.ceil(totalItems / itemsPerPage) || loading}>
+                        Next
+                    </Button>
+                </Box>
+                <FormControl sx={{ minWidth: 120 }} size="small">
+                    <InputLabel>Items per page</InputLabel>
+                    <Select
+                        value={itemsPerPage}
+                        onChange={handleItemsPerPageChange}
+                        label="Items per page"
+                    >
+                        <MenuItem value={10}>10</MenuItem>
+                        <MenuItem value={25}>25</MenuItem>
+                        <MenuItem value={50}>50</MenuItem>
+                        <MenuItem value={100}>100</MenuItem>
+                        <MenuItem value={-1}>All</MenuItem>
+                    </Select>
+                </FormControl>
+            </Box>
 
-const response = await axios.get(`${apiUrl}/api/dropdown`, {
+            <TableContainer component={Paper}>
+                <Table>
+                    <TableHead>
+                        <TableRow sx={{ backgroundColor: 'grey.200' }}>
+                            <TableCell sx={{fontWeight: 'bold'}}>Type</TableCell>
+                            <TableCell sx={{fontWeight: 'bold'}}>Value</TableCell>
+                            <TableCell sx={{fontWeight: 'bold'}}>Label</TableCell>
+                            <TableCell sx={{fontWeight: 'bold'}}>Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={4} align="center"><CircularProgress /></TableCell>
+                            </TableRow>
+                        ) : filteredValues && filteredValues.length > 0 ? (
+                            filteredValues.map((item) => (
+                                <TableRow key={item._id} hover>
+                                    <TableCell>{item.type}</TableCell>
+                                    <TableCell>{item.value}</TableCell>
+                                    <TableCell>{item.label}</TableCell>
+                                    <TableCell>
+                                        <IconButton onClick={() => handleOpenDialog(item)} size="small" color="primary" aria-label="edit">
+                                            <Edit />
+                                        </IconButton>
+                                        <IconButton onClick={() => handleDelete(item._id)} size="small" color="error" aria-label="delete">
+                                            <Delete />
+                                        </IconButton>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={4} align="center">
+                                    No data available
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
 
-params: {
-
-page: currentPage,
-
-limit: itemsPerPage,
-
-},
-
-});
-
-console.log("API Response:", response.data); // Debug the response
-
-
-
-// Ensure the response data is in the correct format
-
-if (response.data && Array.isArray(response.data.data)) {
-
-setDropdownValues(response.data.data);
-
-setFilteredValues(response.data.data); // Initialize filtered data
-
-setTotalItems(response.data.total || 0);
-
-} else {
-
-console.error("Invalid API response format:", response.data);
-
-setDropdownValues([]);
-
-setFilteredValues([]);
-
-setTotalItems(0);
-
+            <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>{currentValue._id ? "Edit Dropdown Value" : "Add Dropdown Value"}</DialogTitle>
+                <DialogContent>
+                    {error && <Alert severity="error" sx={{mb:2}} onClose={() => setError(null)}>{error}</Alert>}
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        name="type"
+                        label="Type *"
+                        type="text"
+                        fullWidth
+                        variant="outlined"
+                        value={currentValue.type}
+                        onChange={(e) => setCurrentValue({ ...currentValue, type: e.target.value })}
+                        // error={!!(error && !currentValue.type)} // Error prop on textfield can be complex
+                    />
+                    <TextField
+                        margin="dense"
+                        name="value"
+                        label="Value *"
+                        type="text"
+                        fullWidth
+                        variant="outlined"
+                        value={currentValue.value}
+                        onChange={(e) => setCurrentValue({ ...currentValue, value: e.target.value })}
+                        // error={!!(error && !currentValue.value)}
+                    />
+                    <TextField
+                        margin="dense"
+                        name="label"
+                        label="Label *"
+                        type="text"
+                        fullWidth
+                        variant="outlined"
+                        value={currentValue.label}
+                        onChange={(e) => setCurrentValue({ ...currentValue, label: e.target.value })}
+                        // error={!!(error && !currentValue.label)}
+                    />
+                </DialogContent>
+                <DialogActions sx={{p: '16px 24px'}}>
+                    <Button onClick={() => setOpenDialog(false)} color="secondary">Cancel</Button>
+                    <Button onClick={handleSave} variant="contained">Save</Button>
+                </DialogActions>
+            </Dialog>
+        </Box>
+    );
 }
-
-} catch (error) {
-
-console.error("Error fetching dropdown values:", error);
-
-setDropdownValues([]); // Set to empty array on error
-
-setFilteredValues([]);
-
-setTotalItems(0); // Reset total items on error
-
-}
-
-};
-
-
-
-useEffect(() => {
-
-fetchDropdownValues();
-
-}, [currentPage, itemsPerPage]);
-
-
-
-// Handle filter input change
-
-useEffect(() => {
-
-if (filter) {
-
-const filtered = dropdownValues.filter(
-
-(item) =>
-
-item.type.toLowerCase().includes(filter.toLowerCase()) ||
-
-item.value.toLowerCase().includes(filter.toLowerCase()) ||
-
-item.label.toLowerCase().includes(filter.toLowerCase())
-
-);
-
-setFilteredValues(filtered);
-
-} else {
-
-setFilteredValues(dropdownValues); // Reset to all data if no filter
-
-}
-
-}, [filter, dropdownValues]);
-
-
-
-// Handle adding/editing a dropdown value
-
-const handleSave = async () => {
-
-try {
-
-const apiUrl = process.env.REACT_APP_API_URL;
-
-const updatedUser = "Admin"; // Replace with the logged-in user's username or ID
-
-
-
-if (currentValue.id) {
-
-// Update existing value
-
-await axios.put(`${apiUrl}/api/dropdown/${currentValue.id}`, {
-
-label: currentValue.label,
-
-updated_user: updatedUser, // Automatically set the updated user
-
-});
-
-} else {
-
-// Add new value
-
-await axios.post(`${apiUrl}/api/dropdown`, {
-
-type: currentValue.type,
-
-value: currentValue.value,
-
-label: currentValue.label,
-
-updated_user: updatedUser, // Automatically set the updated user
-
-});
-
-}
-
-setOpenDialog(false);
-
-fetchDropdownValues(); // Refresh the list
-
-} catch (error) {
-
-console.error("Error saving dropdown value:", error);
-
-}
-
-};
-
-
-
-// Handle deleting a dropdown value
-
-const handleDelete = async (id) => {
-
-try {
-
-await axios.delete(`${process.env.REACT_APP_API_URL}/api/dropdown/${id}`);
-
-fetchDropdownValues(); // Refresh the list
-
-} catch (error) {
-
-console.error("Error deleting dropdown value:", error);
-
-}
-
-};
-
-
-
-// Handle file upload
-
-const handleFileUpload = async () => {
-
-if (!file) {
-
-alert("Please select a file to upload.");
-
-return;
-
-}
-
-
-
-const formData = new FormData();
-
-formData.append("file", file);
-
-
-
-try {
-
-await axios.post(`${process.env.REACT_APP_API_URL}/api/dropdown/upload`, formData, {
-
-headers: { "Content-Type": "multipart/form-data" },
-
-});
-
-alert("Dropdown values uploaded successfully.");
-
-fetchDropdownValues(); // Refresh the list
-
-} catch (error) {
-
-console.error("Error uploading file:", error);
-
-}
-
-};
-
-
-
-// Handle items per page change
-
-const handleItemsPerPageChange = (event) => {
-
-setItemsPerPage(event.target.value);
-
-setCurrentPage(1); // Reset to first page
-
-};
-
-
-
-// Handle next page
-
-const handleNextPage = () => {
-
-if (currentPage < Math.ceil(totalItems / itemsPerPage)) {
-
-setCurrentPage(currentPage + 1);
-
-}
-
-};
-
-
-
-// Handle previous page
-
-const handlePreviousPage = () => {
-
-if (currentPage > 1) {
-
-setCurrentPage(currentPage - 1);
-
-}
-
-};
-
-
-
-return (
-
-<Box sx={{ p: 3 }}>
-
-<Typography variant="h4" gutterBottom>
-
-Manage Dropdown Values
-
-</Typography>
-
-
-
-{/* Upload Excel File Section */}
-
-<Box sx={{ mb: 3 }}>
-
-<input
-
-type="file"
-
-accept=".xlsx, .xls"
-
-onChange={(e) => setFile(e.target.files[0])}
-
-style={{ display: "none" }}
-
-id="upload-file"
-
-/>
-
-<label htmlFor="upload-file">
-
-<Button variant="contained" component="span" startIcon={<CloudUpload />}>
-
-Upload Excel
-
-</Button>
-
-</label>
-
-<Button variant="contained" onClick={handleFileUpload} sx={{ ml: 2 }}>
-
-Submit
-
-</Button>
-
-</Box>
-
-
-
-{/* Add New Value Button */}
-
-<Button
-
-variant="contained"
-
-onClick={() => {
-
-setCurrentValue({ id: "", type: "", value: "", label: "" });
-
-setOpenDialog(true);
-
-}}
-
-sx={{ mb: 3 }}
-
->
-
-Add New Value
-
-</Button>
-
-
-
-{/* Filter Input */}
-
-<TextField
-
-fullWidth
-
-label="Filter by Type, Value, or Label"
-
-value={filter}
-
-onChange={(e) => setFilter(e.target.value)}
-
-sx={{ mb: 3 }}
-
-/>
-
-
-
-{/* Pagination Controls */}
-
-<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-
-<Box>
-
-<Button onClick={handlePreviousPage} disabled={currentPage === 1}>
-
-Previous
-
-</Button>
-
-<Button onClick={handleNextPage} disabled={currentPage === Math.ceil(totalItems / itemsPerPage)}>
-
-Next
-
-</Button>
-
-</Box>
-
-<FormControl sx={{ minWidth: 120 }}>
-
-<InputLabel>Items per page</InputLabel>
-
-<Select
-
-value={itemsPerPage}
-
-onChange={handleItemsPerPageChange}
-
-label="Items per page"
-
->
-
-<MenuItem value={25}>25</MenuItem>
-
-<MenuItem value={50}>50</MenuItem>
-
-<MenuItem value={100}>100</MenuItem>
-
-<MenuItem value={200}>200</MenuItem>
-
-<MenuItem value={-1}>All</MenuItem>
-
-</Select>
-
-</FormControl>
-
-</Box>
-
-
-
-{/* Table to Display Dropdown Values */}
-
-<TableContainer component={Paper}>
-
-<Table>
-
-<TableHead>
-
-<TableRow>
-
-<TableCell>Type</TableCell>
-
-<TableCell>Value</TableCell>
-
-<TableCell>Label</TableCell>
-
-<TableCell>Actions</TableCell>
-
-</TableRow>
-
-</TableHead>
-
-<TableBody>
-
-{filteredValues && filteredValues.length > 0 ? (
-
-filteredValues.map((item) => (
-
-<TableRow key={item._id}>
-
-<TableCell>{item.type}</TableCell>
-
-<TableCell>{item.value}</TableCell>
-
-<TableCell>{item.label}</TableCell>
-
-<TableCell>
-
-<IconButton
-
-onClick={() => {
-
-setCurrentValue({
-
-id: item._id,
-
-type: item.type,
-
-value: item.value,
-
-label: item.label,
-
-});
-
-setOpenDialog(true);
-
-}}
-
->
-
-<Edit />
-
-</IconButton>
-
-<IconButton onClick={() => handleDelete(item._id)}>
-
-<Delete />
-
-</IconButton>
-
-</TableCell>
-
-</TableRow>
-
-))
-
-) : (
-
-<TableRow>
-
-<TableCell colSpan={4} align="center">
-
-No data available
-
-</TableCell>
-
-</TableRow>
-
-)}
-
-</TableBody>
-
-</Table>
-
-</TableContainer>
-
-
-
-{/* Dialog for Adding/Editing Values */}
-
-<Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-
-<DialogTitle>{currentValue.id ? "Edit Dropdown Value" : "Add Dropdown Value"}</DialogTitle>
-
-<DialogContent>
-
-<TextField
-
-margin="normal"
-
-fullWidth
-
-label="Type"
-
-value={currentValue.type}
-
-onChange={(e) => setCurrentValue({ ...currentValue, type: e.target.value })}
-
-/>
-
-<TextField
-
-margin="normal"
-
-fullWidth
-
-label="Value"
-
-value={currentValue.value}
-
-onChange={(e) => setCurrentValue({ ...currentValue, value: e.target.value })}
-
-/>
-
-<TextField
-
-margin="normal"
-
-fullWidth
-
-label="Label"
-
-value={currentValue.label}
-
-onChange={(e) => setCurrentValue({ ...currentValue, label: e.target.value })}
-
-/>
-
-</DialogContent>
-
-<DialogActions>
-
-<Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-
-<Button onClick={handleSave}>Save</Button>
-
-</DialogActions>
-
-</Dialog>
-
-</Box>
-
-);
-
-}
-
-
 
 export default DropdownManagement;
