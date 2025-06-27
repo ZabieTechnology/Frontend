@@ -33,7 +33,7 @@ jobs:
           action: "upload"
 
           ###### Repository/Build Configurations ######
-          app_location: "invoiceFrontend"  # Set to the folder containing your package.json
+          app_location: "/"  # Set to the root of the repository
           api_location: ""                 # No API in this project
           output_location: "build"         # The folder created by 'npm run build'
           ###### End of Repository/Build Configurations ######
@@ -51,4 +51,4 @@ jobs:
         with:
           action: "close"
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_POLITE_GLACIER_09051600F }}
-          app_location: "invoiceFrontend" # Added missing app_location
+          app_location: "/" # This should also point to the root
