@@ -64,7 +64,7 @@ const menuItems = [
     { id: 'dashboard', text: 'Dashboard', icon: <Home />, path: '/home' },
     {
         id: 'account-transaction',
-        text: 'Account Transaction',
+        text: 'A/C Transaction',
         icon: <AttachMoneyIcon />,
         children: [
             { id: 'customer', text: 'Customer', icon: <PeopleIcon />, path: '/account-transaction/customer' },
@@ -131,7 +131,7 @@ const menuItems = [
                         ]
                     },
                     { id: 'invoice-settings', text: 'Invoice', icon: <Receipt />, path: '/settings/invoicesettings/InvoiceSettingsPage' },
-                    { id: 'estimate-settings', text: 'Estimate', icon: <RequestQuote />, path: '/settings/estimate' },
+                    { id: 'estimate-settings', text: 'Estimate', icon: <RequestQuote />, path: 'settings/Finance/quotationsettings' },
                     { id: 'expense-settings', text: 'Expense', icon: <Money />, action: 'popover' },
                 ]
             },

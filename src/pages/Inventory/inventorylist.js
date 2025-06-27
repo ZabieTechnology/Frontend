@@ -30,6 +30,56 @@ const createData = (id, name, code, category, qty, sellingPrice, fullItem) => {
 };
 
 // ==========================================================================
+// ===               Confirmation Dialog Hook & Component                 ===
+// ==========================================================================
+function ConfirmationDialog({ open, options, onCancel, onConfirm }) {
+    const { title, message } = options;
+    return (
+        <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
+            <DialogTitle>{title || 'Confirm Action'}</DialogTitle>
+            <DialogContent><Typography>{message}</Typography></DialogContent>
+            <DialogActions>
+                <Button onClick={onCancel}>Cancel</Button>
+                <Button onClick={onConfirm} color="error" variant="contained">Confirm</Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
+const useConfirmationDialog = () => {
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogOptions, setDialogOptions] = useState({ title: '', message: '', onConfirm: () => {} });
+
+    const confirm = (options) => {
+        setDialogOptions(options);
+        setDialogOpen(true);
+    };
+
+    const onConfirm = () => {
+        if (dialogOptions.onConfirm) {
+            dialogOptions.onConfirm();
+        }
+        setDialogOpen(false);
+    };
+
+    const onCancel = () => {
+        setDialogOpen(false);
+    };
+
+    const ConfirmationDialogComponent = () => (
+        <ConfirmationDialog
+            open={dialogOpen}
+            options={dialogOptions}
+            onConfirm={onConfirm}
+            onCancel={onCancel}
+        />
+    );
+
+    return { confirm, ConfirmationDialog: ConfirmationDialogComponent };
+};
+
+
+// ==========================================================================
 // ===               Create/Edit Item Modal Component                     ===
 // ==========================================================================
 const renderModalSectionTitle = (title) => (
@@ -56,7 +106,6 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
     const [lowStockAlertCount, setLowStockAlertCount] = useState('');
     const [openingStockQty, setOpeningStockQty] = useState('');
     const [pricePerItem, setPricePerItem] = useState('');
-    // New Fields State
     const [serialNo, setSerialNo] = useState('');
     const [expiryDate, setExpiryDate] = useState('');
     const [mfgDate, setMfgDate] = useState('');
@@ -245,46 +294,50 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
 }
 
 function StockTransactionModal({ open, onClose, transactions, itemName }) {
-    // ...
-}
-
-function ConfirmationDialog({ open, options, onCancel, onConfirm }) {
-    const { title, message } = options;
     return (
-        <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogContent><Typography>{message}</Typography></DialogContent>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+            <DialogTitle sx={{ fontWeight: 'bold' }}>Stock Transaction History: {itemName}</DialogTitle>
+            <DialogContent>
+                <TableContainer component={Paper}>
+                    <Table stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Date</TableCell>
+                                <TableCell>Type</TableCell>
+                                <TableCell align="right">Quantity</TableCell>
+                                <TableCell align="right">Price/Item</TableCell>
+                                <TableCell>Notes</TableCell>
+                                <TableCell>Recorded By</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {transactions.length > 0 ? transactions.map(tx => (
+                                <TableRow key={tx._id}>
+                                    <TableCell>{new Date(tx.transaction_date).toLocaleString()}</TableCell>
+                                    <TableCell>
+                                        <Typography color={tx.transaction_type === 'IN' ? 'success.main' : 'error.main'}>
+                                            {tx.transaction_type}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell align="right">{tx.quantity}</TableCell>
+                                    <TableCell align="right">{tx.price_per_item ? `₹${tx.price_per_item.toFixed(2)}` : 'N/A'}</TableCell>
+                                    <TableCell>{tx.notes}</TableCell>
+                                    <TableCell>{tx.recorded_by}</TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow><TableCell colSpan={6} align="center">No transactions found.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </DialogContent>
             <DialogActions>
-                <Button onClick={onCancel}>Cancel</Button>
-                <Button onClick={onConfirm} color="error" variant="contained">Confirm</Button>
+                <Button onClick={onClose}>Close</Button>
             </DialogActions>
         </Dialog>
     );
 }
 
-const useConfirmationDialog = () => {
-    const [open, setOpen] = useState(false);
-    const [options, setOptions] = useState({});
-
-    const confirm = (newOptions) => {
-        setOptions(newOptions);
-        setOpen(true);
-    };
-
-    const handleClose = () => setOpen(false);
-    const handleConfirm = () => {
-        if (options.onConfirm) {
-            options.onConfirm();
-        }
-        handleClose();
-    };
-
-    const ConfirmationDialogComponent = () => (
-        <ConfirmationDialog open={open} options={options} onCancel={handleClose} onConfirm={handleConfirm} />
-    );
-
-    return { confirm, ConfirmationDialog: ConfirmationDialogComponent };
-};
 
 function TransactionPage() {
     const [tableRows, setTableRows] = useState([]);

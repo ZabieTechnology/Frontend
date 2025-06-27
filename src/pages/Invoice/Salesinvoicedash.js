@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
   Box,
   Button,
@@ -30,7 +32,9 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  TableFooter
+  TableFooter,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -46,6 +50,7 @@ import {
 } from '@mui/icons-material';
 import { visuallyHidden } from '@mui/utils';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
+import { format } from 'date-fns';
 
 // A light theme for the dashboard
 const lightTheme = createTheme({
@@ -141,6 +146,8 @@ const lightTheme = createTheme({
     }
   }
 });
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
 // Styled components for custom tab-like buttons
 const NavButton = styled(Button)(({ theme, selected }) => ({
@@ -285,213 +292,16 @@ const getStatusChipStyles = (status) => {
     return { backgroundColor: style.bgColor, color: style.textColor, fontWeight: 'bold' };
 };
 
-
-// --- Mock Data ---
-const allInvoices = [
-    { id: 'Inv-003', type: 'Invoice', customer: 'John Doe', date: '11 Sep 2024', dueDate: '11 Sep 2024', amount: 1200, amountPaid: 0, amountAllocated: 0, source: 'Whatsapp', eInvoiceStatus: 'Raised', status: 'Awaiting payment' },
-    { id: 'Inv-004', type: 'Invoice', customer: 'Jane Smith', date: '11 Sep 2024', dueDate: '11 Sep 2024', amount: 2500, amountPaid: 0, amountAllocated: 0, source: 'Chatbot', eInvoiceStatus: 'Not Raised', status: 'Awaiting Approval' },
-    { id: 'Inv-005', type: 'Invoice', customer: 'Adam Johnson', date: '11 Sep 2024', dueDate: '11 Sep 2024', amount: 2500, amountPaid: 2500, amountAllocated: 0, source: 'Software API', eInvoiceStatus: 'Raised', status: 'Published' },
-    { id: 'Inv-006', type: 'Invoice', customer: 'Chris Lee', date: '11 Sep 2024', dueDate: '11 Sep 2024', amount: 2500, amountPaid: 0, amountAllocated: 2500, source: 'Excel Import', eInvoiceStatus: 'Raised', status: 'Published' },
-    { id: 'Inv-007', type: 'Invoice', customer: 'Ben Davis', date: '11 Sep 2024', dueDate: '11 Sep 2024', amount: 2500, amountPaid: 0, amountAllocated: 0, source: 'Excel Import', eInvoiceStatus: 'Not Raised', status: 'Draft' },
-    { id: 'Inv-008', type: 'Invoice', customer: 'Olivia Martinez', date: '15 Sep 2024', dueDate: '15 Oct 2024', amount: 3000, amountPaid: 1000, amountAllocated: 0, source: 'Whatsapp', eInvoiceStatus: 'Not Raised', status: 'Published' },
-    { id: 'Inv-009', type: 'Invoice', customer: 'James Garcia', date: '16 Sep 2024', dueDate: '16 Oct 2024', amount: 4000, amountPaid: 1000, amountAllocated: 1000, source: 'Chatbot', eInvoiceStatus: 'Raised', status: 'Published' },
-];
-
-const allCreditNotes = [
-    { id: 'CRN-001', type: 'Credit Note', customer: 'John Doe', date: '11 Sep 2024', amount: 1200, amountAllocated: 1200, amountRefunded: 0, ref_invoice: 'Inv-002', paymentStatus: 'Refunded', eInvoiceStatus: 'Raised', status: 'Settled' },
-    { id: 'CRN-002', type: 'Credit Note', customer: 'Jane Smith', date: '11 Sep 2024', amount: 2500, amountAllocated: 0, amountRefunded: 0, ref_invoice: 'Inv-004', paymentStatus: 'Open', eInvoiceStatus: 'Not Raised', status: 'Awaiting Approval' },
-];
-
-const allOverpayments = [
-    { id: 'OP-001', type: 'Overpayment', customer: 'John Doe', date: '10 Sep 2024', amount: 500, ref_invoice: 'Inv-001' },
-];
-
-
 // --- Sales Invoice Page Components ---
 const salesInvoiceHeadCells = [
-    { id: 'id', numeric: false, label: 'Invoice No.' },
-    { id: 'customer', numeric: false, label: 'Customer Name' },
-    { id: 'date', numeric: false, label: 'Date' },
+    { id: 'invoiceNumber', numeric: false, label: 'Invoice No.' },
+    { id: 'customerName', numeric: false, label: 'Customer Name' },
+    { id: 'invoiceDate', numeric: false, label: 'Date' },
     { id: 'dueDate', numeric: false, label: 'Due Date' },
-    { id: 'amount', numeric: true, label: 'Invoice Amount' },
-    { id: 'source', numeric: false, label: 'Source' },
-    { id: 'paymentStatus', numeric: false, label: 'Payment Status' },
-    { id: 'eInvoiceStatus', numeric: false, label: 'E-Invoice Status' },
+    { id: 'grandTotal', numeric: true, label: 'Invoice Amount' },
     { id: 'status', numeric: false, label: 'Status' },
     { id: 'actions', numeric: false, label: 'Actions', sortable: false, filterable: false },
 ];
-
-// --- Payment Dialog Component (Required by SalesInvoicePage) ---
-const PaymentDialog = ({ open, onClose, initialSelected, dialogTitle }) => {
-    const allTransactions = [...allInvoices, ...allCreditNotes, ...allOverpayments].filter(t => t.status !== 'Draft' && t.status !== 'Awaiting Approval' && t.paymentStatus !== 'Paid' && t.paymentStatus !== 'Refunded' && t.paymentStatus !== 'Adjusted');
-    const [selected, setSelected] = React.useState(initialSelected || []);
-
-   React.useEffect(() => {
-        if (open) {
-            setSelected(initialSelected || []);
-        }
-    }, [open, initialSelected]);
-
-    const handleSelectAllClick = (event) => {
-        if (event.target.checked) {
-            const newSelected = allTransactions.map((n) => n.id);
-            setSelected(newSelected);
-            return;
-        }
-        setSelected([]);
-    };
-
-    const handleClick = (event, id) => {
-        const selectedIndex = selected.indexOf(id);
-        let newSelected = [];
-        if (selectedIndex === -1) {
-            newSelected = newSelected.concat(selected, id);
-        } else if (selectedIndex === 0) {
-            newSelected = newSelected.concat(selected.slice(1));
-        } else if (selectedIndex === selected.length - 1) {
-            newSelected = newSelected.concat(selected.slice(0, -1));
-        } else if (selectedIndex > 0) {
-            newSelected = newSelected.concat(selected.slice(0, selectedIndex), selected.slice(selectedIndex + 1));
-        }
-        setSelected(newSelected);
-    };
-
-    const isSelected = (id) => selected.indexOf(id) !== -1;
-
-    const selectedTransactionDetails = allTransactions.filter(t => selected.includes(t.id));
-
-    const subtotal = selectedTransactionDetails.reduce((acc, curr) => {
-        const amount = curr.amount || 0;
-        const value = curr.type === 'Invoice' ? amount : -amount;
-        return acc + value;
-    }, 0);
-
-    const dialogTableHeadCells = [
-        { id: 'type', label: 'Type' },
-        { id: 'customer', label: 'Head' },
-        { id: 'id', label: 'Transaction No.' },
-        { id: 'date', label: 'Date' },
-        { id: 'dueDate', label: 'Due Date' },
-        { id: 'amount', numeric: true, label: 'Amount Due' },
-        { id: 'credit', numeric: true, label: 'Credit' },
-    ];
-
-    const renderActionButton = () => {
-        if (subtotal > 0) {
-            return <Button variant="contained" color="success">Deposit</Button>;
-        }
-        if (subtotal < 0) {
-            return <Button variant="contained" color="primary">Process Refund</Button>;
-        }
-        return <Button variant="contained" color="secondary">Allocate</Button>;
-    }
-
-    return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-            <DialogTitle>{dialogTitle || 'Make a Payment'}</DialogTitle>
-            <DialogContent>
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} sm={4}>
-                        <TextField label="Select Payment date" type="date" fullWidth InputLabelProps={{ shrink: true }} />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <TextField label="Reference" fullWidth />
-                    </Grid>
-                    {subtotal !== 0 && (
-                        <Grid item xs={12} sm={4}>
-                            <TextField label="Select account" fullWidth />
-                        </Grid>
-                    )}
-                </Grid>
-
-                <Typography variant="h6" gutterBottom>Find and Select Transactions</Typography>
-                <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                    <Grid item xs={12} sm={5}>
-                        <TextField label="Search by name or reference" fullWidth InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }} />
-                    </Grid>
-                     <Grid item xs={12} sm={5}>
-                        <TextField label="Search by amount" fullWidth InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }} />
-                    </Grid>
-                    <Grid item xs={12} sm={2}>
-                        <FormControlLabel control={<Checkbox />} label="Show INR Items Only" />
-                    </Grid>
-                </Grid>
-
-                <TableContainer component={Paper} sx={{maxHeight: 300, mb: 2}}>
-                    <Table stickyHeader>
-                        <EnhancedTableHead
-                            numSelected={selected.length}
-                            onSelectAllClick={handleSelectAllClick}
-                            rowCount={allTransactions.length}
-                            headCells={dialogTableHeadCells}
-                            onRequestSort={()=>{}}
-                            order="asc"
-                            orderBy="id"
-                        />
-                        <TableBody>
-                            {allTransactions.map(row => {
-                                const isItemSelected = isSelected(row.id);
-                                return (
-                                <TableRow key={row.id} hover onClick={(e) => handleClick(e, row.id)} role="checkbox" tabIndex={-1} selected={isItemSelected}>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox color="primary" checked={isItemSelected} />
-                                    </TableCell>
-                                    <TableCell>{row.type}</TableCell>
-                                    <TableCell>{row.customer}</TableCell>
-                                    <TableCell>{row.id}</TableCell>
-                                    <TableCell>{row.date}</TableCell>
-                                    <TableCell>{row.dueDate || 'N/A'}</TableCell>
-                                    <TableCell align="right">{row.type === 'Invoice' ? `$${row.amount.toLocaleString()}`: ''}</TableCell>
-                                    <TableCell align="right">{row.type !== 'Invoice' ? `$${row.amount.toLocaleString()}`: ''}</TableCell>
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-
-                <Typography variant="h6" sx={{mt: 4}}>Selected Transactions</Typography>
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell padding="checkbox"></TableCell>
-                                {dialogTableHeadCells.map(cell => <TableCell key={cell.id} align={cell.numeric ? 'right' : 'left'}>{cell.label}</TableCell>)}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {selectedTransactionDetails.map(row => (
-                                <TableRow key={row.id}>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox color="primary" checked={isSelected(row.id)} onChange={(e) => handleClick(e, row.id)} />
-                                    </TableCell>
-                                    <TableCell>{row.type}</TableCell>
-                                    <TableCell>{row.customer}</TableCell>
-                                    <TableCell>{row.id}</TableCell>
-                                    <TableCell>{row.date}</TableCell>
-                                    <TableCell>{row.dueDate || 'N/A'}</TableCell>
-                                    <TableCell align="right">{row.type === 'Invoice' ? `$${row.amount.toLocaleString()}`: ''}</TableCell>
-                                    <TableCell align="right">{row.type !== 'Invoice' ? `$${row.amount.toLocaleString()}`: ''}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                        <TableFooter>
-                            <TableRow>
-                                <TableCell colSpan={6} align="right"><Typography variant="h6">Subtotal</Typography></TableCell>
-                                <TableCell align="right"><Typography variant="h6">${subtotal.toLocaleString()}</Typography></TableCell>
-                            </TableRow>
-                        </TableFooter>
-                    </Table>
-                </TableContainer>
-
-            </DialogContent>
-            <DialogActions sx={{ p: 3 }}>
-                <Button onClick={onClose}>Cancel</Button>
-                {renderActionButton()}
-            </DialogActions>
-        </Dialog>
-    );
-}
-
 
 const SalesInvoicePage = () => {
     const [order, setOrder] = React.useState('asc');
@@ -509,7 +319,29 @@ const SalesInvoicePage = () => {
     const [sortBy, setSortBy] = React.useState('This Month');
     const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
     const sortOptions = ['This Month', 'Last Month', 'This Year', 'All Time'];
-    const invoiceRows = allInvoices;
+
+    const [invoiceRows, setInvoiceRows] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(null);
+
+
+    const fetchInvoices = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/sales-invoices`, { withCredentials: true });
+            setInvoiceRows(response.data.data || []);
+        } catch (err) {
+            console.error("Failed to fetch invoices:", err);
+            setError(err.response?.data?.message || "Could not load invoices.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchInvoices();
+    }, [fetchInvoices]);
 
     const handleRequestSort = (event, property) => {
         const isAsc = orderBy === property && order === 'asc';
@@ -519,7 +351,7 @@ const SalesInvoicePage = () => {
 
     const handleSelectAllClick = (event) => {
         if (event.target.checked) {
-            const newSelected = invoiceRows.map((n) => n.id);
+            const newSelected = invoiceRows.map((n) => n._id);
             setSelected(newSelected);
             return;
         }
@@ -599,29 +431,7 @@ const SalesInvoicePage = () => {
     };
 
     const filteredRows = React.useMemo(() => {
-        let rows = invoiceRows.map(row => {
-            let paymentStatus;
-            let status = row.status;
-            let eInvoiceStatus = row.eInvoiceStatus;
-            const totalCredited = (row.amountPaid || 0) + (row.amountAllocated || 0);
-
-            if (row.status === 'Draft' || row.status === 'Awaiting Approval') {
-                paymentStatus = 'Not Paid';
-                eInvoiceStatus = 'Not Raised';
-            } else if (totalCredited >= row.amount) {
-                paymentStatus = row.amountAllocated > 0 && row.amountPaid === 0 ? 'Adjusted with CN' : 'Paid';
-                status = 'Published';
-            } else if (row.amountPaid > 0 && row.amountAllocated > 0) {
-                paymentStatus = 'Partially Paid & Allocated';
-                status = 'Published';
-            } else if (row.amountPaid > 0) {
-                paymentStatus = 'Partially Paid';
-                status = 'Awaiting payment';
-            } else {
-                paymentStatus = 'Not Paid';
-            }
-            return {...row, paymentStatus, status, eInvoiceStatus };
-        })
+        let rows = invoiceRows
         .filter(row => {
             return Object.keys(filters).every(key => {
                 if (!filters[key] || filters[key].length === 0) return true;
@@ -640,7 +450,7 @@ const SalesInvoicePage = () => {
     }, [invoiceRows, filters, searchTerm]);
 
     const isPaymentDisabled = selected.length === 0 || selected.some(id => {
-        const row = invoiceRows.find(r => r.id === id);
+        const row = invoiceRows.find(r => r._id === id);
         return row && (row.status === 'Draft' || row.status === 'Awaiting Approval');
     });
 
@@ -651,23 +461,9 @@ const SalesInvoicePage = () => {
     const isAllSelected = filteredUniqueColumnValues.length > 0 && tempFilterValues.length === filteredUniqueColumnValues.length;
     const isIndeterminate = tempFilterValues.length > 0 && tempFilterValues.length < filteredUniqueColumnValues.length;
 
-    const getPaymentStatusChip = (status) => {
-        const style = {
-            'Paid': { color: 'success', bgColor: '#e8f5e9', textColor: 'success.dark' },
-            'Partially Paid': { color: 'warning', bgColor: '#fff3e0', textColor: 'warning.dark' },
-            'Partially Paid & Allocated': { color: 'secondary', bgColor: '#e8eaf6', textColor: '#3f51b5' },
-            'Adjusted with CN': { color: 'info', bgColor: '#e3f2fd', textColor: 'info.dark' },
-            'Not Paid': { color: 'error', bgColor: '#ffebee', textColor: 'error.dark' },
-        }[status] || { color: 'default', bgColor: '#f5f5f5', textColor: 'text.secondary' };
-
-        const label = status === 'Adjusted with CN' ? 'Allocated CN' : status;
-
-        return <Chip label={label} color={style.color} size="small" sx={{ backgroundColor: style.bgColor, color: style.textColor, fontWeight: 'bold'}}/>;
-    }
-
     return (
         <>
-            <PaymentDialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} initialSelected={selected} dialogTitle="Prepare Deposit" />
+            {/* <PaymentDialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} initialSelected={selected} dialogTitle="Prepare Deposit" /> */}
             <Grid container spacing={3}>
                 <Grid item xs={12}>
                     <Grid container spacing={2}>
@@ -687,7 +483,7 @@ const SalesInvoicePage = () => {
                                 <Menu anchorEl={sortAnchorEl} open={Boolean(sortAnchorEl)} onClose={handleSortMenuClose}>
                                     {sortOptions.map(option => <MenuItem key={option} onClick={() => handleSortMenuItemClick(option)}>{option}</MenuItem>)}
                                 </Menu>
-                                <Button variant="contained" startIcon={<AddIcon />}>New Invoice</Button>
+                                <Button component={RouterLink} to="/sales/new" variant="contained" startIcon={<AddIcon />}>New Invoice</Button>
                                 <Button variant="contained" color="success" startIcon={<PaymentIcon />} disabled={isPaymentDisabled} onClick={() => setPaymentDialogOpen(true)}>Prepare Deposit</Button>
                             </Box>
                         </Box>
@@ -705,63 +501,40 @@ const SalesInvoicePage = () => {
                                     headCells={salesInvoiceHeadCells}
                                 />
                                 <TableBody>
-                                    {stableSort(filteredRows, getComparator(order, orderBy))
+                                    {loading ? (
+                                        <TableRow><TableCell colSpan={salesInvoiceHeadCells.length + 1} align="center" sx={{py: 4}}><CircularProgress/></TableCell></TableRow>
+                                    ) : error ? (
+                                        <TableRow><TableCell colSpan={salesInvoiceHeadCells.length + 1} align="center" sx={{py: 4}}><Alert severity="error">{error}</Alert></TableCell></TableRow>
+                                    ) : stableSort(filteredRows, getComparator(order, orderBy))
                                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                                      .map((row, index) => {
-                                        const isItemSelected = isSelected(row.id);
+                                        const isItemSelected = isSelected(row._id);
                                         const labelId = `enhanced-table-checkbox-${index}`;
 
                                         return (
                                             <TableRow
                                                 hover
-                                                onClick={(event) => handleClick(event, row.id)}
+                                                onClick={(event) => handleClick(event, row._id)}
                                                 role="checkbox"
                                                 aria-checked={isItemSelected}
                                                 tabIndex={-1}
-                                                key={row.id}
+                                                key={row._id}
                                                 selected={isItemSelected}
                                                 sx={{ '&:last-child td, &:last-child th': { border: 0 }, cursor: 'pointer' }}
                                             >
                                                 <TableCell padding="checkbox">
-                                                    <Checkbox
-                                                        color="primary"
-                                                        checked={isItemSelected}
-                                                        inputProps={{
-                                                        'aria-labelledby': labelId,
-                                                        }}
-                                                    />
+                                                    <Checkbox color="primary" checked={isItemSelected} inputProps={{ 'aria-labelledby': labelId }} />
                                                 </TableCell>
-                                                <TableCell>{row.id}</TableCell>
-                                                <TableCell sx={{fontWeight: '500'}}>{row.customer}</TableCell>
-                                                <TableCell>{row.date}</TableCell>
-                                                <TableCell>{row.dueDate}</TableCell>
-                                                <TableCell align="right">{`$${row.amount.toLocaleString()}`}</TableCell>
-                                                <TableCell sx={{fontWeight: '500'}}>{row.source}</TableCell>
-                                                <TableCell>
-                                                    {getPaymentStatusChip(row.paymentStatus)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Chip label={row.eInvoiceStatus} color={row.eInvoiceStatus === 'Raised' ? 'info' : 'default'} size="small" sx={{ backgroundColor: row.eInvoiceStatus === 'Raised' ? '#e3f2fd' : '#f5f5f5', color: row.eInvoiceStatus === 'Raised' ? 'info.dark' : 'text.secondary', fontWeight: 'bold'}}/>
-                                                </TableCell>
+                                                <TableCell>{row.invoiceNumber}</TableCell>
+                                                <TableCell sx={{fontWeight: '500'}}>{row.customerName}</TableCell>
+                                                <TableCell>{format(new Date(row.invoiceDate), 'dd MMM yyyy')}</TableCell>
+                                                <TableCell>{format(new Date(row.dueDate), 'dd MMM yyyy')}</TableCell>
+                                                <TableCell align="right">{`$${(row.grandTotal || 0).toLocaleString()}`}</TableCell>
                                                 <TableCell>
                                                     <Chip label={row.status} size="small" sx={getStatusChipStyles(row.status)} />
                                                 </TableCell>
                                                 <TableCell>
                                                     <Box sx={{display: 'flex'}}>
-                                                        {row.status === 'Awaiting payment' && (
-                                                            <IconButton
-                                                                size="small"
-                                                                aria-label="pay"
-                                                                color="success"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelected([row.id]);
-                                                                    setPaymentDialogOpen(true);
-                                                                }}
-                                                            >
-                                                                <PaymentIcon fontSize="small" />
-                                                            </IconButton>
-                                                        )}
                                                         <IconButton size="small" aria-label="view" color="info"><VisibilityIcon fontSize="small" /></IconButton>
                                                         <IconButton size="small" aria-label="edit" color="warning"><EditIcon fontSize="small" /></IconButton>
                                                         <IconButton size="small" aria-label="cancel" color="error"><CancelIcon fontSize="small" /></IconButton>
@@ -770,6 +543,9 @@ const SalesInvoicePage = () => {
                                             </TableRow>
                                         )
                                     })}
+                                    {!loading && filteredRows.length === 0 && (
+                                        <TableRow><TableCell colSpan={salesInvoiceHeadCells.length + 1} align="center" sx={{py: 4}}><Typography>No invoices found.</Typography></TableCell></TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </TableContainer>

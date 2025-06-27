@@ -18,6 +18,7 @@ import DropdownManagement from "./pages/settings/globalsettings/DropdownManageme
 import GSTManagement from "./pages/settings/taxcompliancedetails/GSTManagement";
 import VATManagement from "./pages/settings/taxcompliancedetails/VATManagement";
 import InvoiceSettingsPage from "./pages/settings/invoicesettings/InvoiceSettingsPage";
+import QuotationSettingsPage from "./pages/settings/Finance/quotationsettings";
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
@@ -110,6 +111,8 @@ function App() {
             <Route path="sales/new" element={<SalesInvoiceCreate />} />
             <Route path="CreditNote" element={<Creditnotepagedash />} />
             <Route path="CreditNote/new" element={<Creditnotecreate />} />
+            <Route path="CreditNote/edit/:id" element={<Creditnotecreate />} />
+            <Route path="CreditNote/view/:id" element={<Creditnotecreate />} />
             <Route path="quote" element={<Quotationdash />} />
             <Route path="quote/new" element={<Quotecreate />} />
             <Route path="OtherPlatform" element={<OtherPlatform />} />
@@ -132,6 +135,7 @@ function App() {
             <Route path="settings/taxcompliancedetails/vat-management" element={<VATManagement />} />
             {/* Corrected Invoice Settings Route to match Layout.js link */}
             <Route path="settings/invoicesettings/InvoiceSettingsPage" element={<InvoiceSettingsPage />} />
+            <Route path="settings/Finance/quotationsettings" element={<QuotationSettingsPage />} />
 
             {/* Account Transaction Routes */}
             <Route path="account-transaction/customer" element={<CustomerListPage />} />
