@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
     Autocomplete, Box, Grid, Paper, Typography, TextField, Button,
     FormControl, InputLabel, IconButton, Divider, CircularProgress, Alert,
     InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Tooltip, Select, MenuItem, Snackbar
+    Select, MenuItem, Snackbar
 } from '@mui/material';
 import {
-    Add as AddIcon, Delete as DeleteIcon, Save as SaveIcon, ArrowBack as ArrowBackIcon,
-    PersonAddAlt1 as PersonAddAlt1Icon
+    Add as AddIcon, Delete as DeleteIcon, Save as SaveIcon, ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
-import { format, addDays, isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 // Using a consistent theme from your other files
@@ -89,7 +88,7 @@ const Creditnotecreate = () => {
         status: 'Draft',
     });
     const [supplierState, setSupplierState] = useState('');
-    const [creditNoteNumber, setCreditNoteNumber] = useState('');
+    const [creditNoteNumber] = useState('');
     const [customerOptions, setCustomerOptions] = useState([]);
     const [invoiceOptions, setInvoiceOptions] = useState([]);
     const [inventoryItems, setInventoryItems] = useState([]);

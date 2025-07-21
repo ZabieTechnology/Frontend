@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
     Drawer,
@@ -276,6 +276,11 @@ const Layout = ({ setToken }) => {
     const [openMenus, setOpenMenus] = useState({});
     const [anchorEl, setAnchorEl] = useState(null);
 
+    const handleLogout = useCallback(() => {
+        localStorage.removeItem("token");
+        setToken(null);
+    }, [setToken]);
+
     // Effect to set user info from JWT token
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -289,7 +294,7 @@ const Layout = ({ setToken }) => {
                 handleLogout();
             }
         }
-    }, []);
+    }, [handleLogout]);
 
     // Effect to open parent menus of the active route on page load
     useEffect(() => {
@@ -314,11 +319,6 @@ const Layout = ({ setToken }) => {
         setOpenMenus(initialOpenMenus);
     }, [location.pathname]);
 
-
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        setToken(null);
-    };
 
     const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 

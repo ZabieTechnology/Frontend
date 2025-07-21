@@ -20,19 +20,8 @@ import {
   Chip,
   IconButton,
   TableSortLabel,
-  Popover,
-  FormGroup,
-  FormControlLabel,
   Checkbox,
-  Divider,
   TablePagination,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TableFooter,
   CircularProgress,
   Alert,
   Tooltip
@@ -40,12 +29,9 @@ import {
 import {
     Add as AddIcon,
     Search as SearchIcon,
-    ArrowDropDown as ArrowDropDownIcon,
     Edit as EditIcon,
     Visibility as VisibilityIcon,
-    Cancel as CancelIcon,
     FilterList as FilterListIcon,
-    Payment as PaymentIcon,
     Download as DownloadIcon,
     Upload as UploadIcon
 } from '@mui/icons-material';
@@ -198,7 +184,7 @@ function stableSort(array, comparator) {
 
 // --- Reusable Enhanced Table Head ---
 function EnhancedTableHead(props) {
-  const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort, onFilterClick, filters, headCells } = props;
+  const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort, filters, headCells } = props;
   const createSortHandler = (property) => (event) => {
     onRequestSort(event, property);
   };
@@ -225,7 +211,7 @@ function EnhancedTableHead(props) {
                     </TableSortLabel>
                 ) : ( headCell.label )}
                 {headCell.filterable !== false && (
-                    <IconButton size="small" onClick={(e) => onFilterClick(e, headCell.id)}>
+                    <IconButton size="small">
                         <FilterListIcon fontSize="small" color={filters && filters[headCell.id]?.length > 0 ? 'primary' : 'inherit'} />
                     </IconButton>
                 )}
@@ -256,10 +242,6 @@ const CreditNotesPage = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [filters, setFilters] = useState({});
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [currentFilterKey, setCurrentFilterKey] = useState(null);
-    const [tempFilterValues, setTempFilterValues] = useState([]);
-    const [filterSearch, setFilterSearch] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
 
     const [creditNoteRows, setCreditNoteRows] = useState([]);
@@ -314,30 +296,6 @@ const CreditNotesPage = () => {
     };
 
     const isSelected = (id) => selected.indexOf(id) !== -1;
-
-    const handleFilterClick = (event, key) => {
-        setAnchorEl(event.currentTarget);
-        setCurrentFilterKey(key);
-        setFilterSearch('');
-        setTempFilterValues(filters[key] || []);
-    };
-
-    const handleFilterClose = () => {
-        setAnchorEl(null);
-        setCurrentFilterKey(null);
-        setTempFilterValues([]);
-    };
-
-    const handleFilterChange = (event) => {
-        const { value, checked } = event.target;
-        setTempFilterValues(prev => checked ? [...prev, value] : prev.filter(item => item !== value));
-    };
-
-    const handleApplyFilter = () => {
-        setFilters(prev => ({ ...prev, [currentFilterKey]: tempFilterValues }));
-        handleFilterClose();
-    };
-
 
     const filteredRows = useMemo(() => {
         let rows = [...creditNoteRows];
@@ -401,7 +359,6 @@ const CreditNotesPage = () => {
                                     orderBy={orderBy}
                                     onRequestSort={handleRequestSort}
                                     rowCount={filteredRows.length}
-                                    onFilterClick={handleFilterClick}
                                     filters={filters}
                                     headCells={creditNoteHeadCells}
                                 />

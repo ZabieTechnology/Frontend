@@ -4,15 +4,15 @@ import {
     Box, Grid, Paper, Typography, TextField, Button, Select, MenuItem,
     FormControl, InputLabel, IconButton, Divider, CircularProgress, Alert,
     InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Switch, FormControlLabel, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-    Tooltip, Menu, Link
+    Switch, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+    Menu, Link, Tooltip
 } from '@mui/material';
 import {
-    Add as AddIcon, Delete as DeleteIcon, Save as SaveIcon, ArrowBack as ArrowBackIcon,
-    Palette as PaletteIcon, Payment as PaymentIcon, PersonAddAlt1 as PersonAddAlt1Icon,
-    PictureAsPdf as PictureAsPdfIcon, ArrowDropDown as ArrowDropDownIcon
+    Add as AddIcon, Delete as DeleteIcon, ArrowBack as ArrowBackIcon,
+    PersonAddAlt1 as PersonAddAlt1Icon,
+    ArrowDropDown as ArrowDropDownIcon
 } from '@mui/icons-material';
-import { format as formatDateFns, isValid as isValidDateFns, startOfDay, addDays, parseISO } from 'date-fns';
+import { format as formatDateFns, isValid as isValidDateFns, addDays, parseISO } from 'date-fns';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
@@ -1091,5 +1091,4 @@ export default function QuotationCreate() {
                 </DialogActions>
             </Dialog>
         </Box>
-    );
-};
+    )};

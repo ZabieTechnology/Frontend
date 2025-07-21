@@ -1,18 +1,14 @@
 // src/components/Login.js
-import React, { useState, useEffect } from "react"; // Added useEffect
+import React, { useState } from "react";
 import {
   TextField,
   Button,
   Box,
   Typography,
   InputAdornment,
-  Container, // Added Container for better centering and structure
-  List, // For displaying test users
-  ListItem, // For displaying test users
-  ListItemText, // For displaying test users
-  Divider, // For visual separation
-  CircularProgress, // For loading state
-  Alert, // For error messages
+  Container,
+  CircularProgress,
+  Alert,
   Grid,
 } from "@mui/material";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
@@ -24,36 +20,12 @@ const Login = ({ setToken }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // Loading state for login action
-  const [testUsers, setTestUsers] = useState([]); // State for test users
-  const [loadingTestUsers, setLoadingTestUsers] = useState(false); // Loading state for test users
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL || '';
 
-  // Fetch test users on component mount
-  useEffect(() => {
-    const fetchTestUsers = async () => {
-      setLoadingTestUsers(true);
-      try {
-        const response = await axios.get(`${apiUrl}/api/auth/test-users`);
-        if (response.data && Array.isArray(response.data)) {
-          setTestUsers(response.data);
-        } else {
-          setTestUsers([]);
-        }
-      } catch (err) {
-        console.error("Error fetching test users:", err);
-        // Optionally set an error state for test users if needed
-      } finally {
-        setLoadingTestUsers(false);
-      }
-    };
-
-    fetchTestUsers();
-  }, [apiUrl]); // Dependency: apiUrl
-
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
     setError("");
     setLoading(true);
     try {
@@ -64,7 +36,7 @@ const Login = ({ setToken }) => {
 
       const { access_token, username: loggedInUsername } = response.data;
       localStorage.setItem("token", access_token);
-      localStorage.setItem("username", loggedInUsername); // Store username if needed elsewhere
+      localStorage.setItem("username", loggedInUsername);
       setToken(access_token);
       navigate("/home");
     } catch (err) {
@@ -101,7 +73,7 @@ const Login = ({ setToken }) => {
         {error && <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
         <Box component="form" onSubmit={handleLogin} noValidate sx={{ mt: 1, width: '100%' }}>
           <TextField
-            label="Username" // Changed from lowercase "username" for consistency
+            label="Username"
             variant="outlined"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -150,7 +122,7 @@ const Login = ({ setToken }) => {
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
           </Button>
-          <Grid container justifyContent="flex-end"> {/* Assuming Grid is imported if used */}
+          <Grid container justifyContent="flex-end">
             <Grid item>
               <Button component={RouterLink} to="/register" variant="text" size="small" disabled={loading}>
                 Don't have an account? Register

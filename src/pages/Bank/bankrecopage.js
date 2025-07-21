@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  AppBar, Toolbar, Typography, InputBase, Button, Tabs, Tab, Box, Paper,
+  Typography, InputBase, Button, Tabs, Tab, Box, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Checkbox,
   Select, MenuItem, FormControl, InputLabel, IconButton, TextField, Grid, Chip, Tooltip,
-  Modal, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-  Popover, Divider, TableSortLabel, List, ListItem, ListItemText, ListItemIcon, FormGroup,
+  CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+  Popover, Divider, TableSortLabel, FormGroup,
   FormControlLabel, Alert
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -282,8 +281,8 @@ function App() {
   const [selected, setSelected] = useState([]);
   const [ledgerOptions, setLedgerOptions] = useState(initialLedgerOptions);
   const [contactOptions, setContactOptions] = useState(initialContactOptions);
-  const [accountOptions, setAccountOptions] = useState(initialAccountOptionsForModal);
-  const [taxRateOptions, setTaxRateOptions] = useState(initialTaxRateOptions);
+  const [accountOptions] = useState(initialAccountOptionsForModal);
+  const [taxRateOptions] = useState(initialTaxRateOptions);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ date: '', description: '', type: [], amount: '', remarks: '', matchingItems: '' });
   const [order, setOrder] = useState('asc');
@@ -396,7 +395,7 @@ function App() {
   const allTransactionTypes = useMemo(() => Array.from(new Set([...transactions, ...bankStatementRows, ...accountTransactionRows].map(t => t.type))), [transactions, bankStatementRows, accountTransactionRows]);
 
   // Configuration for Reconciliation Table Headers
-  const headCellsReconciliation = [
+  const headCellsReconciliation = useMemo(() => [
     { id: 'date', label: 'Date', sortable: true, filterable: true, filterType: 'popoverText', minWidth: 120 },
     { id: 'description', label: 'Description', sortable: true, filterable: true, filterType: 'popoverText', minWidth: 200 },
     { id: 'type', label: 'Type', sortable: true, filterable: true, filterType: 'popoverSelect', options: allTransactionTypes, minWidth: 120 },
@@ -404,7 +403,7 @@ function App() {
     { id: 'actionsBox', label: 'Details, Matching & Remarks', sortable: false, filterable: false, minWidth: 420, align: 'left' }, // Combined box for actions & remarks
     { id: 'reconcileAction', label: 'Reconcile Action', sortable: false, filterable: false, minWidth: 170, align: 'center' },
     { id: 'analyze', label: 'Analyze ✨', sortable: false, filterable: false, minWidth: 120, align: 'center' },
-  ];
+  ], [allTransactionTypes]);
 
   // Configuration for Bank Statement Table Headers
   const headCellsBankStatement = [
@@ -1240,7 +1239,7 @@ function App() {
         return latestEntry.balance;
     }
     return 0;
-  }, [selectedAccountId, bankStatementRows]); // Re-calculate if selected account or its statement data changes
+  }, [selectedAccountId]); // Re-calculate if selected account or its statement data changes
 
   // Calculate current account transaction balance
   const currentAccountTransactionBalance = useMemo(() => {
@@ -1250,7 +1249,7 @@ function App() {
         return currentAccountData[currentAccountData.length - 1].balance;
     }
     return 0;
-  }, [selectedAccountId, accountTransactionRows]);
+  }, [selectedAccountId]);
 
 
   // Boolean to control the visibility of the matching popover.

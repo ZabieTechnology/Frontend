@@ -4,15 +4,15 @@ import {
     Box, Grid, Paper, Typography, TextField, Button, Select, MenuItem,
     FormControl, InputLabel, IconButton, Divider, CircularProgress, Alert,
     InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Switch, FormControlLabel, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+    Switch, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
     Tooltip, Menu, Link
 } from '@mui/material';
 import {
-    Add as AddIcon, Delete as DeleteIcon, Save as SaveIcon, ArrowBack as ArrowBackIcon,
-    Palette as PaletteIcon, Payment as PaymentIcon, PersonAddAlt1 as PersonAddAlt1Icon,
-    PictureAsPdf as PictureAsPdfIcon, ArrowDropDown as ArrowDropDownIcon
+    Add as AddIcon, Delete as DeleteIcon, ArrowBack as ArrowBackIcon,
+    PersonAddAlt1 as PersonAddAlt1Icon,
+    ArrowDropDown as ArrowDropDownIcon
 } from '@mui/icons-material';
-import { format as formatDateFns, isValid as isValidDateFns, startOfDay, addDays, parseISO } from 'date-fns';
+import { format as formatDateFns, isValid as isValidDateFns, addDays, parseISO } from 'date-fns';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
@@ -98,7 +98,7 @@ export default function SalesInvoiceCreate() {
     const [customerOptions, setCustomerOptions] = useState([]);
     const [taxOptions, setTaxOptions] = useState([]);
     const [inventoryItems, setInventoryItems] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [saveInProgress, setSaveInProgress] = useState(false);
     const [loadingSettings, setLoadingSettings] = useState(true);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
@@ -281,7 +281,7 @@ export default function SalesInvoiceCreate() {
         if (invoiceData.dueDate?.getTime() !== newDueDate.getTime()) {
             setInvoiceData(prev => ({ ...prev, dueDate: newDueDate }));
         }
-    }, [invoiceData.customerId, invoiceData.invoiceDate, customerOptions, calculateDueDate]);
+    }, [invoiceData.customerId, invoiceData.invoiceDate, invoiceData.dueDate, customerOptions, calculateDueDate]);
 
     useEffect(() => {
         const isAnyItemEntered = invoiceData.lineItems.some(
@@ -640,7 +640,7 @@ export default function SalesInvoiceCreate() {
         if (!args) return;
         const { status, openPdf } = args;
 
-        setLoading(true);
+        setSaveInProgress(true);
         setError(null);
         const payload = { ...calculatedInvoiceData, status };
 
@@ -666,7 +666,7 @@ export default function SalesInvoiceCreate() {
         } catch (err) {
             setError(`Failed to save invoice: ${err.response?.data?.message || err.message}`);
         } finally {
-            setLoading(false);
+            setSaveInProgress(false);
             setIsStockWarningModalOpen(false);
         }
     };

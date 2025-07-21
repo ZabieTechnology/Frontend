@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Grid,
@@ -12,8 +12,6 @@ import {
   TableRow,
   TextField,
   Button,
-  Select,
-  MenuItem,
   Pagination,
   CircularProgress,
   Alert,
@@ -23,37 +21,19 @@ import {
   InputAdornment,
   IconButton,
   Tooltip,
-  Menu,
   Tabs,
   Tab,
-  FormControlLabel,
-  Checkbox,
-  Switch,
   Chip,
-  Divider,
-  FormGroup,
-  TableSortLabel,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon
 } from '@mui/material';
 import {
     Edit,
     Delete,
     Visibility,
-    GetApp,
     Add,
     Search,
-    Settings,
     ArrowBack,
-    PeopleAlt,
     CheckCircle,
     Warning,
-    FilterList,
-    UploadFile,
-    ArrowUpward,
-    ArrowDownward
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -150,7 +130,7 @@ const CustomerListPage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(10); // Removed unused setItemsPerPage
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');

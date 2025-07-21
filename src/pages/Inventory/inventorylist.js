@@ -1,27 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Autocomplete,
     Box, Grid, Paper, Typography, TextField, Button, Select, MenuItem,
-    FormControl, InputLabel, IconButton, Divider, CircularProgress, Alert,
+    FormControl, InputLabel, IconButton,
     InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Switch, FormControlLabel, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-    Tooltip,
+    Switch, Dialog, DialogActions, DialogContent, DialogTitle,
     Checkbox,
     Pagination
 } from '@mui/material';
 import {
-    Add as AddIcon, Delete as DeleteIcon, Save as SaveIcon, ArrowBack as ArrowBackIcon,
-    Palette as PaletteIcon, Payment as PaymentIcon, PersonAddAlt1 as PersonAddAlt1Icon,
-    PictureAsPdf as PictureAsPdfIcon, History as HistoryIcon, Close as CloseIcon,
+    Add as AddIcon, Delete as DeleteIcon,
+    History as HistoryIcon, Close as CloseIcon,
     Search as SearchIcon,
     FilterList as FilterListIcon,
     MoreVert as MoreVertIcon,
     Visibility,
     Edit
 } from '@mui/icons-material';
-import { format as formatDateFns, isValid as isValidDateFns, startOfDay, addDays } from 'date-fns';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 const ITEMS_PER_PAGE = 10;
 

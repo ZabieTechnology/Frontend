@@ -193,9 +193,9 @@ function ExpenseListPage() {
     const handleApplyAdvancedSearch = useCallback(() => { const criteria = { supplier: advSearchSupplier || null, dateFrom: advSearchDateFrom ? startOfDay(advSearchDateFrom) : null, dateTo: advSearchDateTo ? endOfDay(advSearchDateTo) : null, }; const appliedCriteria = Object.entries(criteria).reduce((acc, [key, value]) => { if (value !== null && value !== '') { acc[key] = value; } return acc; }, {}); setAdvancedSearchCriteria(Object.keys(appliedCriteria).length > 0 ? appliedCriteria : null); setExpensePage(0); handleCloseAdvancedSearchPopover(); }, [advSearchSupplier, advSearchDateFrom, advSearchDateTo, handleCloseAdvancedSearchPopover]);
     const handleResetAdvancedSearch = useCallback(() => { setAdvSearchSupplier(''); setAdvSearchDateFrom(null); setAdvSearchDateTo(null); if (advancedSearchCriteria !== null) { setAdvancedSearchCriteria(null); setExpensePage(0); } }, [advancedSearchCriteria]);
 
-    const handleAddNewExpense = () => navigate('/expenses/new'); // Ensure this route is set up in App.js
-    const handleEditExpenseAction = (id) => navigate(`/expenses/edit/${id}`);
-    const handleViewExpenseAction = (id) => navigate(`/expenses/edit/${id}?view=true`);
+    const handleAddNewExpense = useCallback(() => navigate('/expenses/new'), [navigate]);
+    const handleEditExpenseAction = useCallback((id) => navigate(`/expenses/edit/${id}`), [navigate]);
+    const handleViewExpenseAction = useCallback((id) => navigate(`/expenses/edit/${id}?view=true`), [navigate]);
 
     const handleDeleteExpenseApi = useCallback(async (id) => {
         setLoadingExpenses(true); setExpenseError(null); setExpenseSuccess(null);

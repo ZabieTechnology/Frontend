@@ -3,18 +3,15 @@ import {
     Box, Grid, Paper, Typography, Button, Switch, FormControlLabel, TextField,
     Select, MenuItem, FormControl, InputLabel, Divider, CircularProgress, Alert,
     IconButton, Tooltip, Checkbox, Avatar, Accordion, AccordionSummary, AccordionDetails,
-    InputAdornment, Radio, RadioGroup, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
+    Radio, RadioGroup, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
 } from '@mui/material';
 import {
     Save as SaveIcon, ArrowBack as ArrowBackIcon, Add as AddIcon, Delete as DeleteIcon,
-    ExpandMore as ExpandMoreIcon, Image as ImageIcon, ColorLens as ColorLensIcon,
-    ViewQuilt as ViewQuiltIcon, ListAlt as ListAltIcon, Description as DescriptionIcon,
+    ExpandMore as ExpandMoreIcon, Image as ImageIcon, ViewQuilt as ViewQuiltIcon,
+    ListAlt as ListAltIcon, Description as DescriptionIcon,
     SettingsApplications as SettingsApplicationsIcon, QrCodeScanner as QrCodeScannerIcon,
-    ReceiptLong as ReceiptLongIcon, AccountBalance as AccountBalanceIcon, Title as TitleIcon,
-    Notes as NotesIcon, TextFields as TextFieldsIcon, ConfirmationNumber as ConfirmationNumberIcon,
-    Palette as PaletteIcon, Edit as EditIcon, Visibility as VisibilityIcon,
-    Star as StarIcon, StarBorder as StarBorderIcon, AttachMoney as AttachMoneyIcon,
-    Percent as PercentIcon // For Tax Settings
+    ReceiptLong as ReceiptLongIcon, AccountBalance as AccountBalanceIcon, TextFields as TextFieldsIcon,
+    Palette as PaletteIcon, Edit as EditIcon, Percent as PercentIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -148,7 +145,6 @@ const InvoiceSettingsPage = () => {
 
     const [bankAccountOptions, setBankAccountOptions] = useState([]);
     const [salesAccountOptions, setSalesAccountOptions] = useState([]);
-    const [ledgerHeadOptions, setLedgerHeadOptions] = useState([]);
 
     const navigate = useNavigate();
     const API_BASE_URL = process.env.REACT_APP_API_URL || '';
@@ -226,25 +222,6 @@ const InvoiceSettingsPage = () => {
         }
     }, [API_BASE_URL]);
 
-    const fetchLedgerHeads = useCallback(async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Income`, { withCredentials: true });
-            if (response.data && Array.isArray(response.data.data)) {
-                setLedgerHeadOptions(response.data.data.map(acc => ({
-                    value: acc._id,
-                    label: `${acc.name || 'N/A'} ${acc.code ? `(${acc.code})` : ''}`.trim()
-                })));
-            } else {
-                setLedgerHeadOptions([]);
-            }
-        } catch (err) {
-            console.error("Error fetching ledger heads:", err);
-            setError(prevError => prevError ? `${prevError}\nFailed to load ledger heads.` : "Failed to load ledger heads.");
-            setLedgerHeadOptions([]);
-        }
-    }, [API_BASE_URL]);
-
-
     const fetchInvoiceSettings = useCallback(async () => {
         setLoading(true); setError(null);
         try {
@@ -305,8 +282,7 @@ const InvoiceSettingsPage = () => {
         fetchInvoiceSettings();
         fetchBankAccounts();
         fetchSalesAccounts();
-        fetchLedgerHeads();
-    }, [fetchInvoiceSettings, fetchBankAccounts, fetchSalesAccounts, fetchLedgerHeads]);
+    }, [fetchInvoiceSettings, fetchBankAccounts, fetchSalesAccounts]);
 
     const handleActiveThemeProfileChange = (eventOrPath, valueOrEvent) => {
         const activeId = activeThemeProfileId;
@@ -554,13 +530,6 @@ const InvoiceSettingsPage = () => {
         if (newDefault) {
              setThemeForPreviewStyle({ baseThemeName: newDefault.baseThemeName, selectedColor: newDefault.selectedColor });
         }
-    };
-
-    const handlePreviewSelectedThemeStyle = (themeProfile) => {
-        setThemeForPreviewStyle({
-            baseThemeName: themeProfile.baseThemeName,
-            selectedColor: themeProfile.selectedColor,
-        });
     };
 
     const handleDeleteThemeProfile = (idToDelete) => {
