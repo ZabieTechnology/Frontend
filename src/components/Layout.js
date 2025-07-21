@@ -85,7 +85,16 @@ const menuItems = [
             { id: 'otherplatform', text: 'Other Platform', icon: <CreditNoteIcon />, path: 'OtherPlatform' },
         ],
     },
-    { id: 'expenses', text: 'Expenses', icon: <Money />, path: '/Expenses' },
+      {
+        id: 'expenses',
+        text: 'Expenses',
+        icon: <Money />,
+        children: [
+            { id: 'expense-overview', text: 'Overview', icon: <Assessment />, path: '/expenses/overview' },
+            { id: 'expense-list', text: 'Expenses', icon: <Money />, path: 'expenses' },
+            { id: 'fixed-asset', text: 'Fixed Asset', icon: <BusinessIcon />, path: 'FixedAsset' },
+        ],
+    },
     {
         id: 'inventory',
         text: 'Inventory',
@@ -96,7 +105,25 @@ const menuItems = [
             { id: 'stock-adjustment', text: 'Stock Adjustment', icon: <StockAdjustmentIcon />, path: 'StockManagement' },
         ],
     },
-    { id: 'bank', text: 'Bank', icon: <AccountBalanceWallet />, path: '/Bank' },
+    // --- MODIFIED: Converted Bank to a collapsible menu and added Payment ---
+    {
+        id: 'bank',
+        text: 'Bank',
+        icon: <AccountBalanceWallet />,
+        children: [
+            { id: 'payment', text: 'Payment', icon: <Receipt />, path: 'payments' },
+            { id: 'Record Page', text: 'Reconsilation', icon: <Receipt />, path: 'Bank/new' },
+            { id: 'BankOverview', text: 'Overview', icon: <Receipt />, path: 'BankOverview' },
+            { id: 'Banklist', text: 'Bank', icon: <Receipt />, path: 'Bank' },
+            { id: 'Creditcardlist', text: 'Credit Card', icon: <Receipt />, path: 'CreditCard' },
+            { id: 'ChequeList', text: 'Cheque', icon: <Receipt />, path: 'Cheque' },
+            { id: 'Cashlist', text: 'Cash', icon: <Receipt />, path: 'cash' },
+            { id: 'LoanList', text: 'Loan', icon: <Receipt />, path: 'loan' },
+            { id: 'WalletList', text: 'Wallet', icon: <Receipt />, path: 'Wallet' },
+            { id: 'receiptvoucher', text: 'Receipts', icon: <Receipt />, path: 'receiptvoucher' },
+            { id: 'contravoucher', text: 'Contra', icon: <Receipt />, path: 'contravoucher' },
+        ]
+    },
     { id: 'payroll', text: 'Payroll', icon: <ListAlt />, path: '/Payroll' },
     { id: 'reimbursement', text: 'Reimbursement', icon: <Report />, path: '/Reimbursement' },
     { id: 'taxation', text: 'Taxation', icon: <RequestQuote />, path: '/info' },
@@ -125,14 +152,16 @@ const menuItems = [
                         children: [
                             { id: 'gst', text: 'GST', path: '/settings/taxcompliancedetails/GSTManagement' },
                             { id: 'vat', text: 'VAT', path: '/settings/taxcompliancedetails/vat-management' },
-                            { id: 'tds', text: 'TDS', action: 'popover' },
-                            { id: 'tcs', text: 'TCS', action: 'popover' },
+                            { id: 'OfficalDocument', text: 'Document Settings', path: 'OfficaldocumentSettings' },
+                            { id: 'tds', text: 'TDS', path: 'tdssettings' },
+                            { id: 'tcs', text: 'TCS', path: 'tcssettings' },
                             { id: 'advance-tax', text: 'Advance TAX', action: 'popover' },
                         ]
                     },
                     { id: 'invoice-settings', text: 'Invoice', icon: <Receipt />, path: '/settings/invoicesettings/InvoiceSettingsPage' },
                     { id: 'estimate-settings', text: 'Estimate', icon: <RequestQuote />, path: 'settings/Finance/quotationsettings' },
                     { id: 'expense-settings', text: 'Expense', icon: <Money />, action: 'popover' },
+
                 ]
             },
             { id: 'advanced-settings', text: 'Advanced Settings', icon: <AdvancedSettingsIcon />, action: 'popover' },

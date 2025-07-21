@@ -1,190 +1,188 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker"; // Correct import
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"; // Correct import
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"; // Correct import
+    Box,
+    Typography,
+    Button,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    ThemeProvider,
+    createTheme,
+    Grid,
+    Paper,
+    FormControlLabel,
+    Switch,
+    FormHelperText,
+    RadioGroup,
+    Radio,
+    FormLabel,
+    CssBaseline,
+} from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import styled from "@emotion/styled";
+
+// A modern theme for the application
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    background: {
+        default: '#f4f6f8',
+        paper: '#ffffff',
+    }
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: {
+        fontWeight: 700,
+    },
+    h6: {
+        fontWeight: 600,
+    }
+  },
+  components: {
+    MuiPaper: {
+        styleOverrides: {
+            root: {
+                borderRadius: 12,
+                padding: '24px',
+            }
+        }
+    }
+  }
+});
+
+// Styled Paper component for the form container
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  borderRadius: "16px",
+  backgroundColor: "#ffffff",
+  padding: "24px",
+  margin: "auto",
+}));
+
+// ##################################################################
+// ##                 FINANCIAL DETAILS COMPONENT                  ##
+// ##################################################################
 
 function FinancialDetails() {
-  const [salesTurnover, setSalesTurnover] = useState("");
-  const [exceeded5Cr, setExceeded5Cr] = useState("");
-  const [booksBeginningDate, setBooksBeginningDate] = useState(new Date("2023-04-01"));
-  const [financialYearStartMonth, setFinancialYearStartMonth] = useState("April");
-  const [dataLockOption, setDataLockOption] = useState("No");
-  const [lockDate, setLockDate] = useState(new Date("2024-01-31"));
-  const [currency, setCurrency] = useState("INR");
-  const [financialYearEndMonth, setFinancialYearEndMonth] = useState("March");
+  const [salesTurnover, setSalesTurnover] = useState('');
+  const [exceeded5Cr, setExceeded5Cr] = useState(false);
+  const [eInvoiceApplicable, setEInvoiceApplicable] = useState(false);
+  const [dataLockType, setDataLockType] = useState('none');
+  const [lockDate, setLockDate] = useState(new Date());
+  const [currency, setCurrency] = useState('INR');
+
+  const [booksBeginningDate, setBooksBeginningDate] = useState(new Date('2024-04-01'));
+  const [financialYearStartMonth, setFinancialYearStartMonth] = useState('April');
+  const [financialYearEndMonth, setFinancialYearEndMonth] = useState('March');
+
+  const monthOptions = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const isEInvoiceMandatory = salesTurnover === '>5 Cr' || exceeded5Cr;
+
+  useEffect(() => {
+    if (isEInvoiceMandatory) setEInvoiceApplicable(true);
+  }, [isEInvoiceMandatory]);
+
+  useEffect(() => {
+    const startIndex = monthOptions.indexOf(financialYearStartMonth);
+    if (startIndex !== -1) {
+        const endIndex = (startIndex - 1 + 12) % 12;
+        setFinancialYearEndMonth(monthOptions[endIndex]);
+    }
+  }, [financialYearStartMonth]);
 
   const handleSave = () => {
-    console.log({
-      salesTurnover,
-      exceeded5Cr,
-      booksBeginningDate,
-      financialYearStartMonth,
-      dataLockOption,
-      lockDate,
-      currency,
-      financialYearEndMonth,
+    console.log("Saving Financial Details:", {
+      salesTurnover, exceeded5Cr, eInvoiceApplicable, booksBeginningDate,
+      financialYearStartMonth, dataLockType, lockDate: dataLockType !== 'none' ? lockDate : null, currency,
     });
+    alert('Financial details saved to console!');
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Financial Details
-      </Typography>
+    <Box sx={{ width: '100%', p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h4" gutterBottom>Financial Configuration</Typography>
+      <StyledPaper elevation={3}>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="h6" gutterBottom>Turnover & E-Invoicing</Typography>
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Previous Year's Sales Turnover</InputLabel>
+              <Select value={salesTurnover} label="Previous Year's Sales Turnover" onChange={(e) => setSalesTurnover(e.target.value)}>
+                <MenuItem value={"<1 Cr"}>&lt; 1 Cr</MenuItem>
+                <MenuItem value={"1-2 Cr"}>1 Cr - 2 Cr</MenuItem>
+                <MenuItem value={"2-5 Cr"}>2 Cr - 5 Cr</MenuItem>
+                <MenuItem value={">5 Cr"}>&gt; 5 Cr</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControlLabel control={<Switch checked={exceeded5Cr} onChange={(e) => setExceeded5Cr(e.target.checked)} />} label="Turnover exceeded 5 Cr in any prior FY?" />
+            <FormControlLabel control={<Switch checked={eInvoiceApplicable} onChange={(e) => setEInvoiceApplicable(e.target.checked)} disabled={isEInvoiceMandatory} />} label="Is E-invoicing Applicable?" />
+            {isEInvoiceMandatory && <FormHelperText sx={{ color: 'primary.main', fontWeight: 'bold' }}>E-invoicing is mandatory.</FormHelperText>}
+          </Grid>
 
-      {/* Sales Turnover of Previous Year */}
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="sales-turnover-label">Sales Turnover of Previous Year (Excl. GST/VAT/etc)</InputLabel>
-        <Select
-          labelId="sales-turnover-label"
-          id="salesTurnover"
-          value={salesTurnover}
-          label="Sales Turnover of Previous Year (Excl. GST/VAT/etc)"
-          onChange={(e) => setSalesTurnover(e.target.value)}
-        >
-          <MenuItem value="<1 Cr">{"<1 Cr"}</MenuItem>
-          <MenuItem value=">1 Cr - 2 Cr">{">1 Cr - 2 Cr"}</MenuItem>
-          <MenuItem value=">2 Cr - 5 Cr">{">2 Cr - 5 Cr"}</MenuItem>
-          <MenuItem value=">5 Cr">{">5 Cr"}</MenuItem>
-        </Select>
-      </FormControl>
+          <Grid item xs={12} md={6}>
+            <Typography variant="h6" gutterBottom>Fiscal Period & Currency</Typography>
+            <DatePicker label="Books Beginning From" value={booksBeginningDate} onChange={setBooksBeginningDate} sx={{ width: '100%', mt: 2 }} />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Financial Year Start Month *</InputLabel>
+              <Select value={financialYearStartMonth} label="Financial Year Start Month *" onChange={(e) => setFinancialYearStartMonth(e.target.value)}>
+                {monthOptions.map(month => <MenuItem key={month} value={month}>{month}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <Typography variant="body1" sx={{ mt: 1, color: 'text.secondary' }}>
+              Financial Year: <strong>{financialYearStartMonth} to {financialYearEndMonth}</strong>
+            </Typography>
+            <FormControl fullWidth margin="normal" sx={{ mt: 2 }}>
+              <InputLabel>Base Currency</InputLabel>
+              <Select value={currency} label="Base Currency" onChange={(e) => setCurrency(e.target.value)}>
+                <MenuItem value="INR">INR (Indian Rupee)</MenuItem>
+                <MenuItem value="USD">USD (United States Dollar)</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
 
-      {/* Did Sales Turnover exceeded 5 Crore? */}
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="exceeded-5cr-label">Did Sales Turnover exceeded 5 Crore in any of the Financial Year </InputLabel>
-        <Select
-          labelId="exceeded-5cr-label"
-          id="exceeded5Cr"
-          value={exceeded5Cr}
-          label="Did Sales Turnover exceeded 5 Crore in any of the Financial Year"
-          onChange={(e) => setExceeded5Cr(e.target.value)}
-        >
-          <MenuItem value="Yes">Yes</MenuItem>
-          <MenuItem value="No">No</MenuItem>
-        </Select>
-      </FormControl>
-
-      {/* Books Beginning Date */}
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <DatePicker
-          label="Books Beginning from"
-          value={booksBeginningDate}
-          onChange={(newValue) => setBooksBeginningDate(newValue)}
-          renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
-        />
-      </LocalizationProvider>
-
-      {/* Financial Year Start Month */}
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="financial-year-start-label">Financial Year Start Month *</InputLabel>
-        <Select
-          labelId="financial-year-start-label"
-          id="financialYearStartMonth"
-          value={financialYearStartMonth}
-          label="Financial Year Start Month *"
-          onChange={(e) => setFinancialYearStartMonth(e.target.value)}
-        >
-          <MenuItem value="April">April</MenuItem>
-          <MenuItem value="May">May</MenuItem>
-          <MenuItem value="June">June</MenuItem>
-          <MenuItem value="July">July</MenuItem>
-          <MenuItem value="August">August</MenuItem>
-          <MenuItem value="September">September</MenuItem>
-          <MenuItem value="October">October</MenuItem>
-          <MenuItem value="November">November</MenuItem>
-          <MenuItem value="December">December</MenuItem>
-          <MenuItem value="January">January</MenuItem>
-          <MenuItem value="February">February</MenuItem>
-          <MenuItem value="March">March</MenuItem>
-        </Select>
-      </FormControl>
-
-      {/* Data Lock Option */}
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="data-lock-label">Data Lock Option</InputLabel>
-        <Select
-          labelId="data-lock-label"
-          id="dataLockOption"
-          value={dataLockOption}
-          label="Data Lock Option"
-          onChange={(e) => setDataLockOption(e.target.value)}
-        >
-          <MenuItem value="Yes">Yes</MenuItem>
-          <MenuItem value="No">No</MenuItem>
-        </Select>
-      </FormControl>
-
-      {/* Lock Date */}
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <DatePicker
-          label="Stop all users making changes on and before"
-          value={lockDate}
-          onChange={(newValue) => setLockDate(newValue)}
-          renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
-        />
-      </LocalizationProvider>
-
-      {/* Currency */}
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="currency-label">Currency</InputLabel>
-        <Select
-          labelId="currency-label"
-          id="currency"
-          value={currency}
-          label="Currency"
-          onChange={(e) => setCurrency(e.target.value)}
-        >
-          <MenuItem value="INR">INR (Indian Rupee)</MenuItem>
-          {/* Add more currencies if needed */}
-        </Select>
-      </FormControl>
-
-      {/* Financial Year End Month */}
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="financial-year-end-label">Financial Year End Month *</InputLabel>
-        <Select
-          labelId="financial-year-end-label"
-          id="financialYearEndMonth"
-          value={financialYearEndMonth}
-          label="Financial Year End Month *"
-          onChange={(e) => setFinancialYearEndMonth(e.target.value)}
-        >
-          <MenuItem value="March">March</MenuItem>
-          <MenuItem value="April">April</MenuItem>
-          <MenuItem value="May">May</MenuItem>
-          <MenuItem value="June">June</MenuItem>
-          <MenuItem value="July">July</MenuItem>
-          <MenuItem value="August">August</MenuItem>
-          <MenuItem value="September">September</MenuItem>
-          <MenuItem value="October">October</MenuItem>
-          <MenuItem value="November">November</MenuItem>
-          <MenuItem value="December">December</MenuItem>
-          <MenuItem value="January">January</MenuItem>
-          <MenuItem value="February">February</MenuItem>
-        </Select>
-      </FormControl>
-
-      {/* Save Button */}
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleSave}
-        sx={{ mt: 2 }}
-      >
-        Save
-      </Button>
+          <Grid item xs={12}>
+             <Typography variant="h6" gutterBottom>Data Security</Typography>
+              <FormControl component="fieldset" fullWidth>
+                  <FormLabel component="legend">Data Locking Options</FormLabel>
+                  <RadioGroup row value={dataLockType} onChange={(e) => setDataLockType(e.target.value)}>
+                      <FormControlLabel value="none" control={<Radio />} label="No Lock" />
+                      <FormControlLabel value="all" control={<Radio />} label="Stop all users making changes" />
+                      <FormControlLabel value="admin_exempt" control={<Radio />} label="Stop all users (except admin)" />
+                  </RadioGroup>
+              </FormControl>
+              {dataLockType !== 'none' && (
+                  <Box sx={{ mt: 2, pl: 2 }}>
+                      <DatePicker label="Lock entries on and before" value={lockDate} onChange={setLockDate} sx={{ width: {xs: '100%', md: '50%'}, mt: 1 }} />
+                  </Box>
+              )}
+          </Grid>
+        </Grid>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button variant="contained" color="primary" size="large" onClick={handleSave}>Save Financial Config</Button>
+        </Box>
+      </StyledPaper>
     </Box>
   );
 }
 
-export default FinancialDetails;
+// Main App component to render the form
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+        <CssBaseline />
+         <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 5, maxWidth: '1000px', margin: 'auto' }}>
+                <FinancialDetails />
+            </Box>
+        </LocalizationProvider>
+    </ThemeProvider>
+  );
+}
+
+export default App;

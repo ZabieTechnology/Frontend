@@ -198,7 +198,7 @@ const contentButtonStyle = {
 // Component for displaying individual bank account details
 const BankAccountCard = ({ bankName, accountNumber, balance, statementDate }) => {
   const cardStyle = {
-    backgroundColor: '#F1F8E9',
+    backgroundColor: '#F4FBEB', // Light lime green to match image
     padding: { xs: '16px', sm: '24px' },
     marginBottom: '24px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
@@ -211,11 +211,11 @@ const BankAccountCard = ({ bankName, accountNumber, balance, statementDate }) =>
     <Paper sx={cardStyle}>
         {/* Left side content */}
         <Box>
-            <Typography variant="h6" component="h2" sx={{ color: '#37474F' }}>
+            <Typography variant="h6" component="h2" sx={{ color: '#37474F', fontWeight: 500 }}>
                 {bankName} - {accountNumber}
             </Typography>
-            <Typography variant="h4" component="p" sx={{ color: '#263238', my: 0.5 }}>
-                ₹ {balance}
+            <Typography variant="h6" component="p" sx={{ color: '#37474F', fontWeight: 500, my: 0.5 }}>
+                (₹ {balance})
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: { xs: 2.5, sm: 3 } }}>
                 Statement Balance as of {statementDate}
@@ -418,7 +418,7 @@ const CreateEditRuleForm = ({ onCancel, onSave }) => {
                                     <TableCell><TextField variant="standard" fullWidth value={item.description} onChange={e => updateRow(setFixedValueLineItems, index, 'description', e.target.value)}/></TableCell>
                                     <TableCell><TextField variant="standard" fullWidth value={item.account} onChange={e => updateRow(setFixedValueLineItems, index, 'account', e.target.value)}/></TableCell>
                                     <TableCell><TextField variant="standard" fullWidth value={item.taxRate} onChange={e => updateRow(setFixedValueLineItems, index, 'taxRate', e.target.value)}/></TableCell>
-                                    <TableCell><TextField variant="standard" fullWidth type="number" value={item.amount} onChange={e => updateRow(setFixedValueLineItems, index, 'amount', e.g.target.value)}/></TableCell>
+                                    <TableCell><TextField variant="standard" fullWidth type="number" value={item.amount} onChange={e => updateRow(setFixedValueLineItems, index, 'amount', e.target.value)}/></TableCell>
                                     <TableCell align="right"><Tooltip title="Remove Item"><IconButton onClick={() => removeRow(setFixedValueLineItems, index)} color="error" size="small"><RemoveCircleOutlineIcon /></IconButton></Tooltip></TableCell>
                                 </TableRow>
                             ))}
@@ -518,10 +518,10 @@ const DashboardPage = ({ onAddAccountClick, onAddRulesClick, bankAccounts }) => 
 // Main App component
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [activeTab, setActiveTab] = useState('Bank');
+  const [activeTab, setActiveTab] = useState('Credit Card');
   const bankAccounts = [
-    { bankName: 'ICICI Bank', accountNumber: '0487', balance: '23,547.33', statementDate: '26 May 2025' },
-    { bankName: 'SBI Bank', accountNumber: '0879', balance: '1,63,587.23', statementDate: '26 May 2025' },
+    { bankName: 'ICICI Bank CC', accountNumber: '0487', balance: '23,547.33', statementDate: '26 May 2025' },
+    { bankName: 'SBI Bank CC', accountNumber: '0879', balance: '1,63,587.23', statementDate: '26 May 2025' },
   ];
 
   const renderContent = () => {

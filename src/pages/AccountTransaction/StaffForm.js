@@ -1,4 +1,3 @@
-// src/pages/AccountTransaction/StaffForm.js
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box,
@@ -12,18 +11,53 @@ import {
     CircularProgress,
     Alert,
     IconButton,
-    MenuItem, // Added for potential future use with Select components
-    Divider // For visual separation
+    Divider,
+    ThemeProvider,
+    createTheme,
+    CssBaseline
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import axios from 'axios';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
 
-// Initial state for the form data
+// --- Import actual dependencies in your project ---
+// import axios from 'axios';
+// import { useParams, useLocation, useNavigate } from 'react-router-dom';
+
+// --- Placeholder functions for demonstration without real dependencies ---
+// In your actual project, you will get these from 'react-router-dom'
+const useParams = () => ({ staffId: null }); // Default to null for "Add New"
+const useLocation = () => ({ search: '' });
+const useNavigate = () => (path) => console.log(`Navigating to: ${path}`);
+
+// In your actual project, you will use the real axios library
+const axios = {
+    get: (url) => new Promise((_, reject) => reject(new Error(`Axios GET request to ${url} requires a real implementation.`))),
+    post: (url, data) => {
+         console.log(`[AXIOS MOCK] POST: ${url}`, data);
+         return new Promise(resolve => setTimeout(() => resolve({
+             data: {
+                 message: "Staff member created successfully!",
+                 data: { ...data, _id: `new-mock-id-${Date.now()}` }
+             }
+         }), 1000));
+    },
+    put: (url, data) => {
+         console.log(`[AXIOS MOCK] PUT: ${url}`, data);
+         return new Promise(resolve => setTimeout(() => resolve({
+             data: {
+                 message: "Staff member updated successfully!",
+                 data: data
+             }
+         }), 1000));
+    }
+};
+
+
+// --- Main StaffForm Component ---
+
 const initialFormData = {
     _id: null,
     firstName: '',
@@ -35,7 +69,9 @@ const initialFormData = {
     designation: '',
     department: '',
     reimbursementClaimEnabled: false,
-    customFields: [], // Array to hold single custom field strings
+    isSalesAgent: false,
+    notes: '',
+    customFields: [],
 };
 
 const StaffForm = ({ onSaveSuccess }) => {
@@ -49,13 +85,14 @@ const StaffForm = ({ onSaveSuccess }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // Set your actual API base URL here
     const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     const fetchStaffData = useCallback(async (id) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/staff/${id}`, { withCredentials: true });
+            const response = await axios.get(`${API_BASE_URL}/api/staff/${id}`);
             if (response.data) {
                 const fetched = response.data;
                 setFormData({
@@ -66,7 +103,9 @@ const StaffForm = ({ onSaveSuccess }) => {
                     designation: fetched.designation || '',
                     department: fetched.department || '',
                     reimbursementClaimEnabled: !!fetched.reimbursementClaimEnabled,
-                    customFields: Array.isArray(fetched.customFields) ? fetched.customFields : [], // Ensure customFields is an array of strings
+                    isSalesAgent: !!fetched.isSalesAgent,
+                    notes: fetched.notes || '',
+                    customFields: Array.isArray(fetched.customFields) ? fetched.customFields : [],
                 });
             } else {
                 setError("Staff member not found.");
@@ -88,12 +127,14 @@ const StaffForm = ({ onSaveSuccess }) => {
         if (staffId) {
             fetchStaffData(staffId);
         } else {
+            // Ensure form is reset for 'Add New' mode
             setFormData(initialFormData);
             if (viewMode) {
+                // Cannot be in view mode when creating a new staff member
                 setIsViewMode(false);
             }
         }
-    }, [staffId, location.search, fetchStaffData, navigate, location.pathname]);
+    }, [staffId, location.search, fetchStaffData]);
 
     const handleChange = (event) => {
         if (isViewMode) return;
@@ -104,7 +145,6 @@ const StaffForm = ({ onSaveSuccess }) => {
         }));
     };
 
-    // Handler for single custom field changes
     const handleCustomFieldChange = (index, event) => {
         if (isViewMode) return;
         const { value } = event.target;
@@ -114,22 +154,19 @@ const StaffForm = ({ onSaveSuccess }) => {
         setFormData((prev) => ({ ...prev, customFields: updatedCustomFields }));
     };
 
-    // Handler to add a new single custom field
     const handleAddCustomField = () => {
         if (isViewMode) return;
         setFormData((prev) => ({
             ...prev,
-            customFields: [...prev.customFields, ''], // Add an empty string for the new field
+            customFields: [...prev.customFields, ''],
         }));
     };
 
-    // Handler to remove a custom field
     const handleRemoveCustomField = (index) => {
         if (isViewMode) return;
         const updatedCustomFields = formData.customFields.filter((_, i) => i !== index);
         setFormData((prev) => ({ ...prev, customFields: updatedCustomFields }));
     };
-
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -149,7 +186,7 @@ const StaffForm = ({ onSaveSuccess }) => {
         const submissionData = {
             ...formData,
             reimbursementClaimEnabled: !!formData.reimbursementClaimEnabled,
-            // Filter out empty custom field strings before submission
+            isSalesAgent: !!formData.isSalesAgent,
             customFields: formData.customFields.filter(field => typeof field === 'string' && field.trim() !== ''),
         };
 
@@ -160,10 +197,10 @@ const StaffForm = ({ onSaveSuccess }) => {
         try {
             let response;
             if (formData._id) {
-                response = await axios.put(`${API_BASE_URL}/api/staff/${formData._id}`, submissionData, { withCredentials: true });
+                response = await axios.put(`${API_BASE_URL}/api/staff/${formData._id}`, submissionData);
                 setSuccess("Staff member updated successfully!");
             } else {
-                response = await axios.post(`${API_BASE_URL}/api/staff`, submissionData, { withCredentials: true });
+                response = await axios.post(`${API_BASE_URL}/api/staff`, submissionData);
                 setSuccess("Staff member created successfully!");
             }
 
@@ -177,9 +214,15 @@ const StaffForm = ({ onSaveSuccess }) => {
                     designation: savedData.designation || '',
                     department: savedData.department || '',
                     reimbursementClaimEnabled: !!savedData.reimbursementClaimEnabled,
+                    isSalesAgent: !!savedData.isSalesAgent,
+                    notes: savedData.notes || '',
                     customFields: Array.isArray(savedData.customFields) ? savedData.customFields : [],
                 });
                 if (onSaveSuccess) onSaveSuccess(savedData);
+                // On successful creation, you might want to navigate to the edit page
+                if (!formData._id && savedData._id) {
+                    navigate(`/account-transaction/staff/edit/${savedData._id}`);
+                }
             }
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
@@ -307,16 +350,49 @@ const StaffForm = ({ onSaveSuccess }) => {
                             }}
                         />
                     </Grid>
+                    <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center', mt: { xs: 1, sm: 0 } }}>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={!!formData.isSalesAgent}
+                                    onChange={handleChange}
+                                    name="isSalesAgent"
+                                    disabled={isViewMode}
+                                    color="primary"
+                                />
+                            }
+                            label="Sales Agent"
+                            labelPlacement="start"
+                            sx={{
+                                color: 'text.secondary',
+                                width: '100%',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                paddingRight: '8px',
+                            }}
+                        />
+                    </Grid>
                 </Grid>
 
-                {/* Custom Fields Section - Modified for single fields */}
+                <Divider sx={{ my: 3 }} />
+
+                <Grid item xs={12}>
+                    <TextField
+                        {...textFieldProps("notes", "Notes", false, {
+                            multiline: true,
+                            rows: 4,
+                        })}
+                    />
+                </Grid>
+
                 <Divider sx={{ my: 3 }}>
                     <Typography variant="overline">Custom Fields</Typography>
                 </Divider>
 
                 {formData.customFields.map((fieldValue, index) => (
                     <Grid container spacing={2} key={index} sx={{ mb: 2, alignItems: 'center' }}>
-                        <Grid item xs={12} sm={10}> {/* Adjusted grid size for single field */}
+                        <Grid item xs={12} sm={10}>
                             <TextField
                                 label={`Custom Field ${index + 1}`}
                                 value={fieldValue}
@@ -325,7 +401,6 @@ const StaffForm = ({ onSaveSuccess }) => {
                                 size="small"
                                 fullWidth
                                 disabled={isViewMode}
-                                // You might want a placeholder if the field is empty
                                 placeholder="Enter custom information"
                             />
                         </Grid>
@@ -349,8 +424,6 @@ const StaffForm = ({ onSaveSuccess }) => {
                         Add Custom Field
                     </Button>
                 )}
-                {/* End Custom Fields Section */}
-
 
                 <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
                     {isViewMode ? (
@@ -385,4 +458,46 @@ const StaffForm = ({ onSaveSuccess }) => {
     );
 };
 
-export default StaffForm;
+
+// --- App Component to Render the Form ---
+export default function App() {
+    const theme = createTheme({
+        palette: {
+            primary: {
+                main: '#1976d2',
+            },
+            secondary: {
+                main: '#dc004e',
+            },
+            background: {
+                default: '#f8f9fa'
+            }
+        },
+        typography: {
+            fontFamily: 'Roboto, sans-serif',
+        },
+        components: {
+            MuiButton: {
+                styleOverrides: {
+                    root: {
+                        borderRadius: 8,
+                    }
+                }
+            },
+            MuiPaper: {
+                styleOverrides: {
+                    root: {
+                        borderRadius: 12,
+                    }
+                }
+            }
+        }
+    });
+
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <StaffForm onSaveSuccess={(data) => console.log("Save successful:", data)} />
+        </ThemeProvider>
+    );
+}

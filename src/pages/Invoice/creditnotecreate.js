@@ -101,6 +101,9 @@ const Creditnotecreate = () => {
     const [error, setError] = useState(null);
     const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'info' });
 
+    // ** NEW **: Determine if the credit is for returned items
+    const isItemCredit = creditNoteData.reason === 'Returned or Damaged Goods';
+
     // --- Data Fetching ---
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -124,10 +127,6 @@ const Creditnotecreate = () => {
 
                 const fetchedTaxes = taxesRes.data?.data?.map(tax => ({ id: tax._id, name: tax.taxName, rate: tax.taxRate })) || [];
                 setTaxOptions(fetchedTaxes);
-
-                // TODO: Fetch credit note settings for number generation
-                // const settingsRes = await axios.get(`${API_BASE_URL}/api/credit-note-settings/`, { withCredentials: true });
-                // setCreditNoteNumber(...)
 
             } catch (err) {
                 console.error("Failed to fetch initial data:", err);
@@ -177,12 +176,17 @@ const Creditnotecreate = () => {
     }, [creditNoteData, supplierState]);
 
     // --- Handlers ---
-    const handleCustomerChange = (event, newValue) => {
+    const handleReasonChange = (event) => {
+        const newReason = event.target.value;
         setCreditNoteData(prev => ({
             ...prev,
-            customer: newValue,
-            customerState: newValue?.billingAddress?.state || ''
+            reason: newReason,
+            lineItems: [{...minimalInitialLineItem, id: Date.now()}] // Reset items on reason change
         }));
+    };
+
+    const handleCustomerChange = (event, newValue) => {
+        setCreditNoteData(prev => ({...prev, customer: newValue, customerState: newValue?.billingAddress?.state || ''}));
     };
 
     const handleDateChange = (name, dateString) => { if (isValid(new Date(dateString))) setCreditNoteData(prev => ({...prev, [name]: new Date(dateString)})); };
@@ -222,10 +226,9 @@ const Creditnotecreate = () => {
             status: status
         };
         payload.lineItems.forEach(item => delete item.id);
-        delete payload.referenceInvoice; // Clean up the object before sending
+        delete payload.referenceInvoice;
 
         try {
-            // TODO: Update to the correct endpoint
             const response = await axios.post(`${API_BASE_URL}/api/credit-notes`, payload, { withCredentials: true });
             const newNoteNumber = response.data?.data?.creditNoteNumber;
             navigate('/CreditNote', { state: { successMessage: `Successfully created Credit Note ${newNoteNumber || ''}!` } });
@@ -263,7 +266,7 @@ const Creditnotecreate = () => {
                         <Grid item xs={12} md={4}>
                             <FormControl fullWidth>
                                 <InputLabel>Reason for Credit</InputLabel>
-                                <Select name="reason" value={creditNoteData.reason} label="Reason for Credit" onChange={(e) => setCreditNoteData(prev => ({...prev, reason: e.target.value}))}>
+                                <Select name="reason" value={creditNoteData.reason} label="Reason for Credit" onChange={handleReasonChange}>
                                     {creditReasons.map(reason => <MenuItem key={reason} value={reason}>{reason}</MenuItem>)}
                                 </Select>
                             </FormControl>
@@ -277,15 +280,28 @@ const Creditnotecreate = () => {
 
                     <TableContainer sx={{ mt: 4 }}><Table size="small">
                         <TableHead sx={{ backgroundColor: '#fafafa' }}><TableRow>
-                            <TableCell sx={{ minWidth: 250 }}>Item</TableCell><TableCell>HSN/SAC</TableCell><TableCell align="right">Qty</TableCell><TableCell align="right">Rate</TableCell><TableCell>Tax</TableCell><TableCell align="right">CGST</TableCell><TableCell align="right">SGST</TableCell><TableCell align="right">IGST</TableCell><TableCell align="right">Amount</TableCell><TableCell />
+                            <TableCell sx={{ minWidth: 250 }}>{isItemCredit ? 'Item' : 'Description'}</TableCell>
+                            {isItemCredit && <TableCell>HSN/SAC</TableCell>}
+                            <TableCell align="right">Qty</TableCell>
+                            <TableCell align="right">Rate</TableCell>
+                            <TableCell>Tax</TableCell>
+                            <TableCell align="right">CGST</TableCell>
+                            <TableCell align="right">SGST</TableCell>
+                            <TableCell align="right">IGST</TableCell>
+                            <TableCell align="right">Amount</TableCell>
+                            <TableCell />
                         </TableRow></TableHead>
                         <TableBody>{creditNoteData.lineItems.map((item, index) => (
                             <TableRow key={item.id}>
                                 <TableCell>
-                                    <Autocomplete fullWidth freeSolo options={inventoryItems} getOptionLabel={(option) => typeof option === 'string' ? option : option.itemName} value={inventoryItems.find(inv => inv._id === item.itemId) || item.description} onChange={(e, val) => handleItemSelect(index, val)} onInputChange={(e, val) => handleLineItemChange(index, {target: {name: 'description', value: val}})} renderInput={(params) => <TextField {...params} variant="standard" placeholder="Select or Type Item" />} />
+                                    {isItemCredit ? (
+                                        <Autocomplete fullWidth freeSolo options={inventoryItems} getOptionLabel={(option) => typeof option === 'string' ? option : option.itemName} value={inventoryItems.find(inv => inv._id === item.itemId) || item.description} onChange={(e, val) => handleItemSelect(index, val)} onInputChange={(e, val) => handleLineItemChange(index, {target: {name: 'description', value: val}})} renderInput={(params) => <TextField {...params} variant="standard" placeholder="Select or Type Item" />} />
+                                    ) : (
+                                        <TextField fullWidth name="description" value={item.description} onChange={(e) => handleLineItemChange(index, e)} variant="standard" placeholder="e.g., Price adjustment for Invoice #123" />
+                                    )}
                                 </TableCell>
-                                <TableCell><TextField name="hsnSac" value={item.hsnSac} onChange={(e) => handleLineItemChange(index, e)} variant="standard" /></TableCell>
-                                <TableCell><TextField name="quantity" value={item.quantity} onChange={(e) => handleLineItemChange(index, e)} type="number" variant="standard" sx={{width: 80}} align="right"/></TableCell>
+                                {isItemCredit && <TableCell><TextField name="hsnSac" value={item.hsnSac} onChange={(e) => handleLineItemChange(index, e)} variant="standard" /></TableCell>}
+                                <TableCell><TextField name="quantity" value={item.quantity} onChange={(e) => handleLineItemChange(index, e)} type="number" variant="standard" sx={{width: 80}} align="right" disabled={!isItemCredit}/></TableCell>
                                 <TableCell><TextField name="rate" value={item.rate} onChange={(e) => handleLineItemChange(index, e)} type="number" variant="standard" InputProps={{startAdornment: <InputAdornment position="start">{currencySymbol}</InputAdornment>}}/></TableCell>
                                 <TableCell sx={{ minWidth: 150 }}><FormControl fullWidth variant="standard"><Select name="taxId" value={item.taxId} onChange={(e) => handleLineItemChange(index, e)}><MenuItem value=""><em>None</em></MenuItem>{taxOptions.map(tax => <MenuItem key={tax.id} value={tax.id}>{tax.name}</MenuItem>)}</Select></FormControl></TableCell>
                                 <TableCell align="right">{formatCurrency(calculatedData.lineItems[index]?.cgst || 0, currencySymbol)}</TableCell>

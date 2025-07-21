@@ -1,7 +1,3 @@
-// src/components/previews/InvoicePreview.js
-// Or, if it's in pages/settings/invoicesettings:
-// src/pages/settings/invoicesettings/InvoicePreview.js
-
 import React from 'react';
 import {
     Box,
@@ -38,9 +34,9 @@ const sampleInvoiceData = {
     invoiceDate: new Date().toLocaleDateString('en-GB'),
     dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB'),
     items: [
-        { id: 1, description: "Premium Software Suite - Annual License", hsnSacCode: "998314", quantity: 1, pricePerItem: 25000, discountPerItem: 1000, taxRate: 18, taxPerItem: 4320, cgstRate: 9, sgstRate: 9, igstRate: 0, cessRate: 0, amount: 28320 },
-        { id: 2, description: "Cloud Hosting Services - Basic Plan", hsnSacCode: "998315", quantity: 12, pricePerItem: 1500, discountPerItem: 0, taxRate: 18, taxPerItem: 3240, cgstRate: 9, sgstRate: 9, igstRate: 0, cessRate: 0, amount: 21240 },
-        { id: 3, description: "Consultation Services - 5 Hours", hsnSacCode: "998311", quantity: 5, pricePerItem: 3000, discountPerItem: 500, taxRate: 18, taxPerItem: 2610, cgstRate: 9, sgstRate: 9, igstRate: 0, cessRate: 0, amount: 17110 },
+        { id: 1, description: "Premium Software Suite - Annual License", hsnSacCode: "998314", quantity: 1, pricePerItem: 25000, discountPerItem: 1000, taxRate: 18, taxPerItem: 4320, cgstRate: 9, sgstRate: 9, igstRate: 0, cessAmountPerItem: 100, amount: 28420 },
+        { id: 2, description: "Cloud Hosting Services - Basic Plan", hsnSacCode: "998315", quantity: 12, pricePerItem: 1500, discountPerItem: 0, taxRate: 18, taxPerItem: 3240, cgstRate: 9, sgstRate: 9, igstRate: 0, cessAmountPerItem: 0, amount: 21240 },
+        { id: 3, description: "Consultation Services - 5 Hours", hsnSacCode: "998311", quantity: 5, pricePerItem: 3000, discountPerItem: 500, taxRate: 18, taxPerItem: 2610, cgstRate: 9, sgstRate: 9, igstRate: 0, cessAmountPerItem: 50, amount: 17160 },
     ],
     subTotal: 58000,
     discountAmountCalculated: 1500,
@@ -48,12 +44,12 @@ const sampleInvoiceData = {
     cgstAmount: 5085,
     sgstAmount: 5085,
     igstAmount: 0,
-    cessAmount: 0,
+    overallCessAmount: 150,
     taxTotal: 10170,
-    grandTotal: 66670,
+    grandTotal: 66820,
     amountPaid: 0,
-    balanceDue: 66670,
-    amountInWords: "Sixty Six Thousand Six Hundred Seventy Only",
+    balanceDue: 66820,
+    amountInWords: "Sixty Six Thousand Eight Hundred Twenty Only",
     bankDetails: {
         name: "Sample Bank Ltd.",
         accountNo: "xxxxxx1234",
@@ -125,17 +121,15 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         itemTableColumns: {
             pricePerItem: true,
             quantity: true,
-            taxRate: true,
-            taxPerItem: true,
             hsnSacCode: true,
             batchNo: false, expDate: false, mfgDate: false, discountPerItem: false, serialNo: false,
         },
+        taxDisplayMode: 'breakdown',
         customItemColumns: [],
         invoiceHeading: "TAX INVOICE",
         invoicePrefix: "INV-",
         invoiceSuffix: "",
         nextInvoiceNumber: 1,
-        invoiceDueAfterDays: 30,
         showPoNumber: true,
         customHeaderFields: [],
         upiId: "",
@@ -147,19 +141,11 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         notesDefault: "Thank you!",
         termsAndConditionsId: "Default T&C.",
         signatureImageUrl: "",
-        enableReceiverSignature: false,
+        authorisedSignatory: "For (Your Company Name)",
         companyLogoUrl: "/images/default_logo.png",
         invoiceFooter: "",
         invoiceFooterImageUrl: "",
         ...settings
-    };
-
-    effectiveSettings.itemTableColumns = {
-        ...effectiveSettings.itemTableColumns,
-        pricePerItem: true,
-        quantity: true,
-        taxRate: true,
-        taxPerItem: true,
     };
 
     const {
@@ -169,14 +155,14 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         customItemColumns,
         termsAndConditionsId,
         signatureImageUrl,
-        enableReceiverSignature,
+        authorisedSignatory,
         notesDefault,
         companyLogoUrl,
         showBillToSection,
         showShipToSection,
         showSaleAgentOnInvoice,
         upiId,
-        upiQrCodeImageUrl, // This is the key from settings
+        upiQrCodeImageUrl,
         bankAccountId,
         invoicePrefix,
         invoiceSuffix,
@@ -184,14 +170,11 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         invoiceFooter,
         invoiceFooterImageUrl,
         showPoNumber,
+        taxDisplayMode,
         customHeaderFields
     } = effectiveSettings;
 
-    // console.log("[InvoicePreview] Effective Settings:", effectiveSettings); // General settings log
-    // console.log("[InvoicePreview] Received upiQrCodeImageUrl from settings:", upiQrCodeImageUrl);
-
-
-     const displayCompany = invoiceDataToUse?.companyDetails || companyDetailsProp || {
+    const displayCompany = invoiceDataToUse?.companyDetails || companyDetailsProp || {
         name: "Your Company LLC",
         address: "123 Innovation Drive, Tech Park, Suite 100",
         mobile: "+1-555-0100",
@@ -221,13 +204,22 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         headers.push(<TableCell align="right" key="qty" sx={{color: 'inherit', fontWeight:'bold'}}>Qty</TableCell>);
         headers.push(<TableCell align="right" key="rate" sx={{color: 'inherit', fontWeight:'bold'}}>Rate</TableCell>);
         if (itemTableColumns.discountPerItem) headers.push(<TableCell align="right" key="discount" sx={{color: 'inherit', fontWeight:'bold'}}>Discount</TableCell>);
-        headers.push(<TableCell align="right" key="taxRate" sx={{color: 'inherit', fontWeight:'bold'}}>Tax %</TableCell>);
-        headers.push(<TableCell align="right" key="taxAmt" sx={{color: 'inherit', fontWeight:'bold'}}>Tax Amt.</TableCell>);
+
+        if (taxDisplayMode === 'breakdown') {
+            headers.push(<TableCell align="right" key="taxRate" sx={{color: 'inherit', fontWeight:'bold'}}>Tax %</TableCell>);
+            headers.push(<TableCell align="right" key="cgst" sx={{color: 'inherit', fontWeight:'bold'}}>CGST</TableCell>);
+            headers.push(<TableCell align="right" key="sgst" sx={{color: 'inherit', fontWeight:'bold'}}>SGST</TableCell>);
+            headers.push(<TableCell align="right" key="igst" sx={{color: 'inherit', fontWeight:'bold'}}>IGST</TableCell>);
+            if (itemTableColumns.showCess) {
+                headers.push(<TableCell align="right" key="cess" sx={{color: 'inherit', fontWeight:'bold'}}>Cess</TableCell>);
+            }
+        }
+
         headers.push(<TableCell align="right" key="amount" sx={{color: 'inherit', fontWeight:'bold'}}>Amount</TableCell>);
         return <TableRow>{headers}</TableRow>;
     };
 
-    const tableHeaderCells = React.useMemo(() => renderTableHeaders(), [itemTableColumns, customItemColumns]);
+    const tableHeaderCells = React.useMemo(() => renderTableHeaders(), [itemTableColumns, customItemColumns, taxDisplayMode]);
 
 
     const renderTableRows = () => {
@@ -242,30 +234,47 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
             );
         }
 
-        return invoiceDataToUse.items.map((item, index) => (
-            <TableRow key={item.id || index}>
-                <TableCell sx={{color: 'inherit'}}>{index + 1}</TableCell>
-                <TableCell sx={{color: 'inherit'}}>{item.description}</TableCell>
-                {itemTableColumns.hsnSacCode && <TableCell sx={{color: 'inherit'}}>{item.hsnSacCode}</TableCell>}
-                {itemTableColumns.batchNo && <TableCell sx={{color: 'inherit'}}>{item.batchNo}</TableCell>}
-                {itemTableColumns.expDate && <TableCell sx={{color: 'inherit'}}>{item.expDate}</TableCell>}
-                {itemTableColumns.mfgDate && <TableCell sx={{color: 'inherit'}}>{item.mfgDate}</TableCell>}
-                {itemTableColumns.serialNo && <TableCell sx={{color: 'inherit'}}>{item.serialNo}</TableCell>}
-                {customItemColumns?.map(colConfig => {
-                    if (itemTableColumns[colConfig.id]) {
-                        const value = item[colConfig.id] || item[colConfig.name?.toLowerCase().replace(/\s+/g, '')] || 'N/A';
-                        return <TableCell key={colConfig.id} sx={{color: 'inherit'}}>{value}</TableCell>;
-                    }
-                    return null;
-                })}
-                <TableCell align="right" sx={{color: 'inherit'}}>{item.quantity}</TableCell>
-                <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.pricePerItem, currencySymbol)}</TableCell>
-                {itemTableColumns.discountPerItem && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.discountPerItem, currencySymbol)}</TableCell>}
-                <TableCell align="right" sx={{color: 'inherit'}}>{item.taxRate !== undefined ? `${item.taxRate}%` : 'N/A'}</TableCell>
-                <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.taxPerItem, currencySymbol)}</TableCell>
-                <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.amount, currencySymbol)}</TableCell>
-            </TableRow>
-        ));
+        return invoiceDataToUse.items.map((item, index) => {
+            const taxableAmount = (item.pricePerItem * item.quantity) - (item.discountPerItem || 0);
+            const cgstAmount = taxableAmount * ((item.cgstRate || 0) / 100);
+            const sgstAmount = taxableAmount * ((item.sgstRate || 0) / 100);
+            const igstAmount = taxableAmount * ((item.igstRate || 0) / 100);
+            const finalAmount = taxDisplayMode === 'no_tax' ? taxableAmount : item.amount;
+
+            return (
+                <TableRow key={item.id || index}>
+                    <TableCell sx={{color: 'inherit'}}>{index + 1}</TableCell>
+                    <TableCell sx={{color: 'inherit'}}>{item.description}</TableCell>
+                    {itemTableColumns.hsnSacCode && <TableCell sx={{color: 'inherit'}}>{item.hsnSacCode}</TableCell>}
+                    {itemTableColumns.batchNo && <TableCell sx={{color: 'inherit'}}>{item.batchNo}</TableCell>}
+                    {itemTableColumns.expDate && <TableCell sx={{color: 'inherit'}}>{item.expDate}</TableCell>}
+                    {itemTableColumns.mfgDate && <TableCell sx={{color: 'inherit'}}>{item.mfgDate}</TableCell>}
+                    {itemTableColumns.serialNo && <TableCell sx={{color: 'inherit'}}>{item.serialNo}</TableCell>}
+                    {customItemColumns?.map(colConfig => {
+                        if (itemTableColumns[colConfig.id]) {
+                            const value = item[colConfig.id] || item[colConfig.name?.toLowerCase().replace(/\s+/g, '')] || 'N/A';
+                            return <TableCell key={colConfig.id} sx={{color: 'inherit'}}>{value}</TableCell>;
+                        }
+                        return null;
+                    })}
+                    <TableCell align="right" sx={{color: 'inherit'}}>{item.quantity}</TableCell>
+                    <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.pricePerItem, currencySymbol)}</TableCell>
+                    {itemTableColumns.discountPerItem && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.discountPerItem, currencySymbol)}</TableCell>}
+
+                    {taxDisplayMode === 'breakdown' && (
+                        <>
+                            <TableCell align="right" sx={{color: 'inherit'}}>{item.taxRate !== undefined ? `${item.taxRate}%` : 'N/A'}</TableCell>
+                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(cgstAmount, currencySymbol)}</TableCell>
+                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(sgstAmount, currencySymbol)}</TableCell>
+                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(igstAmount, currencySymbol)}</TableCell>
+                            {itemTableColumns.showCess && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.cessAmountPerItem, currencySymbol)}</TableCell>}
+                        </>
+                    )}
+
+                    <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(finalAmount, currencySymbol)}</TableCell>
+                </TableRow>
+            );
+        });
     };
 
     const InvoiceLayout = ({ children }) => {
@@ -305,7 +314,7 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         }
     }
 
-    let displayUpiQrCodeUrl = null; // Initialize to null
+    let displayUpiQrCodeUrl = null;
     if (upiQrCodeImageUrl && typeof upiQrCodeImageUrl === 'string' && upiQrCodeImageUrl.trim() !== "") {
         if (upiQrCodeImageUrl.startsWith('http') || upiQrCodeImageUrl.startsWith('data:')) {
             displayUpiQrCodeUrl = upiQrCodeImageUrl;
@@ -313,8 +322,6 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
             displayUpiQrCodeUrl = `${API_BASE_URL}${upiQrCodeImageUrl.startsWith('/') ? '' : '/uploads/upi_qr/'}${upiQrCodeImageUrl}`;
         }
     }
-    // console.log("[InvoicePreview] Final displayUpiQrCodeUrl:", displayUpiQrCodeUrl); // DEBUG LOG
-
 
     let displayFooterImageUrl = null;
     if (invoiceFooterImageUrl && typeof invoiceFooterImageUrl === 'string' && invoiceFooterImageUrl.trim() !== "") {
@@ -332,6 +339,10 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
             selectedBankAccountLabel = foundAccount.label;
         }
     }
+
+    const showTaxInTotals = taxDisplayMode !== 'no_tax';
+    const finalGrandTotal = showTaxInTotals ? invoiceDataToUse.grandTotal : (invoiceDataToUse.subTotal - invoiceDataToUse.discountAmountCalculated);
+    const finalBalanceDue = showTaxInTotals ? invoiceDataToUse.balanceDue : (finalGrandTotal - invoiceDataToUse.amountPaid);
 
     return (
         <InvoiceLayout>
@@ -414,11 +425,11 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                             <Grid item xs={7} sx={{ textAlign: 'right', pr: 2 }}>
                                 <Typography variant="body1" sx={{color: 'inherit'}}>Subtotal:</Typography>
                                 <Typography variant="body1" sx={{color: 'inherit'}}>Discount:</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>Taxable Amount:</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>CGST:</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>SGST:</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>IGST:</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>CESS:</Typography>
+                                {showTaxInTotals && <Typography variant="body1" sx={{color: 'inherit'}}>Taxable Amount:</Typography>}
+                                {showTaxInTotals && taxDisplayMode === 'breakdown' && <Typography variant="body1" sx={{color: 'inherit'}}>CGST:</Typography>}
+                                {showTaxInTotals && taxDisplayMode === 'breakdown' && <Typography variant="body1" sx={{color: 'inherit'}}>SGST:</Typography>}
+                                {showTaxInTotals && taxDisplayMode === 'breakdown' && <Typography variant="body1" sx={{color: 'inherit'}}>IGST:</Typography>}
+                                {showTaxInTotals && itemTableColumns.showCess && <Typography variant="body1" sx={{color: 'inherit'}}>CESS:</Typography>}
                                 <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 1, color: selectedColor || 'inherit' }}>TOTAL AMOUNT:</Typography>
                                 <Typography variant="body1" sx={{color: 'inherit', mt: 0.5}}>Amount Received:</Typography>
                                 <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'inherit' }}>Balance Due:</Typography>
@@ -426,14 +437,14 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                             <Grid item xs={5} sx={{ textAlign: 'right' }}>
                                 <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.subTotal, currencySymbol)}</Typography>
                                 <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.discountAmountCalculated, currencySymbol)}</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.taxableAmount, currencySymbol)}</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.cgstAmount, currencySymbol)}</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.sgstAmount, currencySymbol)}</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.igstAmount, currencySymbol)}</Typography>
-                                <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.cessAmount, currencySymbol)}</Typography>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 1, color: selectedColor || 'inherit' }}>{formatCurrency(invoiceDataToUse.grandTotal, currencySymbol)}</Typography>
+                                {showTaxInTotals && <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.taxableAmount, currencySymbol)}</Typography>}
+                                {showTaxInTotals && taxDisplayMode === 'breakdown' && <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.cgstAmount, currencySymbol)}</Typography>}
+                                {showTaxInTotals && taxDisplayMode === 'breakdown' && <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.sgstAmount, currencySymbol)}</Typography>}
+                                {showTaxInTotals && taxDisplayMode === 'breakdown' && <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.igstAmount, currencySymbol)}</Typography>}
+                                {showTaxInTotals && itemTableColumns.showCess && <Typography variant="body1" sx={{color: 'inherit'}}>{formatCurrency(invoiceDataToUse.overallCessAmount, currencySymbol)}</Typography>}
+                                <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 1, color: selectedColor || 'inherit' }}>{formatCurrency(finalGrandTotal, currencySymbol)}</Typography>
                                 <Typography variant="body1" sx={{color: 'inherit', mt: 0.5}}>{formatCurrency(invoiceDataToUse.amountPaid, currencySymbol)}</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'inherit' }}>{formatCurrency(invoiceDataToUse.balanceDue, currencySymbol)}</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'inherit' }}>{formatCurrency(finalBalanceDue, currencySymbol)}</Typography>
                             </Grid>
                         </Grid>
                     </Grid>
@@ -478,18 +489,21 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                         </Box>
                     )}
                 </Grid>
-                <Grid item xs={12} md={5} sx={{ textAlign: 'right' }}>
-                    {displaySignatureUrl && (
-                        <Box sx={{mb:1}}>
-                            <Typography variant="caption" sx={{color: 'inherit'}}>Authorized Signature:</Typography>
-                            <img src={displaySignatureUrl} alt="Signature" style={{ maxHeight: '60px', maxWidth: '150px', display: 'block', marginLeft: 'auto', border: '1px solid #f0f0f0' }} onError={(e) => e.target.style.display='none'}/>
+                <Grid item xs={12} md={5} sx={{ textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                     <Box sx={{mt: 4}}>
+                        <Typography variant="body2" sx={{color: 'inherit', display: 'block', mb: 4}}>
+                            {authorisedSignatory || 'For (Your Company Name)'}
+                        </Typography>
+                        <Box sx={{minHeight: '50px'}}>
+                             {displaySignatureUrl && (
+                                 <img src={displaySignatureUrl} alt="Signature" style={{ maxHeight: '50px', maxWidth: '150px', display: 'block', marginLeft: 'auto' }} onError={(e) => e.target.style.display='none'}/>
+                             )}
                         </Box>
-                    )}
-                    {enableReceiverSignature && (
-                        <Box sx={{mt: 2, pt: 2, borderTop: `1px dashed ${selectedColor || '#ccc'}`}}>
-                             <Typography variant="caption" sx={{color: 'inherit'}}>Receiver's Signature & Date</Typography>
-                        </Box>
-                    )}
+                        <Divider sx={{borderColor: 'currentColor'}}/>
+                        <Typography variant="caption" sx={{color: 'inherit', display: 'block', mt: 0.5}}>
+                            Authorised Signatory
+                        </Typography>
+                    </Box>
                 </Grid>
                 <Grid item xs={12} sx={{textAlign: 'center', mt: 2, pt: 2, borderTop: `1px solid ${selectedColor || 'rgba(0,0,0,0.08)'}`}}>
                     {invoiceFooter && <Typography variant="caption" display="block" sx={{color: 'inherit', mt: 1, whiteSpace: 'pre-line'}}>{invoiceFooter}</Typography>}

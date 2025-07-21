@@ -17,8 +17,11 @@ import FinancialDetails from "./pages/settings/organizationsettings/financialdet
 import DropdownManagement from "./pages/settings/globalsettings/DropdownManagement";
 import GSTManagement from "./pages/settings/taxcompliancedetails/GSTManagement";
 import VATManagement from "./pages/settings/taxcompliancedetails/VATManagement";
+import TDSManagement from "./pages/settings/taxcompliancedetails/tds";
+import TCSManagement from "./pages/settings/taxcompliancedetails/tcs";
 import InvoiceSettingsPage from "./pages/settings/invoicesettings/InvoiceSettingsPage";
 import QuotationSettingsPage from "./pages/settings/Finance/quotationsettings";
+import OfficialDocumentSettings from "./pages/settings/globalsettings/officialdocumentsettings";
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
@@ -36,6 +39,7 @@ import StaffForm from "./pages/AccountTransaction/StaffForm";
 // Expenses Page
 import ExpenseListPage from "./pages/Expenses/ExpenseListPage";
 import AddExpensePage from "./pages/Expenses/AddExpensePage";
+import FixedAsset from "./pages/Expenses/FixedAsset";
 
 // Sales Page (Invoice was the old folder name based on comments)
 import OverviewSales from "./pages/Invoice/overviewsales";
@@ -45,7 +49,13 @@ import Creditnotepagedash from "./pages/Invoice/creditnotepagedash";
 import Creditnotecreate from "./pages/Invoice/creditnotecreate";
 import Quotationdash from "./pages/Invoice/estimatedash";
 import Quotecreate from "./pages/Invoice/estimate";
-import OtherPlatform from "./pages/Invoice/Otherplatforms";
+import OtherPlatform from "./pages/Invoice/Otherplatforms"
+import InvoiceDetails from "./pages/Invoice/SalesInvoicepreview"
+
+// Payment Page
+import RecordPaymentPage from "./pages/Payments/RecordPaymentPage";
+import Receiptvoucher from "./pages/Payments/receiptvoucher";
+import ContraVoucher from "./pages/Payments/contravoucher";
 
 
 // Payroll Page
@@ -57,9 +67,15 @@ import Inventorylist from "./pages/Inventory/inventorylist";
 import DeliveryChallan from "./pages/Inventory/deliverychallandash";
 import StockAdjustment from "./pages/Inventory/stockadjustment";
 
-// Inventory Page
+// Bank Page
 import BankFront from "./pages/Bank/bankfrontpage";
 import BankRecord from "./pages/Bank/bankrecopage";
+import BankOverview from "./pages/Bank/bankoverview";
+import AccCreditCard from "./pages/Bank/creditcard";
+import Cheque from "./pages/Bank/cheque";
+import Cash from "./pages/Bank/cash";
+import Loan from "./pages/Bank/loan";
+import Wallet from "./pages/Bank/wallet";
 
 
 // Reimbursement Page
@@ -116,6 +132,8 @@ function App() {
             <Route path="quote" element={<Quotationdash />} />
             <Route path="quote/new" element={<Quotecreate />} />
             <Route path="OtherPlatform" element={<OtherPlatform />} />
+            <Route path="/sales/invoice/:invoiceId" element={<InvoiceDetails />} />
+            <Route path="sales/edit/:invoiceId" element={<SalesInvoiceCreate />} />
 
             {/* <Route path="sales/edit/:invoiceId" element={<CreateSalesInvoicePage />} />  // Example edit route */}
 
@@ -124,6 +142,9 @@ function App() {
             <Route path="expenses" element={<ExpenseListPage />} />
             <Route path="expenses/new" element={<AddExpensePage />} />
             <Route path="expenses/edit/:expenseId" element={<AddExpensePage />} />
+            <Route path="FixedAsset" element={<FixedAsset/>} />
+
+
 
             {/* Settings Routes */}
             <Route path="settings/organizationsetting/companyinformation" element={<CompanyInformation />} />
@@ -133,9 +154,13 @@ function App() {
             <Route path="settings/global-settings/dropdown" element={<DropdownManagement />} />
             <Route path="settings/taxcompliancedetails/GSTManagement" element={<GSTManagement />} />
             <Route path="settings/taxcompliancedetails/vat-management" element={<VATManagement />} />
+            <Route path="tdssettings" element={<TDSManagement />} />
+            <Route path="tcssettings" element={<TCSManagement />} />
+
             {/* Corrected Invoice Settings Route to match Layout.js link */}
             <Route path="settings/invoicesettings/InvoiceSettingsPage" element={<InvoiceSettingsPage />} />
             <Route path="settings/Finance/quotationsettings" element={<QuotationSettingsPage />} />
+            <Route path="OfficaldocumentSettings" element={<OfficialDocumentSettings />} />
 
             {/* Account Transaction Routes */}
             <Route path="account-transaction/customer" element={<CustomerListPage />} />
@@ -154,6 +179,12 @@ function App() {
             <Route path="account-transaction/chart-of-accounts/new" element={<ChartOfAccountsForm />} />
             <Route path="account-transaction/chart-of-accounts/edit/:accountId" element={<ChartOfAccountsForm />} />
 
+            {/* Payment Routes */}
+            <Route path="payments" element={<RecordPaymentPage />} />
+            <Route path="receiptvoucher" element={<Receiptvoucher />} />
+            <Route path="contravoucher" element={<ContraVoucher />} />
+
+
             {/* Payroll Routes */}
             <Route path="Payroll" element={<Payrolllist />} />
 
@@ -170,6 +201,13 @@ function App() {
             {/* Bank */}
             <Route path="Bank" element={<BankFront />} />
             <Route path="Bank/new" element={<BankRecord />} />
+            <Route path="BankOverview" element={<BankOverview />} />
+            <Route path="CreditCard" element={<AccCreditCard />} />
+            <Route path="Cheque" element={<Cheque />} />
+            <Route path="cash" element={<Cash />} />
+            <Route path="loan" element={<Loan />} />
+            <Route path="Wallet" element={<Wallet />} />
+
 
             {/* Catch-all for undefined protected routes, redirect to home */}
             <Route path="*" element={<Navigate replace to="/home" />} />

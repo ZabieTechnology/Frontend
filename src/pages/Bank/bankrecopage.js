@@ -21,6 +21,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import GavelIcon from '@mui/icons-material/Gavel'; // Icon for Rule Match
 import PaymentIcon from '@mui/icons-material/Payment'; // Icon for Overpayment
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'; // Icon for Bank Account
+import CreditCardIcon from '@mui/icons-material/CreditCard'; // Icon for Credit Card
 import { visuallyHidden } from '@mui/utils';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
@@ -152,6 +153,11 @@ const mockBankAccounts = [
     {id: 'ba3', name: 'Business USD Account (ZZZ-9012)', currency: 'USD'}
 ];
 
+const mockCreditCards = [
+    {id: 'cc1', name: 'Business Visa (XXX-5555)', currency: 'SGD'},
+    {id: 'cc2', name: 'Corporate Amex (YYY-8888)', currency: 'USD'},
+];
+
 const initialLedgerOptions = [
   { id: 'l1', name: 'Bank Charges' }, { id: 'l2', name: 'Salary Payable' }, { id: 'l3', name: 'Travelling Fee' },
   { id: 'l4', name: 'Accounts Receivable' }, { id: 'l5', name: 'Office Supplies' }, { id: 'l6', name: 'Software Subscriptions' },
@@ -185,8 +191,15 @@ const allBankStatementData = {
     'ba2': [
       { id: 'bs-ba2-1', srNo: 1, date: '02/06/2024', description: 'BA2 - Transfer from Main', type: 'Receipt', spent: 0, received: 500.00, balance: 5500.00, status: 'Unreconciled' },
     ],
-     'ba3': [
+    'ba3': [
       { id: 'bs-ba3-1', srNo: 1, date: '03/06/2024', description: 'BA3 - Incoming Wire USD', type: 'Receipt', spent: 0, received: 2000.00, balance: 2000.00, status: 'Unreconciled' },
+    ],
+    'cc1': [
+      { id: 'bs-cc1-1', srNo: 1, date: '28/05/2024', description: 'CC1 - AWS Services', type: 'Payment', spent: 150.00, received: 0, balance: 150.00, status: 'Unreconciled' },
+      { id: 'bs-cc1-2', srNo: 2, date: '25/05/2024', description: 'CC1 - Payment Received - Thank You', type: 'Receipt', spent: 0, received: 500.00, balance: -350.00, status: 'Reconciled' },
+    ],
+    'cc2': [
+      { id: 'bs-cc2-1', srNo: 1, date: '01/06/2024', description: 'CC2 - Delta Airlines Ticket', type: 'Payment', spent: 1250.75, received: 0, balance: 1250.75, status: 'Unreconciled' },
     ]
 };
 
@@ -200,6 +213,12 @@ const allAccountTransactionData = {
     ],
     'ba3': [
         { id: 'at-ba3-1', date: '03/06/2024', description: 'BA3 - Wire Fee', reference: 'WIRE-FEE-001', type: 'Payment', spent: 25.00, received: 0, status: 'Unreconciled', balance: 1975.00 },
+    ],
+    'cc1': [
+        { id: 'at-cc1-1', date: '28/05/2024', description: 'CC1 - AWS Services', reference: 'AWS-MAY24', type: 'Payment', spent: 150.00, received: 0, status: 'Unreconciled', balance: 150.00 },
+    ],
+    'cc2': [
+        { id: 'at-cc2-1', date: '01/06/2024', description: 'CC2 - Delta Airlines Ticket', reference: 'DELTA-9876', type: 'Payment', spent: 1250.75, received: 0, status: 'Unreconciled', balance: 1250.75 },
     ]
 };
 
@@ -254,7 +273,8 @@ function stableSort(array, comparator) {
 // Main application component
 function App() {
   // --- Component State ---
-  const [selectedBankAccountId, setSelectedBankAccountId] = useState(mockBankAccounts[0].id);
+  const [accountType, setAccountType] = useState('bank'); // 'bank' or 'credit_card'
+  const [selectedAccountId, setSelectedAccountId] = useState(mockBankAccounts[0].id);
   const [tabValue, setTabValue] = useState(0);
 
   // State for the Reconciliation Tab
@@ -324,9 +344,9 @@ function App() {
   const [searchInvoiceError, setSearchInvoiceError] = useState('');
   // --- End Component State ---
 
-  // Effect to update data when selectedBankAccountId changes
+  // Effect to update data when selectedAccountId changes
   useEffect(() => {
-    const currentBankStatements = allBankStatementData[selectedBankAccountId] || [];
+    const currentBankStatements = allBankStatementData[selectedAccountId] || [];
     const unreconciledStatements = currentBankStatements.filter(
       (stmt) => stmt.status === 'Unreconciled'
     );
@@ -350,7 +370,7 @@ function App() {
 
     setTransactions(newReconciliationTransactions);
     setBankStatementRows(currentBankStatements);
-    setAccountTransactionRows(allAccountTransactionData[selectedBankAccountId] || []);
+    setAccountTransactionRows(allAccountTransactionData[selectedAccountId] || []);
 
     // Reset selections and filters for all tabs
     setSelected([]);
@@ -369,7 +389,7 @@ function App() {
     setAccountTransactionMinAmount('');
     setAccountTransactionMaxAmount('');
 
-  }, [selectedBankAccountId]);
+  }, [selectedAccountId]);
 
 
   // Memoized list of all unique transaction types for filter dropdowns.
@@ -412,9 +432,20 @@ function App() {
 
 
   // --- Event Handlers ---
-  const handleBankAccountChange = (event) => {
-    setSelectedBankAccountId(event.target.value);
-  };
+    const handleAccountTypeChange = (event) => {
+        const newType = event.target.value;
+        setAccountType(newType);
+        if (newType === 'bank') {
+            setSelectedAccountId(mockBankAccounts[0]?.id || '');
+        } else {
+            setSelectedAccountId(mockCreditCards[0]?.id || '');
+        }
+    };
+
+    const handleAccountChange = (event) => {
+        setSelectedAccountId(event.target.value);
+    };
+
   const handleTabChange = (event, newValue) => setTabValue(newValue);
 
   // Filter Popover Handlers for Reconciliation Tab
@@ -459,8 +490,8 @@ function App() {
    const handlePopoverMultiSelectChange = (event) => {
      const { name, checked } = event.target;
     setPopoverSelectedOptions(prev =>
-       checked ? [...prev, name] : prev.filter(opt => opt !== name)
-     );
+      checked ? [...prev, name] : prev.filter(opt => opt !== name)
+      );
    };
 
   // Memoized and processed transactions for the Reconciliation Tab, applying filters and sorting.
@@ -468,8 +499,8 @@ function App() {
     let filteredData = transactions.filter(transaction => {
         // Global search filter
         const globalSearchMatch = searchTerm === '' ||
-            ['description', 'date', 'type', 'amount', 'remarks'] // Added remarks to global search
-                .some(key => String(transaction[key]).toLowerCase().includes(searchTerm.toLowerCase()));
+          ['description', 'date', 'type', 'amount', 'remarks'] // Added remarks to global search
+              .some(key => String(transaction[key]).toLowerCase().includes(searchTerm.toLowerCase()));
         if (searchTerm && !globalSearchMatch) return false;
 
         // Column-specific filters
@@ -709,15 +740,15 @@ function App() {
                         updatedTransaction.matchingItems = 'Potential Match';
                     }
                     if (field === 'ledger') {
-                       const selectedLedger = ledgerOptions.find(opt => opt.id === value);
-                        if (selectedLedger && selectedLedger.name === 'Accounts Receivable') {
-                            updatedTransaction.type = 'Contra';
-                            updatedTransaction.isBankLedger = true;
-                        } else if (updatedTransaction.isBankLedger) {
-                            const originalRow = allBankStatementData[selectedBankAccountId]?.find(stmt => `rec-${stmt.id}` === t.id);
-                            updatedTransaction.type = originalRow ? originalRow.type : 'Payment';
-                            updatedTransaction.isBankLedger = false;
-                        }
+                         const selectedLedger = ledgerOptions.find(opt => opt.id === value);
+                         if (selectedLedger && selectedLedger.name === 'Accounts Receivable') {
+                             updatedTransaction.type = 'Contra';
+                             updatedTransaction.isBankLedger = true;
+                         } else if (updatedTransaction.isBankLedger) {
+                             const originalRow = allBankStatementData[selectedAccountId]?.find(stmt => `rec-${stmt.id}` === t.id);
+                             updatedTransaction.type = originalRow ? originalRow.type : 'Payment';
+                             updatedTransaction.isBankLedger = false;
+                         }
                     }
                     return updatedTransaction;
                 }
@@ -739,14 +770,14 @@ function App() {
                     }
                     if (field === 'ledger') { // Keep this for single edit too
                        const selectedLedger = ledgerOptions.find(opt => opt.id === value);
-                        if (selectedLedger && selectedLedger.name === 'Accounts Receivable') {
-                            updatedTransaction.type = 'Contra';
-                            updatedTransaction.isBankLedger = true;
-                        } else if (updatedTransaction.isBankLedger) {
-                            const originalRow = allBankStatementData[selectedBankAccountId]?.find(stmt => `rec-${stmt.id}` === t.id);
-                            updatedTransaction.type = originalRow ? originalRow.type : 'Payment';
-                            updatedTransaction.isBankLedger = false;
-                        }
+                       if (selectedLedger && selectedLedger.name === 'Accounts Receivable') {
+                           updatedTransaction.type = 'Contra';
+                           updatedTransaction.isBankLedger = true;
+                       } else if (updatedTransaction.isBankLedger) {
+                           const originalRow = allBankStatementData[selectedAccountId]?.find(stmt => `rec-${stmt.id}` === t.id);
+                           updatedTransaction.type = originalRow ? originalRow.type : 'Payment';
+                           updatedTransaction.isBankLedger = false;
+                       }
                     }
                     return updatedTransaction;
                 }
@@ -802,9 +833,9 @@ function App() {
               }
           }
       };
-      // IMPORTANT: Replace with your actual API key or use environment variables.
-      // Leaving apiKey as "" will likely result in an error from the Gemini API.
-      const apiKey = ""; // User needs to provide their API key here for this to work.
+
+      // The API key is an empty string. The environment will provide the key at runtime.
+      const apiKey = "";
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
       try {
@@ -1113,7 +1144,8 @@ function App() {
           );
           setSelected(prevSelected => prevSelected.filter(id => id !== rowIdToProcess)); // Remove from selection if it was selected
       } else if (rowToReconcile && !rowToReconcile.isReconciled && (!rowToReconcile.ledger || !rowToReconcile.contact)) {
-          alert("Please select Ledger and Contact Name before reconciling this row.");
+          // Using a custom modal/alert in a real app is better than window.alert
+          console.error("Please select Ledger and Contact Name before reconciling this row.");
       }
       // No action if already reconciled, as button would be disabled.
   };
@@ -1137,7 +1169,7 @@ function App() {
           );
           setSelected(stillSelected); // Update selection to only those not removed
       } else if (selected.length > 0) {
-          alert("Ensure selected rows have Ledger and Contact Name filled (and are not already reconciled) to reconcile.");
+          console.error("Ensure selected rows have Ledger and Contact Name filled (and are not already reconciled) to reconcile.");
       }
   };
 
@@ -1194,25 +1226,31 @@ function App() {
   };
   // --- End Event Handlers ---
 
+    // Combine all accounts to easily find details like currency
+    const allAccounts = useMemo(() => [...mockBankAccounts, ...mockCreditCards], []);
+    const selectedAccountDetails = useMemo(() => allAccounts.find(acc => acc.id === selectedAccountId), [selectedAccountId, allAccounts]);
+
+
   // Calculate current statement balance
   const currentStatementBalance = useMemo(() => {
-    const currentAccountData = allBankStatementData[selectedBankAccountId] || [];
+    const currentAccountData = allBankStatementData[selectedAccountId] || [];
     if (currentAccountData.length > 0) {
-        // Assuming data is sorted chronologically, last item is the latest balance
-        // Or, if you have a specific field for closing balance from an imported statement, use that
-        return currentAccountData[currentAccountData.length - 1].balance;
+        // Find the item with the highest Sr no, assuming it's the latest.
+        const latestEntry = currentAccountData.reduce((latest, current) => (current.srNo > latest.srNo ? current : latest), currentAccountData[0]);
+        return latestEntry.balance;
     }
     return 0;
-  }, [selectedBankAccountId, bankStatementRows]); // Re-calculate if selected account or its statement data changes
+  }, [selectedAccountId, bankStatementRows]); // Re-calculate if selected account or its statement data changes
 
   // Calculate current account transaction balance
   const currentAccountTransactionBalance = useMemo(() => {
-    const currentAccountData = allAccountTransactionData[selectedBankAccountId] || [];
+    const currentAccountData = allAccountTransactionData[selectedAccountId] || [];
     if (currentAccountData.length > 0) {
+        // This assumes the last item is the latest. A more robust solution might use dates.
         return currentAccountData[currentAccountData.length - 1].balance;
     }
     return 0;
-  }, [selectedBankAccountId, accountTransactionRows]);
+  }, [selectedAccountId, accountTransactionRows]);
 
 
   // Boolean to control the visibility of the matching popover.
@@ -1223,7 +1261,7 @@ function App() {
   const searchInvoiceModalDisplayTotal = useMemo(() => {
     let total = 0;
     const manualLinesOnlyTotal = newTransactionLines.reduce((sum, line) => sum + (parseFloat(line.amount) || 0), 0) +
-                           newAdjustmentLines.reduce((sum, line) => sum + (parseFloat(line.amount) || 0), 0);
+                              newAdjustmentLines.reduce((sum, line) => sum + (parseFloat(line.amount) || 0), 0);
 
     if (selectedInvoiceInModal && transactionForInvoiceSearch) {
         const invoice = invoiceSearchResults.find(inv => inv.id === selectedInvoiceInModal);
@@ -1245,34 +1283,51 @@ function App() {
         {/* Bank Account Selection and Balance Display */}
         <Paper elevation={2} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
             <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-                <Grid item xs={12} md="auto">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AccountBalanceWalletIcon color="action" />
-                        <FormControl sx={{minWidth: 300 }} size="small">
-                            <InputLabel id="bank-account-select-label">Bank Account</InputLabel>
+                <Grid item xs={12} md={7}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        <FormControl sx={{minWidth: 180 }} size="small">
+                            <InputLabel id="account-type-select-label">Account Type</InputLabel>
                             <Select
-                                labelId="bank-account-select-label"
-                                id="bank-account-select"
-                                value={selectedBankAccountId}
-                                label="Bank Account"
-                                onChange={handleBankAccountChange}
+                                labelId="account-type-select-label"
+                                id="account-type-select"
+                                value={accountType}
+                                label="Account Type"
+                                onChange={handleAccountTypeChange}
                             >
-                                {mockBankAccounts.map((account) => (
+                                <MenuItem value="bank">
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}><AccountBalanceWalletIcon sx={{ mr: 1, fontSize: '1.2rem' }} /> Bank Accounts</Box>
+                                </MenuItem>
+                                <MenuItem value="credit_card">
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}><CreditCardIcon sx={{ mr: 1, fontSize: '1.2rem' }} /> Credit Cards</Box>
+                                </MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        <FormControl sx={{minWidth: 300, flexGrow: 1 }} size="small">
+                            <InputLabel id="account-select-label">Select Account</InputLabel>
+                            <Select
+                                labelId="account-select-label"
+                                id="account-select"
+                                value={selectedAccountId}
+                                label="Select Account"
+                                onChange={handleAccountChange}
+                            >
+                                {(accountType === 'bank' ? mockBankAccounts : mockCreditCards).map((account) => (
                                     <MenuItem key={account.id} value={account.id}>{account.name}</MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
                     </Box>
                 </Grid>
-                <Grid item xs={12} md="auto">
-                     <Box sx={{ display: 'flex', flexDirection: {xs: 'column', sm: 'row'}, gap: {xs: 1, sm: 4}, alignItems: {sm: 'center'}, textAlign: {xs: 'left', sm: 'right'} }}>
+                <Grid item xs={12} md={5}>
+                   <Box sx={{ display: 'flex', flexDirection: {xs: 'column', sm: 'row'}, gap: {xs: 1, sm: 4}, alignItems: {sm: 'center'}, justifyContent: { xs: 'flex-start', md: 'flex-end'}, textAlign: {xs: 'left', sm: 'right'} }}>
                         <Typography variant="h6" sx={{ color: 'primary.main'}}>
-                            Statement: <Typography component="span" variant="h6" fontWeight="700">{currentStatementBalance.toFixed(2)}</Typography> {mockBankAccounts.find(ba => ba.id === selectedBankAccountId)?.currency}
+                            Statement: <Typography component="span" variant="h6" fontWeight="700">{currentStatementBalance.toFixed(2)}</Typography> {selectedAccountDetails?.currency}
                         </Typography>
                         <Typography variant="h6" sx={{ color: 'text.secondary' }}>
-                            Account: <Typography component="span" variant="h6" fontWeight="700">{currentAccountTransactionBalance.toFixed(2)}</Typography> {mockBankAccounts.find(ba => ba.id === selectedBankAccountId)?.currency}
+                            Account: <Typography component="span" variant="h6" fontWeight="700">{currentAccountTransactionBalance.toFixed(2)}</Typography> {selectedAccountDetails?.currency}
                         </Typography>
-                     </Box>
+                   </Box>
                 </Grid>
             </Grid>
         </Paper>
@@ -1472,7 +1527,7 @@ function App() {
                                             >
                                                 Rule Match
                                             </Button>
-                                        </Tooltip>
+                                         </Tooltip>
                                     </Box>
                                      <TextField
                                         fullWidth
@@ -2028,8 +2083,8 @@ function TabPanel(props) {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`simple-tabpanel-${index}`} // Corrected props.index to index
-      aria-labelledby={`simple-tab-${index}`} // Corrected props.index to index
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
       {...other} // Spread other props to the div
     >
       {value === index && (<Box sx={{ pt: value === 0 ? 0 : 3 }}>{children}</Box>)} {/* Removed pt for first tab to align with controls */}

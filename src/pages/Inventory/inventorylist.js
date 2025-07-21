@@ -97,6 +97,8 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
     const [itemName, setItemName] = useState('');
     const [salePrice, setSalePrice] = useState('');
     const [gstRate, setGstRate] = useState('');
+    const [cessRate, setCessRate] = useState('');
+    const [cessAmount, setCessAmount] = useState('');
     const [measuringUnit, setMeasuringUnit] = useState('');
     const [warehouse, setWarehouse] = useState('');
     const [itemCode, setItemCode] = useState('');
@@ -152,7 +154,7 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
     useEffect(() => {
         const resetForm = () => {
             setItemType('product'); setSaleWithTax(true); setCategory(''); setItemName(''); setSalePrice('');
-            setGstRate(''); setMeasuringUnit(''); setWarehouse(''); setItemCode(''); setHsnCode('');
+            setGstRate(''); setCessRate(''); setCessAmount(''); setMeasuringUnit(''); setWarehouse(''); setItemCode(''); setHsnCode('');
             setAsOfDate(new Date().toISOString().split('T')[0]); setDescription(''); setLowStockAlertCount('');
             setOpeningStockQty(''); setPricePerItem('');
             setSerialNo(''); setExpiryDate(''); setMfgDate(''); setItemSubCategory(''); setBatchCode('');
@@ -167,6 +169,8 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
                 setItemName(itemToEdit.itemName || '');
                 setSalePrice(itemToEdit.salePrice || '');
                 setGstRate(itemToEdit.gstRate || '');
+                setCessRate(itemToEdit.cessRate || '');
+                setCessAmount(itemToEdit.cessAmount || '');
                 setMeasuringUnit(itemToEdit.measuringUnit || '');
                 setWarehouse(itemToEdit.warehouse || '');
                 setItemCode(itemToEdit.itemCode || '');
@@ -216,7 +220,10 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
         }
         const payload = {
             itemType, saleWithTax, category, itemName,
-            salePrice: parseFloat(salePrice) || 0, gstRate: parseFloat(gstRate) || 0,
+            salePrice: parseFloat(salePrice) || 0,
+            gstRate: parseFloat(gstRate) || 0,
+            cessRate: parseFloat(cessRate) || 0,
+            cessAmount: parseFloat(cessAmount) || 0,
             measuringUnit, warehouse, itemCode, hsnCode, asOfDate, description,
             lowStockAlertCount: itemType === 'product' ? (parseInt(lowStockAlertCount) || 0) : undefined,
             openingStockQty: itemType === 'product' ? (parseFloat(openingStockQty) || 0) : undefined,
@@ -238,15 +245,42 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
                 <Grid container spacing={4}>
                     <Grid item xs={12} md={6}>
                         {renderModalSectionTitle("Basic Details")}
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <Switch checked={itemType === 'product'} onChange={(e) => !isViewMode && setItemType(e.target.checked ? 'product' : 'service')} color="success" disabled={isViewMode}/>
-                            <Typography>Product / Service</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, my: 2 }}>
+                            <Typography
+                                onClick={() => !isViewMode && setItemType('product')}
+                                sx={{
+                                    fontWeight: 'bold',
+                                    color: itemType === 'product' ? 'success.main' : 'text.secondary',
+                                    cursor: isViewMode ? 'default' : 'pointer',
+                                    transition: 'color 0.2s'
+                                }}
+                            >
+                                Product
+                            </Typography>
+                            <Switch
+                                checked={itemType === 'service'}
+                                onChange={(e) => !isViewMode && setItemType(e.target.checked ? 'service' : 'product')}
+                                disabled={isViewMode}
+                            />
+                            <Typography
+                                onClick={() => !isViewMode && setItemType('service')}
+                                sx={{
+                                    fontWeight: 'bold',
+                                    color: itemType === 'service' ? 'text.primary' : 'text.secondary',
+                                    cursor: isViewMode ? 'default' : 'pointer',
+                                    transition: 'color 0.2s'
+                                }}
+                            >
+                                Service
+                            </Typography>
                         </Box>
                         <TextField fullWidth margin="dense" size="small" label="Item Name" value={itemName} onChange={(e) => setItemName(e.target.value)} disabled={isViewMode} />
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>Category</InputLabel><Select value={category} label="Category" onChange={(e) => setCategory(e.target.value)}>{categories.map((cat) => ( <MenuItem key={cat._id} value={cat.value}>{cat.label}</MenuItem> ))}</Select></FormControl>
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>Item Sub Category</InputLabel><Select value={itemSubCategory} label="Item Sub Category" onChange={(e) => setItemSubCategory(e.target.value)}>{itemSubCategories.map((subCat) => ( <MenuItem key={subCat._id} value={subCat.value}>{subCat.label}</MenuItem> ))}</Select></FormControl>
                         <TextField fullWidth margin="dense" size="small" label="Sale Price" type="number" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} disabled={isViewMode}/>
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>GST Tax Rate (%)</InputLabel><Select value={gstRate} label="GST Tax Rate (%)" onChange={(e) => setGstRate(e.target.value)}>{gstRates.map((rate) => ( <MenuItem key={rate._id} value={rate.value}>{rate.label}</MenuItem> ))}</Select></FormControl>
+                        <TextField fullWidth margin="dense" size="small" label="CESS Rate (%)" type="number" value={cessRate} onChange={(e) => setCessRate(e.target.value)} disabled={isViewMode}/>
+                        <TextField fullWidth margin="dense" size="small" label="Fixed CESS Per Unit" type="number" value={cessAmount} onChange={(e) => setCessAmount(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} disabled={isViewMode}/>
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>Measuring Unit</InputLabel><Select value={measuringUnit} label="Measuring Unit" onChange={(e) => setMeasuringUnit(e.target.value)}>{measuringUnits.map((unit) => ( <MenuItem key={unit._id} value={unit.value}>{unit.label}</MenuItem>))}</Select></FormControl>
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>Warehouse</InputLabel><Select value={warehouse} label="Warehouse" onChange={(e) => setWarehouse(e.target.value)}>{warehouses.map((wh) => ( <MenuItem key={wh._id} value={wh.value}>{wh.label}</MenuItem> ))}</Select></FormControl>
                     </Grid>
