@@ -1091,10 +1091,4 @@ const InvoiceSettingsPage = () => {
     );
 };
 
-// --- This is a placeholder for your App component ---
-// In a real Create React App project, you would have an App.js
-// that renders the InvoiceSettingsPage, likely within a Router.
-export default function App() {
-    // A placeholder for ThemeProvider if you use one
-    return <InvoiceSettingsPage />;
-}
+export default InvoiceSettingsPage;

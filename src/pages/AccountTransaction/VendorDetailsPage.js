@@ -103,6 +103,7 @@ const initialFormData = {
   gstRegistered: false,
   gstNumber: "",
   msmeRegistered: false,
+  msmeNumber: "",
   gstTdsEnabled: false,
   gstTcsEnabled: false,
   customFields: [],
@@ -405,6 +406,7 @@ function VendorForm() {
       ...prevData,
       [name]: checked,
       ...(name === 'gstRegistered' && !checked && { gstNumber: '', pan: '' }), // Clear GST/PAN if unregistered
+      ...(name === 'msmeRegistered' && !checked && { msmeNumber: '' }), // Clear MSME if unregistered
     }));
   };
 
@@ -618,6 +620,19 @@ function VendorForm() {
 
                 <Box sx={{ mt: 2, p: 1.5, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                     <FormControlLabel control={ <Switch checked={formData.msmeRegistered} onChange={handleSwitchChange} name="msmeRegistered" size="small" disabled={isViewMode}/>} label="MSME Registered" />
+                    {formData.msmeRegistered && (
+                        <TextField
+                            margin="dense"
+                            fullWidth
+                            id="msmeNumber"
+                            label="MSME Number (Optional)"
+                            name="msmeNumber"
+                            value={formData.msmeNumber}
+                            onChange={handleChange}
+                            size="small"
+                            disabled={isViewMode}
+                        />
+                    )}
                 </Box>
 
                 <FormControl fullWidth margin="normal" size="small" disabled={isViewMode || formData.vendorType === 'B2C'}>

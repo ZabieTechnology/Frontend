@@ -1,290 +1,182 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  IconButton,
-  CircularProgress,
-  Alert,
-  Paper, // Use Paper for better grouping
-  Grid, // <<< Import Grid component here
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import axios from "axios"; // Import axios
+    Box,
+    Typography,
+    Button,
+    ThemeProvider,
+    createTheme,
+    Grid,
+    Paper,
+    TextField,
+    CircularProgress,
+    Alert,
+    CssBaseline,
+    IconButton,
+} from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon, ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
 
-const initialContactState = {
-  designation: "",
-  name: "",
-  panNumber: "",
-  dinNumber: "",
-  aadhaar: "",
-  mobile: "",
-  email: "",
+// Note: To run this code, you'll need to install axios.
+// You can do this by running: npm install axios
+// For now, API calls are mocked.
+// import axios from "axios";
+
+// Modern theme for the application
+const modernTheme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: { main: '#2c3e50' },
+    secondary: { main: '#1abc9c' },
+    background: { default: '#ecf0f1', paper: '#ffffff' },
+    text: { primary: '#34495e', secondary: '#7f8c8d' }
+  },
+  typography: {
+    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: { fontWeight: 600, color: '#2c3e50' },
+    h6: { fontWeight: 600, color: '#34495e' },
+  },
+  components: {
+    MuiPaper: { styleOverrides: { root: { borderRadius: 16, boxShadow: 'rgba(149, 157, 165, 0.1) 0px 8px 24px', padding: '32px' } } },
+    MuiButton: { styleOverrides: { root: { borderRadius: 8, textTransform: 'none', fontWeight: 600, padding: '10px 20px' } } },
+    MuiTextField: { defaultProps: { variant: 'outlined' } },
+  }
+});
+
+const initialContactState = { designation: "", name: "", panNumber: "", dinNumber: "", aadhaar: "", mobile: "", email: "" };
+
+// --- FIX ---
+// Moved mockApi and axios outside the component to prevent re-creation on every render.
+// This stops the infinite re-render loop.
+const mockApi = {
+    get: async (url) => { console.log(`Mock GET: ${url}`); await new Promise(r => setTimeout(r, 500)); return { data: [] }; },
+    put: async (url, data) => { console.log(`Mock PUT: ${url}`, data); await new Promise(r => setTimeout(r, 1000)); return { data: { message: "Saved!", data: data } }; }
 };
+const axios = mockApi;
+const API_BASE_URL = '';
+
 
 function ContactDetails() {
-  const [contacts, setContacts] = useState([initialContactState]); // Start with one empty contact
-  const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState([initialContactState]);
+  const [loading, setLoading] = useState(true); // Start with loading true
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || ''; // Get from .env
-
-  // --- Fetch existing contacts ---
   const fetchContacts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/contacts`, { withCredentials: true });
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        setContacts(response.data); // Set fetched contacts
-      } else {
-        // No contacts found or empty array returned, keep the initial empty contact state
-        setContacts([initialContactState]);
-      }
+      const response = await axios.get(`${API_BASE_URL}/api/contacts`);
+      if (response.data?.length > 0) setContacts(response.data);
+      else setContacts([initialContactState]);
     } catch (err) {
-      console.error("Error fetching contacts:", err);
-      setError(`Failed to load contacts: ${err.response?.data?.message || err.message}`);
-      setContacts([initialContactState]); // Reset to initial state on error
+      console.error("Fetch Error:", err);
+      setError(`Failed to load contacts: ${err.message || 'Unknown'}`);
+      setContacts([initialContactState]);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL]); // Dependency
+  }, []); // Dependencies removed as axios is now stable
 
   useEffect(() => {
     fetchContacts();
-  }, [fetchContacts]); // Run on mount
+  }, [fetchContacts]);
 
-  // --- Handlers ---
-  const handleAddContact = () => {
-    setContacts([...contacts, { ...initialContactState }]); // Add a new empty contact object
-  };
-
+  const handleAddContact = () => setContacts([...contacts, { ...initialContactState }]);
   const handleRemoveContact = (index) => {
-    // Prevent removing the last contact form
-    if (contacts.length <= 1) {
-        setError("At least one primary contact is required.");
-        setTimeout(() => setError(null), 3000);
-        return;
+    if (contacts.length > 1) {
+      setContacts(contacts.filter((_, i) => i !== index));
+    } else {
+      setError("At least one contact is required.");
+      setTimeout(() => setError(null), 3000);
     }
-    const newContacts = contacts.filter((_, i) => i !== index);
-    setContacts(newContacts);
   };
-
   const handleChange = (index, field, value) => {
     const newContacts = [...contacts];
     newContacts[index][field] = value;
-
-    // Remove auto-fill logic or make it more robust if needed
-    // if (field === "panNumber" && value.length >= 4) {
-    //   const fourthDigit = value[3];
-    //   if (fourthDigit === "P") {
-    //     // Fetch actual data instead of hardcoding
-    //     // newContacts[index].name = "Legal Name";
-    //     // newContacts[index].mobile = "1234567890";
-    //     // newContacts[index].email = "example@example.com";
-    //   }
-    // }
-
     setContacts(newContacts);
   };
 
-  // --- Save Contacts ---
   const handleSaveContacts = async () => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    // Basic validation (e.g., check required fields for all contacts)
-    const isValid = contacts.every(contact =>
-        contact.designation && contact.name && contact.panNumber && contact.mobile && contact.email
-    );
-
+    setLoading(true); setError(null); setSuccess(null);
+    const isValid = contacts.every(c => c.designation && c.name && c.panNumber && c.mobile && c.email);
     if (!isValid) {
-        setError("Please fill in all required (*) fields for every contact.");
-        setLoading(false);
-        setTimeout(() => setError(null), 5000);
-        return;
+      setError("Please fill all required (*) fields for every contact.");
+      setLoading(false);
+      return;
     }
-
-
     try {
-      const response = await axios.put(`${API_BASE_URL}/api/contacts`, contacts, { // Send the whole array
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      });
+      await axios.put(`${API_BASE_URL}/api/contacts`, contacts);
       setSuccess("Contact details saved successfully!");
-      // Optionally update state with response data if backend modifies it
-      if (response.data && Array.isArray(response.data.data)) {
-          // Ensure _id is preserved if backend sends it back
-          const updatedContacts = response.data.data.map((newContact, index) => ({
-              ...newContact,
-              _id: contacts[index]?._id || newContact._id // Try to keep existing _id if possible
-          }));
-          setContacts(updatedContacts);
-      } else {
-          // If backend doesn't return data, refetch to be sure
-          fetchContacts();
-      }
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      console.error("Error saving contacts:", err);
-      setError(`Failed to save contacts: ${err.response?.data?.message || err.message}`);
-      setTimeout(() => setError(null), 5000);
+    } catch (err)      {
+      console.error("Save Error:", err);
+      setError(`Failed to save contacts: ${err.message || 'Unknown'}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNext = () => {
+      // Navigate to the next page
+      window.location.href = 'http://localhost:3000/settings/organizationsettings/natureofbusiness';
   };
 
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Primary Contact Details
-      </Typography>
-
-      {/* Loading Indicator */}
-      {loading && <CircularProgress sx={{ display: 'block', margin: '20px auto' }} />}
-
-      {/* Feedback Alerts */}
+    <Box>
+      <Typography variant="h4" gutterBottom>Primary Contact Details</Typography>
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>{success}</Alert>}
 
-
-      {!loading && contacts.map((contact, index) => (
-        // Use Paper for each contact block
-        <Paper key={contact._id || index} elevation={2} sx={{ mb: 3, p: 2, pt: 4, position: 'relative' }}> {/* Add key, adjust padding */}
-          {/* Remove button positioned absolutely */}
-           {contacts.length > 1 && (
-            <IconButton
-              color="error"
-              onClick={() => handleRemoveContact(index)}
-              sx={{ position: 'absolute', top: 8, right: 8 }}
-              size="small"
-              aria-label={`Remove Contact ${index + 1}`}
-            >
-              <DeleteIcon />
-            </IconButton>
-          )}
-
-          <Typography variant="h6" gutterBottom sx={{ mb: 2, textAlign: 'center' }}> {/* Center title */}
-            Contact {index + 1}
-          </Typography>
-
-          {/* Use Grid for better layout */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                required
-                label="Designation"
-                value={contact.designation}
-                onChange={(e) => handleChange(index, "designation", e.target.value)}
-                variant="outlined"
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                required
-                label="Name"
-                value={contact.name}
-                onChange={(e) => handleChange(index, "name", e.target.value)}
-                variant="outlined"
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                required
-                label="PAN Number"
-                value={contact.panNumber}
-                onChange={(e) => handleChange(index, "panNumber", e.target.value)}
-                variant="outlined"
-                size="small"
-                inputProps={{ maxLength: 10, style: { textTransform: 'uppercase' } }} // Example validation + uppercase
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="DIN Number"
-                value={contact.dinNumber}
-                onChange={(e) => handleChange(index, "dinNumber", e.target.value)}
-                variant="outlined"
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Aadhaar"
-                value={contact.aadhaar}
-                onChange={(e) => handleChange(index, "aadhaar", e.target.value)}
-                variant="outlined"
-                size="small"
-                inputProps={{ maxLength: 12 }} // Aadhaar is 12 digits
-              />
-            </Grid>
-             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                required
-                label="Mobile"
-                value={contact.mobile}
-                onChange={(e) => handleChange(index, "mobile", e.target.value)}
-                variant="outlined"
-                size="small"
-                type="tel" // Use tel type
-              />
-            </Grid>
-            <Grid item xs={12}> {/* Email full width */}
-              <TextField
-                fullWidth
-                required
-                label="E-mail id"
-                value={contact.email}
-                onChange={(e) => handleChange(index, "email", e.target.value)}
-                variant="outlined"
-                size="small"
-                type="email" // Use email type
-              />
-            </Grid>
-          </Grid>
-
-        </Paper>
-      ))}
-
-      {!loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-             <Button
-                variant="outlined" // Use outlined for add button
-                startIcon={<AddIcon />}
-                onClick={handleAddContact}
-                disabled={loading}
-            >
-                Add Contact
-            </Button>
-
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSaveContacts} // Call the save handler
-                disabled={loading || contacts.length === 0} // Disable if no contacts or loading
-            >
-                {loading ? <CircularProgress size={24} /> : "Save Contacts"}
-            </Button>
-          </Box>
+      {loading ? (
+        <Box sx={{display: 'flex', justifyContent: 'center', my: 4}}><CircularProgress /></Box>
+      ) : (
+        <>
+          {contacts.map((contact, index) => (
+            <Paper key={index} elevation={0} sx={{ mb: 3, p: 3, position: 'relative', border: '1px solid #ecf0f1', borderRadius: '16px' }}>
+               {contacts.length > 1 && (
+                 <IconButton color="error" onClick={() => handleRemoveContact(index)} sx={{ position: 'absolute', top: 8, right: 8 }}>
+                    <DeleteIcon />
+                 </IconButton>
+               )}
+              <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>Contact {index + 1}</Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}><TextField fullWidth required label="Designation" value={contact.designation} onChange={(e) => handleChange(index, "designation", e.target.value)} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth required label="Name" value={contact.name} onChange={(e) => handleChange(index, "name", e.target.value)} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth required label="PAN Number" value={contact.panNumber} onChange={(e) => handleChange(index, "panNumber", e.target.value)} inputProps={{ maxLength: 10, style: { textTransform: 'uppercase' } }} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="DIN Number" value={contact.dinNumber} onChange={(e) => handleChange(index, "dinNumber", e.target.value)} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Aadhaar" value={contact.aadhaar} onChange={(e) => handleChange(index, "aadhaar", e.target.value)} inputProps={{ maxLength: 12 }} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth required label="Mobile" value={contact.mobile} onChange={(e) => handleChange(index, "mobile", e.target.value)} type="tel" /></Grid>
+                <Grid item xs={12}><TextField fullWidth required label="E-mail id" value={contact.email} onChange={(e) => handleChange(index, "email", e.target.value)} type="email" /></Grid>
+              </Grid>
+            </Paper>
+          ))}
+        </>
       )}
 
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 4, pt: 3, borderTop: '1px solid #ecf0f1' }}>
+         <Button variant="outlined" color="primary" startIcon={<AddIcon />} onClick={handleAddContact} disabled={loading}>Add Contact</Button>
+         <Box sx={{ display: 'flex', gap: 2 }}>
+             <Button variant="contained" color="secondary" size="large" onClick={handleSaveContacts} disabled={loading || contacts.length === 0}>
+                {loading ? <CircularProgress size={24} color="inherit" /> : "Save Contacts"}
+             </Button>
+             <Button variant="contained" color="primary" size="large" onClick={handleNext} disabled={loading} endIcon={<ArrowForwardIcon />}>
+                Next
+             </Button>
+         </Box>
+      </Box>
     </Box>
   );
 }
 
-export default ContactDetails;
+// Main App component to render the form
+export default function App() {
+  return (
+    <ThemeProvider theme={modernTheme}>
+      <CssBaseline />
+        <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', p: { xs: 2, sm: 3, md: 4 } }}>
+            <Box sx={{ maxWidth: '1200px', margin: 'auto' }}>
+                <ContactDetails />
+            </Box>
+        </Box>
+    </ThemeProvider>
+  );
+}

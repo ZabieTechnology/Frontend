@@ -24,52 +24,39 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import styled from "@emotion/styled";
 
-// A modern theme for the application
-const theme = createTheme({
+// Modern theme for the application
+const modernTheme = createTheme({
   palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    background: {
-        default: '#f4f6f8',
-        paper: '#ffffff',
-    }
+    mode: 'light',
+    primary: { main: '#2c3e50' },
+    secondary: { main: '#1abc9c' },
+    background: { default: '#ecf0f1', paper: '#ffffff' },
+    text: { primary: '#34495e', secondary: '#7f8c8d' }
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h4: {
-        fontWeight: 700,
-    },
-    h6: {
-        fontWeight: 600,
-    }
+    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: { fontWeight: 600, color: '#2c3e50' },
+    h6: { fontWeight: 600, color: '#34495e' },
   },
   components: {
-    MuiPaper: {
-        styleOverrides: {
-            root: {
-                borderRadius: 12,
-                padding: '24px',
-            }
-        }
-    }
+    MuiPaper: { styleOverrides: { root: { borderRadius: 16, boxShadow: 'rgba(149, 157, 165, 0.1) 0px 8px 24px', padding: '32px' } } },
+    MuiButton: { styleOverrides: { root: { borderRadius: 8, textTransform: 'none', fontWeight: 600, padding: '10px 20px' } } },
+    MuiTextField: { defaultProps: { variant: 'outlined' } },
+    MuiSelect: { defaultProps: { variant: 'outlined' } }
   }
 });
 
-// Styled Paper component for the form container
+// Styled Paper component for form containers
 const StyledPaper = styled(Paper)(({ theme }) => ({
   borderRadius: "16px",
   backgroundColor: "#ffffff",
-  padding: "24px",
-  margin: "auto",
+  padding: theme.spacing(4),
+  marginTop: theme.spacing(3),
+  transition: 'box-shadow 0.3s ease-in-out',
+  '&:hover': { boxShadow: 'rgba(149, 157, 165, 0.2) 0px 8px 24px' }
 }));
 
-// Moved outside the component to prevent re-creation on every render
 const monthOptions = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-// ##################################################################
-// ##                 FINANCIAL DETAILS COMPONENT                  ##
-// ##################################################################
 
 function FinancialDetails() {
   const [salesTurnover, setSalesTurnover] = useState('');
@@ -85,30 +72,21 @@ function FinancialDetails() {
 
   const isEInvoiceMandatory = salesTurnover === '>5 Cr' || exceeded5Cr;
 
-  useEffect(() => {
-    if (isEInvoiceMandatory) setEInvoiceApplicable(true);
-  }, [isEInvoiceMandatory]);
-
+  useEffect(() => { if (isEInvoiceMandatory) setEInvoiceApplicable(true); }, [isEInvoiceMandatory]);
   useEffect(() => {
     const startIndex = monthOptions.indexOf(financialYearStartMonth);
-    if (startIndex !== -1) {
-        const endIndex = (startIndex - 1 + 12) % 12;
-        setFinancialYearEndMonth(monthOptions[endIndex]);
-    }
+    if (startIndex !== -1) setFinancialYearEndMonth(monthOptions[(startIndex - 1 + 12) % 12]);
   }, [financialYearStartMonth]);
 
   const handleSave = () => {
-    console.log("Saving Financial Details:", {
-      salesTurnover, exceeded5Cr, eInvoiceApplicable, booksBeginningDate,
-      financialYearStartMonth, dataLockType, lockDate: dataLockType !== 'none' ? lockDate : null, currency,
-    });
+    console.log("Saving Financial Details:", { salesTurnover, exceeded5Cr, eInvoiceApplicable, booksBeginningDate, financialYearStartMonth, dataLockType, lockDate: dataLockType !== 'none' ? lockDate : null, currency });
     alert('Financial details saved to console!');
   };
 
   return (
-    <Box sx={{ width: '100%', p: { xs: 2, sm: 3 } }}>
+    <Box>
         <Typography variant="h4" gutterBottom>Financial Configuration</Typography>
-      <StyledPaper elevation={3}>
+      <StyledPaper>
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>Turnover & E-Invoicing</Typography>
@@ -123,7 +101,7 @@ function FinancialDetails() {
             </FormControl>
             <FormControlLabel control={<Switch checked={exceeded5Cr} onChange={(e) => setExceeded5Cr(e.target.checked)} />} label="Turnover exceeded 5 Cr in any prior FY?" />
             <FormControlLabel control={<Switch checked={eInvoiceApplicable} onChange={(e) => setEInvoiceApplicable(e.target.checked)} disabled={isEInvoiceMandatory} />} label="Is E-invoicing Applicable?" />
-            {isEInvoiceMandatory && <FormHelperText sx={{ color: 'primary.main', fontWeight: 'bold' }}>E-invoicing is mandatory.</FormHelperText>}
+            {isEInvoiceMandatory && <FormHelperText sx={{ color: 'secondary.main', fontWeight: 'bold' }}>E-invoicing is mandatory since turnover exceeds 5 Cr</FormHelperText>}
           </Grid>
 
           <Grid item xs={12} md={6}>
@@ -164,8 +142,8 @@ function FinancialDetails() {
               )}
           </Grid>
         </Grid>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Button variant="contained" color="primary" size="large" onClick={handleSave}>Save Financial Config</Button>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, pt: 3, borderTop: '1px solid #ecf0f1' }}>
+            <Button variant="contained" color="secondary" size="large" onClick={handleSave}>Save Config</Button>
         </Box>
       </StyledPaper>
     </Box>
@@ -173,17 +151,17 @@ function FinancialDetails() {
 }
 
 // Main App component to render the form
-function App() {
+export default function App() {
   return (
-    <ThemeProvider theme={theme}>
-        <CssBaseline />
-         <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 5, maxWidth: '1000px', margin: 'auto' }}>
+    <ThemeProvider theme={modernTheme}>
+      <CssBaseline />
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', p: { xs: 2, sm: 3, md: 4 } }}>
+            <Box sx={{ maxWidth: '1200px', margin: 'auto' }}>
                 <FinancialDetails />
             </Box>
-        </LocalizationProvider>
+        </Box>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }
-
-export default App;
