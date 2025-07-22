@@ -162,7 +162,6 @@ function EnhancedTableHead(props) {
 
 // --- INVOICE DASHBOARD PAGE ---
 function SalesInvoiceDashboard() {
-    const navigate = useNavigate();
     const [order, setOrder] = useState('asc');
     const [orderBy, setOrderBy] = useState('customerName');
     const [selected, setSelected] = useState([]);

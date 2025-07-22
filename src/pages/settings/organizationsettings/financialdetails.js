@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createRoot } from 'react-dom/client';
 import {
     Box,
     Typography,
@@ -65,6 +64,9 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   margin: "auto",
 }));
 
+// Moved outside the component to prevent re-creation on every render
+const monthOptions = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 // ##################################################################
 // ##                 FINANCIAL DETAILS COMPONENT                  ##
 // ##################################################################
@@ -81,7 +83,6 @@ function FinancialDetails() {
   const [financialYearStartMonth, setFinancialYearStartMonth] = useState('April');
   const [financialYearEndMonth, setFinancialYearEndMonth] = useState('March');
 
-  const monthOptions = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const isEInvoiceMandatory = salesTurnover === '>5 Cr' || exceeded5Cr;
 
   useEffect(() => {

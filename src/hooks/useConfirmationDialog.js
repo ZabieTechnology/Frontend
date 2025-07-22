@@ -73,13 +73,13 @@ const useConfirmationDialog = () => {
         onConfirmAction: confirmOptions.onConfirmAction || (() => {}),
     });
     setIsOpen(true);
-  }, []); // No dependencies needed
+  }, []); // No dependencies needed as set-state functions are stable
 
   // Function called when the user clicks "Confirm" in the modal
   const handleConfirm = useCallback(() => {
     options.onConfirmAction(); // Execute the action passed to confirm()
     setIsOpen(false); // Close the modal
-  }, [options.onConfirmAction]); // Dependency
+  }, [options]); // CORRECTED: Depend on the entire options object
 
   // Function called when the user clicks "Cancel" or closes the modal
   const handleClose = useCallback(() => {
@@ -95,7 +95,7 @@ const useConfirmationDialog = () => {
       title={options.title}
       message={options.message}
     />
-  ), [isOpen, handleClose, handleConfirm, options.title, options.message]); // Dependencies
+  ), [isOpen, handleClose, handleConfirm, options]); // IMPROVED: Depend on the options object
 
   return { confirm, ConfirmationDialog };
 };

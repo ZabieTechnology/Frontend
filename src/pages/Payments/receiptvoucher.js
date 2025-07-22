@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -69,11 +69,10 @@ const RecordPaymentPage = () => {
     const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [reference, setReference] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
-    const [currencySymbol, setCurrencySymbol] = useState('₹');
+    const [currencySymbol] = useState('₹'); // Removed unused setCurrencySymbol
 
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState(null);
     const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'info' });
 
     // Fetch initial data like customers and set pre-selected data from location state
@@ -97,7 +96,7 @@ const RecordPaymentPage = () => {
                 }
 
             } catch (err) {
-                setError("Failed to load customers.");
+                setFeedback({ open: true, message: "Failed to load customers.", severity: 'error' });
             } finally {
                 setLoading(false);
             }
@@ -125,7 +124,7 @@ const RecordPaymentPage = () => {
                         setPaymentAmount(preSelectedTotal.toFixed(2));
                     }
                 } catch (err) {
-                    setError("Failed to load invoices for this customer.");
+                    setFeedback({ open: true, message: "Failed to load invoices for this customer.", severity: 'error' });
                 } finally {
                     setLoading(false);
                 }

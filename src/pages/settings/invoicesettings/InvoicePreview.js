@@ -185,7 +185,7 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
 
     const formattedInvoiceNumber = `${invoicePrefix || ''}${invoiceDataToUse.invoiceNumber || ''}${invoiceSuffix || ''}`;
 
-    const renderTableHeaders = () => {
+    const renderTableHeaders = React.useCallback(() => {
         const headers = [];
         headers.push(<TableCell key="sno" sx={{color: 'inherit', fontWeight:'bold'}}>#</TableCell>);
         headers.push(<TableCell key="desc" sx={{color: 'inherit', fontWeight:'bold'}}>Items</TableCell>);
@@ -217,9 +217,9 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
 
         headers.push(<TableCell align="right" key="amount" sx={{color: 'inherit', fontWeight:'bold'}}>Amount</TableCell>);
         return <TableRow>{headers}</TableRow>;
-    };
+    }, [itemTableColumns, customItemColumns, taxDisplayMode]);
 
-    const tableHeaderCells = React.useMemo(() => renderTableHeaders(), [itemTableColumns, customItemColumns, taxDisplayMode]);
+    const tableHeaderCells = React.useMemo(() => renderTableHeaders(), [renderTableHeaders]);
 
 
     const renderTableRows = () => {

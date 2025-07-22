@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
-  Grid,
   Paper,
   Typography,
   Table,
@@ -21,7 +20,6 @@ import {
   Alert,
   Link,
   Switch, // For displaying boolean
-  FormControlLabel
 } from '@mui/material';
 import { Edit, Delete, Visibility, Add } from '@mui/icons-material';
 import axios from 'axios';

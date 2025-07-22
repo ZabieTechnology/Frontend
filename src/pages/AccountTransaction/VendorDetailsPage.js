@@ -236,8 +236,6 @@ function VendorForm() {
   const location = useLocation();
   const navigate = useNavigate();
 
-   const API_BASE_URL = ''; // In a real app: process.env.REACT_APP_API_URL || '';
-
   // Style objects for consistent theming
   const titleStyle = { color: '#4CAF50', fontWeight: 'bold', marginBottom: 2 };
   const paperStyle = { padding: '16px', height: '100%', boxShadow: '0px 1px 2px rgba(0,0,0,0.08)', backgroundColor: 'rgba(255, 255, 255, 0.5)' };

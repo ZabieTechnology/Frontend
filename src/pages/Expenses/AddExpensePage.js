@@ -15,7 +15,6 @@ import {
     Divider,
     CircularProgress,
     Alert,
-    Tooltip,
     InputAdornment,
     Accordion,
     AccordionSummary,
@@ -32,7 +31,6 @@ import {
 import {
     UploadFile as UploadFileIcon,
     ArrowBack as ArrowBackIcon,
-    Save as SaveIcon,
     Publish as PublishIcon,
     Add as AddIcon,
     Delete as DeleteIcon,

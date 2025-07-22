@@ -16,7 +16,6 @@ import {
   Typography,
   Paper,
   TablePagination,
-  IconButton,
 } from '@mui/material';
 import {
     Add as AddIcon,

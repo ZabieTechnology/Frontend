@@ -9,7 +9,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Checkbox,
   Paper,
   Tabs,
   Tab,
@@ -119,7 +118,7 @@ const AccountListPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, page, itemsPerPage, searchTerm, currentTab, orderBy, order]); // Removed tabCategories from here as it's a constant
+  }, [API_BASE_URL, page, itemsPerPage, searchTerm, currentTab]); // CORRECTED: Removed unnecessary dependencies 'order' and 'orderBy'
 
   useEffect(() => {
     fetchAccounts();
@@ -303,7 +302,7 @@ const AccountListPage = () => {
               {sortedAccounts.length > 0 ? sortedAccounts.map((account) => (
                 <TableRow key={account._id} hover>
                   {tabCategories[currentTab] !== "Tax" && (
-                    <TableCell padding="checkbox">
+                    <TableCell padding="none">
                       <IconButton size="small" onClick={() => alert('Toggle favorite not implemented yet for COA')}>
                         {account.isFavorite ? <StarIcon color="warning" /> : <StarBorderIcon />}
                       </IconButton>

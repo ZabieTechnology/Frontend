@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // Main App Component
 export default function App() {
@@ -25,7 +25,7 @@ export default function App() {
         return date;
     });
 
-    const calculateTimeLeft = () => {
+    const calculateTimeLeft = useCallback(() => {
       const difference = +launchDate - +new Date();
       let timeLeft = {};
 
@@ -39,7 +39,7 @@ export default function App() {
       }
 
       return timeLeft;
-    };
+    }, [launchDate]);
 
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
@@ -51,7 +51,7 @@ export default function App() {
 
       // Clean up the interval when the component unmounts.
       return () => clearInterval(timer);
-    }, [launchDate]);
+    }, [calculateTimeLeft]);
 
     return (
       <div className="flex justify-center my-8">

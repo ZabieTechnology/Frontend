@@ -241,7 +241,7 @@ const CreditNotesPage = () => {
     const [selected, setSelected] = useState([]);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
-    const [filters, setFilters] = useState({});
+    const [filters] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
 
     const [creditNoteRows, setCreditNoteRows] = useState([]);

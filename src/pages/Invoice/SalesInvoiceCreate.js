@@ -172,7 +172,7 @@ export default function SalesInvoiceCreate() {
             }
             setGlobalCompanySettings(currentGlobal); setSupplierState(currentGlobal.state || '');
             setSelectedThemeProfileId(defaultTheme.id); setCurrentThemeSettings(defaultTheme);
-            return { globalSettings: currentGlobal, defaultThemeToApply: defaultTheme, allThemes };
+            return { globalSettings: currentGlobal, defaultThemeToApply: defaultTheme, allThemes: allThemes };
         } catch (err) {
             setCurrentThemeSettings(defaultThemeProfileData); setAllThemeProfiles([defaultThemeProfileData]);
             return { globalSettings: initialGlobalSettingsData, defaultThemeToApply: defaultThemeProfileData, allThemes: [defaultThemeProfileData] };
@@ -905,8 +905,9 @@ export default function SalesInvoiceCreate() {
                         variant="contained"
                         onClick={handleMenuClick}
                         endIcon={<ArrowDropDownIcon />}
+                        disabled={saveInProgress}
                     >
-                        Save
+                        {saveInProgress ? <CircularProgress color="inherit" size={24} /> : 'Save'}
                     </Button>
                     <Menu
                         anchorEl={anchorEl}

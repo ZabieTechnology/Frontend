@@ -22,7 +22,7 @@ import {
     Divider,
     Autocomplete
 } from '@mui/material';
-import { Add, Remove, AddCircleOutline, DeleteOutline } from '@mui/icons-material';
+import { AddCircleOutline, DeleteOutline } from '@mui/icons-material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 // A more modern, clean theme

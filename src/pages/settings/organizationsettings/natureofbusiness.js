@@ -9,7 +9,6 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 
 function NatureOfBusiness() {
   const [goodsServicesBoth, setGoodsServicesBoth] = useState("");

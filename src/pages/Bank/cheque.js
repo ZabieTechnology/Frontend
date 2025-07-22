@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     createTheme,
     ThemeProvider,
@@ -37,7 +37,6 @@ import {
     Chip,
 } from '@mui/material';
 import {
-    Add as AddIcon,
     ArrowBack as ArrowBackIcon,
     Search as SearchIcon,
     Edit as EditIcon,
@@ -45,7 +44,6 @@ import {
     Delete as DeleteIcon,
     Close as CloseIcon,
     CloudUpload as CloudUploadIcon,
-    CalendarToday as CalendarTodayIcon,
     Cancel as CancelIcon,
     Warning as WarningIcon,
     CheckCircle as CheckCircleIcon,
@@ -171,7 +169,7 @@ const ChequeDetailsPage = ({ onNavigate, initialTab }) => {
     const handleTabChange = (event, newValue) => setActiveTab(newValue);
 
     const handleClearanceUpdate = (e, rowToUpdate) => {
-        const { value } = e.target; //<x_bin_342>-MM-DD format
+        const { value } = e.target; // <x_bin_342>-MM-DD format
         const currentTabName = activeTab === 0 ? 'Issued' : 'Received';
         const chequeDateYYYYMMDD = rowToUpdate.date.split('/').reverse().join('-');
         if (value && value < chequeDateYYYYMMDD) return;

@@ -33,7 +33,6 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
-import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -372,7 +371,7 @@ const DeleteConfirmationDialog = ({ open, onClose, onConfirm }) => (
 // --- Main Page Component ---
 const TransactionsPage = () => {
   const [selectedTab, setSelectedTab] = useState(0);
-  const [transactionsData, setTransactionsData] = useState(initialTransactionsData);
+  const [transactionsData] = useState(initialTransactionsData);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [deleteId, setDeleteId] = useState(null);

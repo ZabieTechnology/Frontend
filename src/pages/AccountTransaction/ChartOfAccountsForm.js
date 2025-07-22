@@ -17,7 +17,6 @@ import {
     Switch,
     Checkbox, // For isSubAccount
     FormControlLabel,
-    Tooltip,
     Divider,
     InputAdornment,
 } from '@mui/material';

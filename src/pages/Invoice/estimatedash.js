@@ -4,12 +4,12 @@ import axios from 'axios';
 import {
     Box, Button, Grid, InputAdornment, Table, TableBody, TableCell, TableContainer,
     TableHead, TableRow, TextField, Typography, Paper, Chip, IconButton, TableSortLabel,
-    Popover, FormGroup, FormControlLabel, Checkbox, Divider, TablePagination, Menu, MenuItem,
+    Popover, FormGroup, FormControlLabel, Checkbox, Divider, TablePagination,
     CircularProgress, Alert, Tooltip, Snackbar
 } from '@mui/material';
 import {
-    Add as AddIcon, Search as SearchIcon, ArrowDropDown as ArrowDropDownIcon, Edit as EditIcon,
-    Visibility as VisibilityIcon, Delete as DeleteIcon, FilterList as FilterListIcon,
+    Add as AddIcon, Search as SearchIcon, Edit as EditIcon,
+    FilterList as FilterListIcon,
     Download as DownloadIcon, Upload as UploadIcon
 } from '@mui/icons-material';
 import { visuallyHidden } from '@mui/utils';

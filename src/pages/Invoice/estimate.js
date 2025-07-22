@@ -858,8 +858,9 @@ export default function QuotationCreate() {
                         variant="contained"
                         onClick={handleMenuClick}
                         endIcon={<ArrowDropDownIcon />}
+                        disabled={loading}
                     >
-                        Save
+                        {loading ? <CircularProgress color="inherit" size={24} /> : 'Save'}
                     </Button>
                     <Menu
                         anchorEl={anchorEl}
@@ -1091,4 +1092,5 @@ export default function QuotationCreate() {
                 </DialogActions>
             </Dialog>
         </Box>
-    )};
+    );
+}
