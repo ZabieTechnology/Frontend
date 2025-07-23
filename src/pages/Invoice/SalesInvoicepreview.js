@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -32,7 +32,6 @@ import {
 } from '@mui/material';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import {
-
   Share,
   ArrowBack as ArrowBackIcon,
   MailOutline as MailIcon,
@@ -150,17 +149,14 @@ const safeFormatDate = (dateInput, formatString) => {
 export default function InvoicePage() {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
-  const printRef = useRef();
 
   const [invoice, setInvoice] = useState(null);
   const [themeSettings, setThemeSettings] = useState(null);
   const [globalSettings, setGlobalSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isDownloading, setIsDownloading] = useState(false);
 
   // State for dropdown menus
-  const [printMenuAnchorEl, setPrintMenuAnchorEl] = useState(null);
   const [shareMenuAnchorEl, setShareMenuAnchorEl] = useState(null);
   const [moreMenuAnchorEl, setMoreMenuAnchorEl] = useState(null);
 
@@ -169,11 +165,6 @@ export default function InvoicePage() {
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
   const [activityHistory, setActivityHistory] = useState([]);
-
-
-  const handlePrintMenuClick = (event) => {
-    setPrintMenuAnchorEl(event.currentTarget);
-  };
 
   const handleShareMenuClick = (event) => {
     setShareMenuAnchorEl(event.currentTarget);
@@ -184,7 +175,6 @@ export default function InvoicePage() {
   };
 
   const handleMenuClose = () => {
-    setPrintMenuAnchorEl(null);
     setShareMenuAnchorEl(null);
     setMoreMenuAnchorEl(null);
   };
@@ -405,14 +395,6 @@ export default function InvoicePage() {
                     </PrimaryActionButton>
                 )}
 
-                <ButtonGroup variant="outlined" aria-label="action button group">
-
-                </ButtonGroup>
-                <Menu anchorEl={printMenuAnchorEl} open={Boolean(printMenuAnchorEl)} onClose={handleMenuClose}>
-                    <MenuItem onClick={handleMenuClose}>Thermal Print</MenuItem>
-                    <MenuItem onClick={handleMenuClose}>Normal Print</MenuItem>
-                </Menu>
-
                 {showPaymentHistory && (
                     <>
                         <ButtonGroup variant="outlined" aria-label="share button group" sx={{ml: 1}}>
@@ -441,7 +423,7 @@ export default function InvoicePage() {
 
           <Grid container spacing={3}>
             <Grid item xs={12} md={showPaymentHistory ? 8 : 12}>
-              <ModernThemeWrapper selectedColor={themeSettings.selectedColor} ref={printRef}>
+              <ModernThemeWrapper selectedColor={themeSettings.selectedColor}>
                 {/* Invoice Preview Content... */}
                 <Grid container spacing={2}>
                     <Grid item xs={7}>
