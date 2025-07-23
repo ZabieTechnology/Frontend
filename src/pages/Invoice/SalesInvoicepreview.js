@@ -32,7 +32,7 @@ import {
 } from '@mui/material';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import {
-  Download,
+
   Share,
   ArrowBack as ArrowBackIcon,
   MailOutline as MailIcon,
@@ -51,7 +51,7 @@ import {
   Undo as UndoIcon
 } from '@mui/icons-material';
 import { format, parseISO, isValid } from 'date-fns';
-import html2canvas from 'html2canvas';
+
 
 // Create a default theme as a fallback
 const defaultTheme = createTheme({
