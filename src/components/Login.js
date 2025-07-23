@@ -24,12 +24,13 @@ const Login = ({ setToken }) => {
   const [dbStatus, setDbStatus] = useState({ message: "", type: "info" }); // State for DB connection message
   const [updateMessage, setUpdateMessage] = useState(''); // State for the update confirmation message
   const navigate = useNavigate();
+  // Reverting to use the environment variable for the API URL.
   const apiUrl = process.env.REACT_APP_API_URL || '';
 
   // useEffect to check backend status and set the update message
   useEffect(() => {
     // Set the confirmation message that the component has been updated
-    setUpdateMessage('Page updated with enhanced error logging and a test function.');
+    setUpdateMessage('API URL is now configured via environment variables.');
 
     const checkBackendStatus = async () => {
       try {
