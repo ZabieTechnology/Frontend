@@ -64,6 +64,18 @@ const TdsForm = ({ data, onChange }) => (
   <>
     <TextField autoFocus margin="dense" name="natureOfPayment" label="Nature of Payment" fullWidth value={data.natureOfPayment} onChange={onChange} required />
     <TextField margin="dense" name="section" label="Section" fullWidth value={data.section} onChange={onChange} required />
+    {/* Added Description field */}
+    <TextField
+      margin="dense"
+      name="description"
+      label="Description / Applicability"
+      fullWidth
+      value={data.description || ''}
+      onChange={onChange}
+      multiline
+      rows={3}
+      helperText="Provide a brief description of when this TDS rate is applicable."
+    />
     <TextField margin="dense" name="threshold" label="Threshold (₹)" type="number" fullWidth value={data.threshold} onChange={onChange} required />
     <TextField margin="dense" name="tdsRate" label="TDS Rate (%)" type="number" fullWidth value={data.tdsRate} onChange={onChange} required InputProps={{ inputProps: { min: 0, step: "0.01" } }} />
     <TextField margin="dense" name="tdsRateNoPan" label="TDS Rate - No PAN (%)" type="number" fullWidth value={data.tdsRateNoPan} onChange={onChange} required InputProps={{ inputProps: { min: 0, step: "0.01" } }} />
@@ -92,6 +104,7 @@ const initialNewTdsState = {
   tdsRate: "",
   tdsRateNoPan: "",
   effectiveDate: "",
+  description: "", // Added description field
 };
 
 function TdsManagement() {
@@ -230,6 +243,8 @@ function TdsManagement() {
                 <TableCell sx={{ fontWeight: 'bold' }}>Sl.</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Nature of Payment</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Section</TableCell>
+                {/* Added Description column header */}
+                <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Threshold (₹)</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>TDS Rate (%)</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>TDS Rate - No PAN (%)</TableCell>
@@ -256,6 +271,8 @@ function TdsManagement() {
                       <TableCell>{groupIndex + 1}</TableCell>
                       <TableCell component="th" scope="row">{mainRate.natureOfPayment}</TableCell>
                       <TableCell>{mainRate.section}</TableCell>
+                      {/* Added Description cell */}
+                      <TableCell>{mainRate.description}</TableCell>
                       <TableCell>{new Intl.NumberFormat('en-IN').format(mainRate.threshold)}</TableCell>
                       <TableCell>{mainRate.tdsRate?.toFixed(2)}%</TableCell>
                       <TableCell>{mainRate.tdsRateNoPan?.toFixed(2)}%</TableCell>
@@ -270,9 +287,12 @@ function TdsManagement() {
                       <TableRow key={historyRow._id} hover>
                         <TableCell />
                         <TableCell />
-                        <TableCell colSpan={2} style={{ fontStyle: 'italic', color: 'grey.600', paddingLeft: '2.5rem' }}>
+                        <TableCell component="th" scope="row" style={{ fontStyle: 'italic', color: 'grey.600', paddingLeft: '2.5rem' }}>
                           History
                         </TableCell>
+                        <TableCell /> {/* Empty cell for Section alignment */}
+                        {/* Added description for history row */}
+                        <TableCell>{historyRow.description}</TableCell>
                         <TableCell>{new Intl.NumberFormat('en-IN').format(historyRow.threshold)}</TableCell>
                         <TableCell>{historyRow.tdsRate?.toFixed(2)}%</TableCell>
                         <TableCell>{historyRow.tdsRateNoPan?.toFixed(2)}%</TableCell>
@@ -289,7 +309,8 @@ function TdsManagement() {
               })}
                {Object.keys(groupedTdsRates).length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">No TDS rates configured yet.</TableCell>
+                  {/* Updated colSpan to account for the new column */}
+                  <TableCell colSpan={10} align="center">No TDS rates configured yet.</TableCell>
                 </TableRow>
               )}
             </TableBody>

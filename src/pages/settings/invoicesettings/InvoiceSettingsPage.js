@@ -3,7 +3,7 @@ import {
     Box, Grid, Paper, Typography, Button, Switch, FormControlLabel, TextField,
     Select, MenuItem, FormControl, InputLabel, Divider, CircularProgress, Alert,
     IconButton, Tooltip, Checkbox, Avatar, Accordion, AccordionSummary, AccordionDetails,
-    Radio, RadioGroup, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
+    Radio, RadioGroup, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, InputAdornment
 } from '@mui/material';
 import {
     Save as SaveIcon, ArrowBack as ArrowBackIcon, Add as AddIcon, Delete as DeleteIcon,
@@ -11,7 +11,8 @@ import {
     ListAlt as ListAltIcon, Description as DescriptionIcon,
     SettingsApplications as SettingsApplicationsIcon, QrCodeScanner as QrCodeScannerIcon,
     ReceiptLong as ReceiptLongIcon, AccountBalance as AccountBalanceIcon, TextFields as TextFieldsIcon,
-    Palette as PaletteIcon, Edit as EditIcon, Percent as PercentIcon
+    Palette as PaletteIcon, Edit as EditIcon, Percent as PercentIcon,
+    UnfoldMore as UnfoldMoreIcon, UnfoldLess as UnfoldLessIcon, Functions as FunctionsIcon, PostAdd as PostAddIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +45,7 @@ const OPTIONAL_ITEM_COLUMNS_DEFAULT = {
     hsnSacCode: true,
     serialNo: false,
     showCess: false,
+    showVat: false, // Added for VAT toggle
 };
 
 const initialSingleThemeProfileData = {
@@ -67,12 +69,33 @@ const initialSingleThemeProfileData = {
     showSaleAgentOnInvoice: false,
     showBillToSection: true,
     showShipToSection: true,
+    // Added for payment received sections
+    showAmountReceived: true,
+    showCreditNoteIssued: true,
+    showExpensesAdjusted: true,
     signatureImageUrl: '',
     authorisedSignatory: 'For (Your Company Name)',
     invoiceFooter: "",
     invoiceFooterImageUrl: "",
     termsAndConditionsId: '',
     notesDefault: "Thank you for your business!",
+    // New Round Off Settings
+    enableRounding: false,
+    roundingMethod: 'auto', // 'auto' or 'manual'
+    roundOffAccountId: '',
+    // Additional Charges below subtotal
+    additionalCharges: [
+        // **NEW**: Mandatory Discount Row
+        {
+            id: 'mandatory_discount',
+            label: 'Discount',
+            valueType: 'percentage',
+            value: 0,
+            accountId: '',
+            isMandatory: true,
+            showInPreview: true,
+        }
+    ],
 };
 
 const initialGlobalSettings = {
@@ -99,6 +122,11 @@ const initialInvoiceSettings = {
     ],
 };
 
+const accordionKeys = [
+    'themeProfiles', 'customizeTheme', 'titleAndNumber', 'headerFields',
+    'showHideSections', 'itemTable', 'taxDisplay', 'totalsRounding', 'additionalCharges', 'paymentSettings',
+    'accountingLink', 'signatureEtc', 'coreBusiness'
+];
 
 const getColumnLabel = (key, customItemColumns) => {
     if (key.startsWith('custom_item_')) {
@@ -145,9 +173,31 @@ const InvoiceSettingsPage = () => {
 
     const [bankAccountOptions, setBankAccountOptions] = useState([]);
     const [salesAccountOptions, setSalesAccountOptions] = useState([]);
+    const [roundOffAccountOptions, setRoundOffAccountOptions] = useState([]);
+    const [additionalChargeAccountOptions, setAdditionalChargeAccountOptions] = useState([]);
+
+    // State for accordion expansion
+    const [expandedAccordions, setExpandedAccordions] = useState({});
 
     const navigate = useNavigate();
     const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
+    const handleAccordionChange = (panel) => (event, isExpanded) => {
+        setExpandedAccordions(prev => ({ ...prev, [panel]: isExpanded ? true : false }));
+    };
+
+    const handleExpandAll = () => {
+        const allExpanded = accordionKeys.reduce((acc, key) => {
+            acc[key] = true;
+            return acc;
+        }, {});
+        setExpandedAccordions(allExpanded);
+    };
+
+    const handleCollapseAll = () => {
+        setExpandedAccordions({});
+    };
+
 
     const getActiveThemeProfile = useCallback(() => {
         return settings.savedThemes.find(t => t.id === activeThemeProfileId);
@@ -222,6 +272,72 @@ const InvoiceSettingsPage = () => {
         }
     }, [API_BASE_URL]);
 
+    const fetchRoundOffAccounts = useCallback(async () => {
+        try {
+            const expensePromise = axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Expense`, { withCredentials: true });
+            const incomePromise = axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Other Income`, { withCredentials: true });
+
+            const [expenseResponse, incomeResponse] = await Promise.all([expensePromise, incomePromise]);
+
+            let accounts = [];
+            if (expenseResponse.data && Array.isArray(expenseResponse.data.data)) {
+                accounts.push(...expenseResponse.data.data);
+            }
+            if (incomeResponse.data && Array.isArray(incomeResponse.data.data)) {
+                accounts.push(...incomeResponse.data.data);
+            }
+
+            if (accounts.length > 0) {
+                setRoundOffAccountOptions(accounts.map(acc => ({
+                    value: acc._id,
+                    label: `${acc.name || 'N/A'} ${acc.code ? `(${acc.code})` : ''} [${acc.accountType}]`.trim()
+                })));
+            } else {
+                setRoundOffAccountOptions([]);
+            }
+        } catch (err) {
+            console.error("Error fetching round-off accounts:", err);
+            setError(prevError => prevError ? `${prevError}\nFailed to load round-off accounts.` : "Failed to load round-off accounts.");
+            setRoundOffAccountOptions([]);
+        }
+    }, [API_BASE_URL]);
+
+    // Fetches accounts from multiple types to provide a comprehensive list for additional charges.
+    const fetchAdditionalChargeAccounts = useCallback(async () => {
+        try {
+            const promises = [
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Direct Incomes`, { withCredentials: true }),
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Other Income`, { withCredentials: true }),
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Expense`, { withCredentials: true }),
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Sales`, { withCredentials: true })
+            ];
+
+            const responses = await Promise.all(promises);
+
+            const accounts = responses.flatMap(response => (response.data && Array.isArray(response.data.data)) ? response.data.data : []);
+
+            if (accounts.length > 0) {
+                // Using a Set to filter out duplicate accounts if any, then mapping to options.
+                const uniqueAccounts = Array.from(new Map(accounts.map(acc => [acc._id, acc])).values());
+                setAdditionalChargeAccountOptions(uniqueAccounts.map(acc => {
+                    const isDeduction = ['Expense', 'Sales'].includes(acc.accountType);
+                    const baseLabel = `${acc.name || 'N/A'} ${acc.code ? `(${acc.code})` : ''} [${acc.accountType}]`.trim();
+                    return {
+                        value: acc._id,
+                        label: isDeduction ? `(-) ${baseLabel}` : baseLabel
+                    };
+                }));
+            } else {
+                setAdditionalChargeAccountOptions([]);
+            }
+        } catch (err) {
+            console.error("Error fetching additional charge accounts:", err);
+            setError(prevError => prevError ? `${prevError}\nFailed to load additional charge accounts.` : "Failed to load additional charge accounts.");
+            setAdditionalChargeAccountOptions([]);
+        }
+    }, [API_BASE_URL]);
+
+
     const fetchInvoiceSettings = useCallback(async () => {
         setLoading(true); setError(null);
         try {
@@ -234,10 +350,8 @@ const InvoiceSettingsPage = () => {
 
                 const globalConf = fetched.global || initialGlobalSettings;
 
-                setSettings({
-                    _id: fetched._id,
-                    global: { ...initialGlobalSettings, ...globalConf },
-                    savedThemes: savedThemesFromServer.map(theme => ({
+                const themesWithDefaults = savedThemesFromServer.map(theme => {
+                    const fullTheme = {
                         ...JSON.parse(JSON.stringify(initialSingleThemeProfileData)),
                         ...theme,
                         itemTableColumns: {
@@ -245,12 +359,32 @@ const InvoiceSettingsPage = () => {
                             ...(theme.itemTableColumns || OPTIONAL_ITEM_COLUMNS_DEFAULT)
                         },
                         id: theme.id || `theme_profile_${Date.now()}_${Math.random()}`,
-                    })),
+                    };
+
+                    // **NEW**: Ensure mandatory discount charge exists for backward compatibility
+                    if (!fullTheme.additionalCharges.some(c => c.id === 'mandatory_discount')) {
+                        fullTheme.additionalCharges.unshift({
+                            id: 'mandatory_discount',
+                            label: 'Discount',
+                            valueType: 'percentage',
+                            value: 0,
+                            accountId: '',
+                            isMandatory: true,
+                            showInPreview: true,
+                        });
+                    }
+                    return fullTheme;
                 });
 
-                const defaultTheme = savedThemesFromServer.find(t => t.isDefault) || savedThemesFromServer[0];
+                setSettings({
+                    _id: fetched._id,
+                    global: { ...initialGlobalSettings, ...globalConf },
+                    savedThemes: themesWithDefaults,
+                });
+
+                const defaultTheme = themesWithDefaults.find(t => t.isDefault) || themesWithDefaults[0];
                 setActiveThemeProfileId(defaultTheme.id);
-                updatePreviewThemeFromDefault(savedThemesFromServer);
+                updatePreviewThemeFromDefault(themesWithDefaults);
 
                 setCompanyDetails({
                     ...rawInitialCompanyDetails,
@@ -278,11 +412,35 @@ const InvoiceSettingsPage = () => {
         } finally { setLoading(false); }
     }, [API_BASE_URL, updatePreviewThemeFromDefault]);
 
+    // **NEW**: Effect to find and set the default "Discounts (Sales)" account
+    useEffect(() => {
+        if (additionalChargeAccountOptions.length > 0) {
+            const discountAccount = additionalChargeAccountOptions.find(opt => opt.label.toLowerCase().includes('discounts (sales)'));
+            if (discountAccount) {
+                setSettings(prev => {
+                    const newSavedThemes = prev.savedThemes.map(profile => {
+                        const newCharges = (profile.additionalCharges || []).map(charge => {
+                            if (charge.id === 'mandatory_discount' && !charge.accountId) {
+                                return { ...charge, accountId: discountAccount.value };
+                            }
+                            return charge;
+                        });
+                        return { ...profile, additionalCharges: newCharges };
+                    });
+                    return { ...prev, savedThemes: newSavedThemes };
+                });
+            }
+        }
+    }, [additionalChargeAccountOptions]);
+
+
     useEffect(() => {
         fetchInvoiceSettings();
         fetchBankAccounts();
         fetchSalesAccounts();
-    }, [fetchInvoiceSettings, fetchBankAccounts, fetchSalesAccounts]);
+        fetchRoundOffAccounts();
+        fetchAdditionalChargeAccounts();
+    }, [fetchInvoiceSettings, fetchBankAccounts, fetchSalesAccounts, fetchRoundOffAccounts, fetchAdditionalChargeAccounts]);
 
     const handleActiveThemeProfileChange = (eventOrPath, valueOrEvent) => {
         const activeId = activeThemeProfileId;
@@ -316,10 +474,6 @@ const InvoiceSettingsPage = () => {
                             updatedProfile[key1][key2] = val;
                         } else {
                             updatedProfile[name] = val;
-                        }
-
-                        if (name === 'taxDisplayMode') {
-                            updatedProfile.itemTableColumns.showCess = value === 'breakdown';
                         }
                     }
 
@@ -456,21 +610,46 @@ const InvoiceSettingsPage = () => {
         setSettings(prev => ({
             ...prev,
             savedThemes: prev.savedThemes.map(p =>
-                p.id === activeThemeProfileId ? { ...p, customHeaderFields: [...(p.customHeaderFields || []), {id: `custom_header_${Date.now()}`, label: '', displayOnInvoice: true, type: 'text'}]} : p
+                p.id === activeThemeProfileId ? { ...p, customHeaderFields: [...(p.customHeaderFields || []), {id: `custom_header_${Date.now()}`, label: '', displayOnInvoice: true, type: 'text', defaultValue: ''}]} : p
             )
         }));
     };
 
     const handleCustomHeaderFieldChange = (id, event) => {
         if(!activeThemeProfileId) return;
-        const { name, value, checked, type } = event.target;
+        const { name, value, checked, type: inputType } = event.target;
         setSettings(prev => ({
             ...prev,
-            savedThemes: prev.savedThemes.map(p =>
-                p.id === activeThemeProfileId ? { ...p, customHeaderFields: (p.customHeaderFields || []).map(field =>
-                    field.id === id ? { ...field, [name]: type === 'checkbox' ? checked : value } : field
-                )} : p
-            )
+            savedThemes: prev.savedThemes.map(p => {
+                if (p.id === activeThemeProfileId) {
+                    return {
+                        ...p,
+                        customHeaderFields: (p.customHeaderFields || []).map(field => {
+                            if (field.id === id) {
+                                const newField = { ...field };
+                                const val = inputType === 'checkbox' ? checked : value;
+
+                                if (name === 'type') {
+                                    newField.type = val;
+                                    // Reset default value when type changes
+                                    if (val === 'tick_box') {
+                                        newField.defaultValue = false;
+                                    } else if (val === 'yes_no_radio') {
+                                        newField.defaultValue = 'no';
+                                    } else {
+                                        newField.defaultValue = '';
+                                    }
+                                } else {
+                                   newField[name] = val;
+                                }
+                                return newField;
+                            }
+                            return field;
+                        })
+                    };
+                }
+                return p;
+            })
         }));
     };
 
@@ -480,6 +659,64 @@ const InvoiceSettingsPage = () => {
             ...prev,
             savedThemes: prev.savedThemes.map(p =>
                 p.id === activeThemeProfileId ? { ...p, customHeaderFields: (p.customHeaderFields || []).filter(field => field.id !== idToRemove)} : p
+            )
+        }));
+    };
+
+    const handleAddAdditionalCharge = () => {
+        if (!activeThemeProfileId) return;
+        const newCharge = {
+            id: `charge_${Date.now()}`,
+            label: '',
+            valueType: 'percentage',
+            value: 0,
+            accountId: ''
+        };
+        setSettings(prev => ({
+            ...prev,
+            savedThemes: prev.savedThemes.map(profile =>
+                profile.id === activeThemeProfileId
+                    ? { ...profile, additionalCharges: [...(profile.additionalCharges || []), newCharge] }
+                    : profile
+            )
+        }));
+    };
+
+    // **UPDATED**: Handles changes for additional charges, including the new checkbox
+    const handleAdditionalChargeChange = (id, eventOrKey, value) => {
+        if (!activeThemeProfileId) return;
+
+        let changes;
+        if (typeof eventOrKey === 'object' && eventOrKey.target) { // It's a standard event from textfield/select
+            const { name, value: eventValue } = eventOrKey.target;
+            changes = { [name]: eventValue };
+        } else { // It's a custom call for the checkbox: ('showInPreview', true)
+            changes = { [eventOrKey]: value };
+        }
+
+        setSettings(prev => ({
+            ...prev,
+            savedThemes: prev.savedThemes.map(profile =>
+                profile.id === activeThemeProfileId
+                    ? {
+                        ...profile,
+                        additionalCharges: (profile.additionalCharges || []).map(charge =>
+                            charge.id === id ? { ...charge, ...changes } : charge
+                        )
+                    }
+                    : profile
+            )
+        }));
+    };
+
+    const handleRemoveAdditionalCharge = (idToRemove) => {
+        if (!activeThemeProfileId) return;
+        setSettings(prev => ({
+            ...prev,
+            savedThemes: prev.savedThemes.map(profile =>
+                profile.id === activeThemeProfileId
+                    ? { ...profile, additionalCharges: (profile.additionalCharges || []).filter(charge => charge.id !== idToRemove) }
+                    : profile
             )
         }));
     };
@@ -570,6 +807,12 @@ const InvoiceSettingsPage = () => {
                 setTimeout(() => setError(null), 5000);
                 return;
             }
+            if (activeProfileForValidation.enableRounding && !activeProfileForValidation.roundOffAccountId) {
+                setError("Totals & Rounding Settings: Round Off Account is mandatory when rounding is enabled.");
+                setLoading(false);
+                setTimeout(() => setError(null), 5000);
+                return;
+            }
             const emptyCustomItemCol = (activeProfileForValidation.customItemColumns || []).find(col => col.name.trim() === '');
             if (emptyCustomItemCol) {
                 setError("Custom item column names cannot be empty for the active theme."); setLoading(false); setTimeout(() => setError(null), 5000); return;
@@ -577,6 +820,13 @@ const InvoiceSettingsPage = () => {
             const emptyCustomHeaderField = (activeProfileForValidation.customHeaderFields || []).find(field => field.label.trim() === '');
             if (emptyCustomHeaderField) {
                 setError("Custom header field labels cannot be empty for the active theme."); setLoading(false); setTimeout(() => setError(null), 5000); return;
+            }
+            // VALIDATION: An accounting ledger is no longer mandatory, but a label is required if a value is entered.
+            const invalidAdditionalCharge = (activeProfileForValidation.additionalCharges || []).find(
+                charge => (charge.value && Number(charge.value) !== 0) && !charge.label.trim()
+            );
+            if(invalidAdditionalCharge) {
+                setError("Additional Charges must have a label if a value is entered."); setLoading(false); setTimeout(() => setError(null), 5000); return;
             }
         }
         if (!settings.savedThemes.some(theme => theme.isDefault)) {
@@ -629,11 +879,8 @@ const InvoiceSettingsPage = () => {
                                                  ? saved.savedThemes
                                                  : [{ ...JSON.parse(JSON.stringify(initialSingleThemeProfileData)), id: `default_profile_${Date.now()}`, profileName: "Default Theme", isDefault: true }];
 
-                 setSettings(prev => ({
-                    ...prev,
-                    _id: saved._id,
-                    global: { ...initialGlobalSettings, ...(saved.global || {})},
-                    savedThemes: savedThemesFromServer.map(theme => ({
+                 const themesWithDefaults = savedThemesFromServer.map(theme => {
+                    const fullTheme = {
                         ...JSON.parse(JSON.stringify(initialSingleThemeProfileData)),
                         ...theme,
                         itemTableColumns: {
@@ -643,12 +890,32 @@ const InvoiceSettingsPage = () => {
                         signatureImageFile: null,
                         upiQrCodeFile: null,
                         invoiceFooterImageFile: null,
-                    })),
+                    };
+
+                    if (!fullTheme.additionalCharges.some(c => c.id === 'mandatory_discount')) {
+                        fullTheme.additionalCharges.unshift({
+                            id: 'mandatory_discount',
+                            label: 'Discount',
+                            valueType: 'percentage',
+                            value: 0,
+                            accountId: '',
+                            isMandatory: true,
+                            showInPreview: true,
+                        });
+                    }
+                    return fullTheme;
+                });
+
+                 setSettings(prev => ({
+                    ...prev,
+                    _id: saved._id,
+                    global: { ...initialGlobalSettings, ...(saved.global || {})},
+                    savedThemes: themesWithDefaults,
                  }));
 
-                const newActiveDefault = savedThemesFromServer.find(t => t.isDefault) || savedThemesFromServer[0];
+                const newActiveDefault = themesWithDefaults.find(t => t.isDefault) || themesWithDefaults[0];
                 setActiveThemeProfileId(newActiveDefault.id);
-                updatePreviewThemeFromDefault(savedThemesFromServer);
+                updatePreviewThemeFromDefault(themesWithDefaults);
             }
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
@@ -668,8 +935,26 @@ const InvoiceSettingsPage = () => {
          return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><Typography color="error">Error: No theme profile available for editing.</Typography></Box>;
     }
 
+    // **NEW**: Filter charges for the preview based on the 'showInPreview' checkbox for the discount row
+    const chargesForPreview = (activeProfileForSettingsUI.additionalCharges || []).filter(charge => {
+        if (charge.id === 'mandatory_discount') {
+            return !!charge.showInPreview;
+        }
+        return true;
+    });
+
+    const settingsForPreview = {
+        ...activeProfileForSettingsUI,
+        activeThemeName: themeForPreviewStyle.baseThemeName,
+        selectedColor: themeForPreviewStyle.selectedColor,
+        companyLogoUrl: settings.global.companyLogoUrl,
+        currency: settings.global.currency,
+        nextInvoiceNumber: settings.global.nextInvoiceNumber,
+        additionalCharges: chargesForPreview
+    };
+
     const toggleableItemColumns = Object.keys(activeProfileForSettingsUI.itemTableColumns || initialSingleThemeProfileData.itemTableColumns)
-        .filter(key => key !== 'showCess' && !MANDATORY_ITEM_COLUMNS.hasOwnProperty(key) && (initialSingleThemeProfileData.itemTableColumns.hasOwnProperty(key) || key.startsWith('custom_item_')))
+        .filter(key => key !== 'showCess' && key !== 'showVat' && !MANDATORY_ITEM_COLUMNS.hasOwnProperty(key) && (initialSingleThemeProfileData.itemTableColumns.hasOwnProperty(key) || key.startsWith('custom_item_')))
         .sort((a,b) => {
             const aIsCustom = a.startsWith('custom_item_');
             const bIsCustom = b.startsWith('custom_item_');
@@ -678,9 +963,29 @@ const InvoiceSettingsPage = () => {
             return a.localeCompare(b);
         });
 
+    const SubheadingLabel = ({ children }) => (
+        <Box sx={{ px: 2, pb: 2, mt: -1 }}>
+            <Typography
+                component="span"
+                sx={{
+                    display: 'inline-block',
+                    px: 1.5,
+                    py: 0.5,
+                    bgcolor: '#E8F5E9',
+                    color: '#388E3C',
+                    borderRadius: '16px',
+                    fontWeight: 500,
+                    fontSize: '0.75rem',
+                }}
+            >
+                {children}
+            </Typography>
+        </Box>
+    );
+
 
     return (
-        <Box sx={{ p: { xs: 1, md: 3 } }}>
+        <Box sx={{ p: { xs: 2, md: 3 } }}>
             <Paper sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 'bold' }}>Invoice Settings &amp; Customization</Typography>
                 <IconButton onClick={() => navigate(-1)} aria-label="go back"><ArrowBackIcon /></IconButton>
@@ -708,10 +1013,20 @@ const InvoiceSettingsPage = () => {
                             </Paper>
                         )}
 
-                        <Accordion defaultExpanded sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
+                            <Tooltip title="Expand All">
+                                <IconButton onClick={handleExpandAll} size="small"><UnfoldMoreIcon /></IconButton>
+                            </Tooltip>
+                            <Tooltip title="Collapse All">
+                                <IconButton onClick={handleCollapseAll} size="small"><UnfoldLessIcon /></IconButton>
+                            </Tooltip>
+                        </Box>
+
+                        <Accordion expanded={!!expandedAccordions['themeProfiles']} onChange={handleAccordionChange('themeProfiles')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                 <Typography><ViewQuiltIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Manage Theme Profiles</Typography>
                             </AccordionSummary>
+                            <SubheadingLabel>Switch and organize saved theme profiles with ease.</SubheadingLabel>
                              <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                 <FormControl fullWidth>
                                     <Typography variant="subtitle2" gutterBottom>Select a profile to edit or set as default</Typography>
@@ -755,10 +1070,11 @@ const InvoiceSettingsPage = () => {
                             </AccordionDetails>
                         </Accordion>
 
-                        <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                        <Accordion expanded={!!expandedAccordions['customizeTheme']} onChange={handleAccordionChange('customizeTheme')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                 <Typography><PaletteIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Customize Active Theme</Typography>
                             </AccordionSummary>
+                             <SubheadingLabel>Edit the look and feel of your current theme.</SubheadingLabel>
                             <AccordionDetails>
                                 {activeProfileForSettingsUI && (
                                   <Paper variant="outlined" sx={{p:1.5}}>
@@ -797,11 +1113,9 @@ const InvoiceSettingsPage = () => {
 
                         {activeProfileForSettingsUI && (
                             <>
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['titleAndNumber']} onChange={handleAccordionChange('titleAndNumber')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography><ReceiptLongIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Invoice Title & Number Format</Typography></AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Edit invoice title and define how invoice numbers are generated.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Edit invoice title and define how invoice numbers are generated.</SubheadingLabel>
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <TextField name="invoiceHeading" label="Invoice Heading" value={activeProfileForSettingsUI.invoiceHeading} onChange={(e) => handleActiveThemeProfileChange('invoiceHeading', e.target.value)} size="small" fullWidth />
                                         <TextField name="invoicePrefix" label="Invoice Prefix" value={activeProfileForSettingsUI.invoicePrefix} onChange={(e) => handleActiveThemeProfileChange('invoicePrefix', e.target.value)} size="small" fullWidth />
@@ -809,56 +1123,76 @@ const InvoiceSettingsPage = () => {
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['headerFields']} onChange={handleAccordionChange('headerFields')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography><TextFieldsIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Add Custom Header Fields</Typography></AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Include additional details like PO Number, Project Name, etc.</Typography>
-                                    </Box>
-                                    <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 1}}>
+                                    <SubheadingLabel>Include additional details like PO Number, Project Name, etc.</SubheadingLabel>
+                                    <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showPoNumber} onChange={(e) => handleActiveThemeProfileChange('showPoNumber', e.target.checked)} name="showPoNumber" />} label="Show PO Number field on Invoice" />
-                                        <Divider sx={{my: 1}}/>
+                                        <Divider sx={{my: 2}}/>
                                         <Button size="small" startIcon={<AddIcon />} onClick={handleAddCustomHeaderField} variant="text" sx={{alignSelf: 'flex-start', mb:1}}>Add Header Field</Button>
                                         {(activeProfileForSettingsUI.customHeaderFields || []).map((field) => (
-                                            <Box key={field.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                                <TextField name="label" label={`Field Label`} value={field.label} onChange={(e) => handleCustomHeaderFieldChange(field.id, e)} size="small" variant="outlined" sx={{flexGrow:1}} placeholder="Enter field label" />
-                                                <FormControl size="small" sx={{ minWidth: 120 }}>
-                                                    <InputLabel>Type</InputLabel>
-                                                    <Select
-                                                        name="type"
-                                                        value={field.type || 'text'}
-                                                        label="Type"
-                                                        onChange={(e) => handleCustomHeaderFieldChange(field.id, e)}
-                                                    >
-                                                        <MenuItem value="text">Text</MenuItem>
-                                                        <MenuItem value="number">Number</MenuItem>
-                                                        <MenuItem value="date">Date</MenuItem>
-                                                    </Select>
-                                                </FormControl>
-                                                <FormControlLabel control={<Checkbox name="displayOnInvoice" checked={!!field.displayOnInvoice} onChange={(e) => handleCustomHeaderFieldChange(field.id, e)} size="small"/>} label="Show" sx={{fontSize: '0.8rem', mr:0}}/>
-                                                <IconButton size="small" onClick={() => handleRemoveCustomHeaderField(field.id)} color="error"><DeleteIcon fontSize="inherit"/></IconButton>
-                                            </Box>
+                                            <Paper key={field.id} variant="outlined" sx={{ p: 2, mb: 2 }}>
+                                                <Grid container spacing={2} alignItems="center">
+                                                    <Grid item xs={12} sm={5}>
+                                                        <TextField name="label" label="Field Label" value={field.label} onChange={(e) => handleCustomHeaderFieldChange(field.id, e)} size="small" fullWidth />
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={4}>
+                                                        <FormControl size="small" fullWidth>
+                                                            <InputLabel>Type</InputLabel>
+                                                            <Select name="type" value={field.type || 'text'} label="Type" onChange={(e) => handleCustomHeaderFieldChange(field.id, e)}>
+                                                                <MenuItem value="text">Text</MenuItem>
+                                                                <MenuItem value="number">Number</MenuItem>
+                                                                <MenuItem value="date">Date</MenuItem>
+                                                                <MenuItem value="date_month_year">Date (Month/Year)</MenuItem>
+                                                                <MenuItem value="tick_box">Tick box</MenuItem>
+                                                                <MenuItem value="yes_no_radio">Yes/No (Radio)</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                                        <FormControlLabel control={<Checkbox name="displayOnInvoice" checked={!!field.displayOnInvoice} onChange={(e) => handleCustomHeaderFieldChange(field.id, e)} size="small" />} label="Show" />
+                                                        <IconButton size="small" onClick={() => handleRemoveCustomHeaderField(field.id)} color="error"><DeleteIcon fontSize="inherit" /></IconButton>
+                                                    </Grid>
+                                                    {(field.type === 'tick_box' || field.type === 'yes_no_radio') && (
+                                                        <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center', pt: '8px !important' }}>
+                                                            <Typography variant="body2" sx={{ mr: 2, color: 'text.secondary' }}>Default:</Typography>
+                                                            {field.type === 'tick_box' && (
+                                                                <FormControlLabel control={<Checkbox name="defaultValue" checked={!!field.defaultValue} onChange={(e) => handleCustomHeaderFieldChange(field.id, e)} size="small" />} label="Checked" />
+                                                            )}
+                                                            {field.type === 'yes_no_radio' && (
+                                                                <FormControl component="fieldset" size="small">
+                                                                    <RadioGroup row name="defaultValue" value={field.defaultValue || 'no'} onChange={(e) => handleCustomHeaderFieldChange(field.id, e)}>
+                                                                        <FormControlLabel value="yes" control={<Radio size="small" />} label="Yes" />
+                                                                        <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
+                                                                    </RadioGroup>
+                                                                </FormControl>
+                                                            )}
+                                                        </Grid>
+                                                    )}
+                                                </Grid>
+                                            </Paper>
                                         ))}
                                         {(activeProfileForSettingsUI.customHeaderFields || []).length === 0 && (<Typography variant="caption" color="textSecondary" display="block">No custom header fields defined for this theme.</Typography>)}
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['showHideSections']} onChange={handleAccordionChange('showHideSections')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography><SettingsApplicationsIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Show/Hide Invoice Sections</Typography></AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Choose to show or hide fields like billing address, shipping info, etc.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Choose to show or hide fields like billing address, shipping info, etc.</SubheadingLabel>
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 1}}>
                                         <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showBillToSection} onChange={(e) => handleActiveThemeProfileChange('showBillToSection', e.target.checked)} name="showBillToSection" />} label="Show 'Bill To' Section" />
                                         <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showShipToSection} onChange={(e) => handleActiveThemeProfileChange('showShipToSection', e.target.checked)} name="showShipToSection" />} label="Show 'Ship To' Section" />
                                         <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showSaleAgentOnInvoice} onChange={(e) => handleActiveThemeProfileChange('showSaleAgentOnInvoice', e.target.checked)} name="showSaleAgentOnInvoice" />} label="Show Sale Agent" />
+                                        <Divider sx={{my:1}}><Typography variant="caption">Payment Summary</Typography></Divider>
+                                        <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showAmountReceived} onChange={(e) => handleActiveThemeProfileChange('showAmountReceived', e.target.checked)} name="showAmountReceived" />} label="Show 'Amount Received'" />
+                                        <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showCreditNoteIssued} onChange={(e) => handleActiveThemeProfileChange('showCreditNoteIssued', e.target.checked)} name="showCreditNoteIssued" />} label="Show 'Credit Note Issued'" />
+                                        <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showExpensesAdjusted} onChange={(e) => handleActiveThemeProfileChange('showExpensesAdjusted', e.target.checked)} name="showExpensesAdjusted" />} label="Show 'Expenses Adjusted'" />
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['itemTable']} onChange={handleAccordionChange('itemTable')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography><ListAltIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Item Table Columns</Typography></AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Decide which item details (like rate, quantity) appear in the invoice.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Decide which item details (like rate, quantity) appear in the invoice.</SubheadingLabel>
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <Box>
                                             <Typography variant="subtitle2" gutterBottom>Column Visibility</Typography>
@@ -890,13 +1224,11 @@ const InvoiceSettingsPage = () => {
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['taxDisplay']} onChange={handleAccordionChange('taxDisplay')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                         <Typography><PercentIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Tax Display Settings</Typography>
                                     </AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Set how tax amounts or labels appear on invoices.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Set how tax amounts or labels appear on invoices.</SubheadingLabel>
                                     <AccordionDetails>
                                         <FormControl component="fieldset">
                                             <RadioGroup
@@ -906,17 +1238,150 @@ const InvoiceSettingsPage = () => {
                                                 onChange={(e) => handleActiveThemeProfileChange(e)}
                                             >
                                                 <FormControlLabel value="no_tax" control={<Radio />} label="No Tax (e.g., for Bill of Supply)" />
-                                                <FormControlLabel value="breakdown" control={<Radio />} label="Show GST Breakdown (Tax %, CGST, SGST, IGST, CESS)" />
+                                                <FormControlLabel value="breakdown" control={<Radio />} label="Show GST/VAT Breakdown" />
                                             </RadioGroup>
                                         </FormControl>
+                                        <Box sx={{ pl: 4, mt: 1, display: 'flex', flexDirection: 'column' }}>
+                                             <FormControlLabel
+                                                control={<Switch
+                                                    checked={!!activeProfileForSettingsUI.itemTableColumns.showCess}
+                                                    onChange={(e) => handleActiveThemeProfileChange('itemTableColumns.showCess', e.target.checked)}
+                                                    name="showCess"
+                                                    disabled={activeProfileForSettingsUI.taxDisplayMode !== 'breakdown'}
+                                                />}
+                                                label="Show CESS % in line item"
+                                            />
+                                            <FormControlLabel
+                                                control={<Switch
+                                                    checked={!!activeProfileForSettingsUI.itemTableColumns.showVat}
+                                                    onChange={(e) => handleActiveThemeProfileChange('itemTableColumns.showVat', e.target.checked)}
+                                                    name="showVat"
+                                                    disabled={activeProfileForSettingsUI.taxDisplayMode !== 'breakdown'}
+                                                />}
+                                                label="Show VAT % in line item"
+                                            />
+                                        </Box>
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['additionalCharges']} onChange={handleAccordionChange('additionalCharges')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                        <Typography><PostAddIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Additional Charges</Typography>
+                                    </AccordionSummary>
+                                    <SubheadingLabel>Add charges like shipping or insurance below the subtotal.</SubheadingLabel>
+                                    <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
+                                        <Button size="small" startIcon={<AddIcon />} onClick={handleAddAdditionalCharge} variant="text" sx={{alignSelf: 'flex-start', mb:1}}>Add Charge</Button>
+                                        {(activeProfileForSettingsUI.additionalCharges || []).map((charge) => (
+                                            <Paper key={charge.id} variant="outlined" sx={{ p: 2, mb: 1, backgroundColor: charge.isMandatory ? 'grey.50' : 'inherit', border: charge.isMandatory ? '1px solid #ddd' : '1px solid #eee' }}>
+                                                <Grid container spacing={2} alignItems="center">
+                                                    <Grid item xs={12} sm={6}>
+                                                        <TextField name="label" label="Charge Label" value={charge.label} onChange={(e) => handleAdditionalChargeChange(charge.id, e)} size="small" fullWidth InputProps={{ readOnly: charge.isMandatory }} />
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={6}>
+                                                        <FormControl fullWidth size="small">
+                                                            <InputLabel>Account</InputLabel>
+                                                            <Select name="accountId" value={charge.accountId} label="Account" onChange={(e) => handleAdditionalChargeChange(charge.id, e)}>
+                                                                <MenuItem value=""><em>None</em></MenuItem>
+                                                                {additionalChargeAccountOptions.map(opt => (
+                                                                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                                                                ))}
+                                                            </Select>
+                                                        </FormControl>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={6}>
+                                                        <FormControl fullWidth size="small">
+                                                            <InputLabel>Value Type</InputLabel>
+                                                            <Select name="valueType" value={charge.valueType} label="Value Type" onChange={(e) => handleAdditionalChargeChange(charge.id, e)}>
+                                                                <MenuItem value="percentage">Percentage</MenuItem>
+                                                                <MenuItem value="fixed">Fixed Amount</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={4}>
+                                                        <TextField
+                                                            name="value"
+                                                            label="Value"
+                                                            type="number"
+                                                            value={charge.value}
+                                                            onChange={(e) => handleAdditionalChargeChange(charge.id, e)}
+                                                            size="small"
+                                                            fullWidth
+                                                            InputProps={{
+                                                                endAdornment: <InputAdornment position="end">{charge.valueType === 'percentage' ? '%' : settings.global.currency}</InputAdornment>,
+                                                            }}
+                                                        />
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={2} sx={{textAlign: 'right'}}>
+                                                        <IconButton size="small" onClick={() => handleRemoveAdditionalCharge(charge.id)} color="error" disabled={charge.isMandatory}>
+                                                            <DeleteIcon fontSize="inherit" />
+                                                        </IconButton>
+                                                    </Grid>
+                                                    {/* **NEW**: Checkbox for showing mandatory discount in preview */}
+                                                    {charge.isMandatory && (
+                                                        <Grid item xs={12}>
+                                                            <FormControlLabel
+                                                                control={
+                                                                    <Checkbox
+                                                                        checked={!!charge.showInPreview}
+                                                                        onChange={(e) => handleAdditionalChargeChange(charge.id, 'showInPreview', e.target.checked)}
+                                                                        name="showInPreview"
+                                                                    />
+                                                                }
+                                                                label="Show this discount in invoice preview and calculations"
+                                                            />
+                                                        </Grid>
+                                                    )}
+                                                </Grid>
+                                            </Paper>
+                                        ))}
+                                        {(activeProfileForSettingsUI.additionalCharges || []).filter(c => !c.isMandatory).length === 0 && (<Typography variant="caption" color="textSecondary" display="block">No custom additional charges defined.</Typography>)}
+                                    </AccordionDetails>
+                                </Accordion>
+
+                                <Accordion expanded={!!expandedAccordions['totalsRounding']} onChange={handleAccordionChange('totalsRounding')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                        <Typography><FunctionsIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Totals & Rounding</Typography>
+                                    </AccordionSummary>
+                                    <SubheadingLabel>Manage invoice total calculations and rounding.</SubheadingLabel>
+                                    <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
+                                        <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.enableRounding} onChange={(e) => handleActiveThemeProfileChange('enableRounding', e.target.checked)} name="enableRounding" />} label="Enable Round Off for Total Amount" />
+                                        <Box sx={{ pl: 4, display: 'flex', flexDirection: 'column', gap: 2, opacity: activeProfileForSettingsUI.enableRounding ? 1 : 0.5, transition: 'opacity 0.3s' }}>
+                                            <FormControl component="fieldset" disabled={!activeProfileForSettingsUI.enableRounding}>
+                                                <RadioGroup
+                                                    row
+                                                    aria-label="rounding-method"
+                                                    name="roundingMethod"
+                                                    value={activeProfileForSettingsUI.roundingMethod || 'auto'}
+                                                    onChange={(e) => handleActiveThemeProfileChange(e)}
+                                                >
+                                                    <FormControlLabel value="auto" control={<Radio />} label="Automatic" />
+                                                    <FormControlLabel value="manual" control={<Radio />} label="Manual" />
+                                                </RadioGroup>
+                                            </FormControl>
+                                            <FormControl fullWidth size="small" disabled={!activeProfileForSettingsUI.enableRounding}>
+                                                <InputLabel id="round-off-account-select-label">Round Off Account</InputLabel>
+                                                <Select
+                                                    labelId="round-off-account-select-label"
+                                                    name="roundOffAccountId"
+                                                    value={activeProfileForSettingsUI.roundOffAccountId || ''}
+                                                    label="Round Off Account"
+                                                    onChange={(e) => handleActiveThemeProfileChange('roundOffAccountId', e.target.value)}
+                                                >
+                                                    <MenuItem value="">
+                                                        <em>None</em>
+                                                    </MenuItem>
+                                                    {roundOffAccountOptions.map(opt => (
+                                                        <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Box>
+                                    </AccordionDetails>
+                                </Accordion>
+
+                                <Accordion expanded={!!expandedAccordions['paymentSettings']} onChange={handleAccordionChange('paymentSettings')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography><QrCodeScannerIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Customer Payment Settings</Typography></AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Let customers know how they can pay you.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Let customers know how they can pay you.</SubheadingLabel>
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <Typography variant="subtitle2">UPI Details:</Typography>
                                         <TextField name="upiId" label="UPI ID" value={activeProfileForSettingsUI.upiId} onChange={(e) => handleActiveThemeProfileChange('upiId', e.target.value)} size="small" fullWidth />
@@ -942,13 +1407,11 @@ const InvoiceSettingsPage = () => {
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['accountingLink']} onChange={handleAccordionChange('accountingLink')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                         <Typography><AccountBalanceIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Accounting Link Settings</Typography>
                                     </AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Connect invoice items with your accounting/ledger system.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Connect invoice items with your accounting/ledger system.</SubheadingLabel>
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <FormControl fullWidth size="small">
                                             <InputLabel id="sales-account-select-label">Default Sales Account</InputLabel>
@@ -970,11 +1433,9 @@ const InvoiceSettingsPage = () => {
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['signatureEtc']} onChange={handleAccordionChange('signatureEtc')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mb: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography><DescriptionIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Signature, Terms, Notes & Footer Settings</Typography></AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Add signature, custom messages, terms, or footer notes on your invoice.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Add signature, custom messages, terms, or footer notes on your invoice.</SubheadingLabel>
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <Grid container spacing={2} alignItems="flex-end">
                                             <Grid item xs={12} md={5}>
@@ -1016,11 +1477,9 @@ const InvoiceSettingsPage = () => {
                                     </AccordionDetails>
                                 </Accordion>
 
-                                <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mt: 2 }}>
+                                <Accordion expanded={!!expandedAccordions['coreBusiness']} onChange={handleAccordionChange('coreBusiness')} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, border: '1px solid #eee', borderRadius:1, mt: 2 }}>
                                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography><SettingsApplicationsIcon sx={{mr:1, verticalAlign: 'bottom'}}/>Core Business Settings</Typography></AccordionSummary>
-                                    <Box sx={{px: 2, pb: 1, color: 'green', fontStyle: 'italic'}}>
-                                        <Typography variant="caption">Set your company logo, default currency, and invoice number format.</Typography>
-                                    </Box>
+                                    <SubheadingLabel>Set your company logo, default currency, and invoice number format.</SubheadingLabel>
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <TextField name="nextInvoiceNumber" label="Next Invoice Number (Global)" type="number" value={settings.global.nextInvoiceNumber} onChange={handleGlobalSettingChange} size="small" fullWidth InputProps={{ inputProps: { min: 1 } }}/>
                                         <TextField name="companyLogoUrl" label="Company Logo URL (Global)" value={settings.global.companyLogoUrl} onChange={handleGlobalSettingChange} size="small" fullWidth helperText="Enter full URL or path like /images/logo.png"/>
@@ -1052,14 +1511,7 @@ const InvoiceSettingsPage = () => {
                         <Box sx={{ border: '1px solid #ddd', minHeight: 'calc(100% - 40px)', backgroundColor: '#fff' }}>
                            {activeProfileForSettingsUI &&
                             <InvoicePreview
-                                settings={{
-                                    ...activeProfileForSettingsUI,
-                                    activeThemeName: themeForPreviewStyle.baseThemeName,
-                                    selectedColor: themeForPreviewStyle.selectedColor,
-                                    companyLogoUrl: settings.global.companyLogoUrl,
-                                    currency: settings.global.currency,
-                                    nextInvoiceNumber: settings.global.nextInvoiceNumber
-                                }}
+                                settings={settingsForPreview}
                                 companyDetails={companyDetails}
                                 bankAccountOptions={bankAccountOptions}
                             />

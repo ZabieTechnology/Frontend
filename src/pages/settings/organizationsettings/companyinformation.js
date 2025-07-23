@@ -66,7 +66,7 @@ const initialCompanyFormData = {
   pfEnabled: false, pfNumber: "", esicEnabled: false, esicNumber: "",
   iecRegistered: false, iecNumber: "", tdsTcsEnabled: false, tanNumber: "",
   tdsTcsFinancialYear: "", advanceTaxEnabled: false, logo: null, logoPreview: null,
-  msmeEnabled: false, msmeNumber: "",
+  msmeEnabled: false, msmeNumber: "", vatEnabled: false, vatNumber: "",
 };
 
 function CompanyInformation() {
@@ -210,7 +210,7 @@ function CompanyInformation() {
         <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #ecf0f1' }}>
           <Typography variant="h6" gutterBottom>Compliance & Tax Information</Typography>
           <Grid container spacing={3} alignItems="flex-start">
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
                 <FormControlLabel control={<Switch checked={formData.gstRegistered} onChange={handleSwitchChange} name="gstRegistered" />} label="GST Registered" />
                 {formData.gstRegistered && ( <>
                     <TextField margin="dense" required fullWidth label="GST Number" name="gstNumber" value={formData.gstNumber} onChange={handleChange} />
@@ -222,6 +222,12 @@ function CompanyInformation() {
                     </FormControl>
                     <TextField margin="dense" fullWidth label="GST ISD Number" name="gstIsdNumber" value={formData.gstIsdNumber} onChange={handleChange} />
                 </>)}
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                <FormControlLabel control={<Switch checked={formData.vatEnabled} onChange={handleSwitchChange} name="vatEnabled" />} label="VAT Enabled" />
+                {formData.vatEnabled && (
+                    <TextField margin="dense" required fullWidth label="VAT Number" name="vatNumber" value={formData.vatNumber} onChange={handleChange} />
+                )}
             </Grid>
             <Grid item xs={12} sm={6}><FormControlLabel control={<Switch checked={formData.tdsTcsEnabled} onChange={handleSwitchChange} name="tdsTcsEnabled" />} label="TDS/TCS Enabled" />{formData.tdsTcsEnabled && (<Box sx={{ pt: 1 }}><TextField margin="dense" required fullWidth label="TAN Number" name="tanNumber" value={formData.tanNumber} onChange={handleChange} /><FormControl fullWidth margin="dense"><InputLabel>Since which financial year</InputLabel><Select label="Since which financial year" name="tdsTcsFinancialYear" value={formData.tdsTcsFinancialYear} onChange={handleChange}>{financialYears.map((year) => (<MenuItem key={year} value={year}>{year}</MenuItem>))}</Select></FormControl></Box>)}</Grid>
             <Grid item xs={12} sm={6}><FormControlLabel control={<Switch checked={formData.advanceTaxEnabled} onChange={handleSwitchChange} name="advanceTaxEnabled" />} label="Advance Tax Enabled" /></Grid>

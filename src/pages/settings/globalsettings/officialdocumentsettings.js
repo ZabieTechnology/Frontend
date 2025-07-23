@@ -182,6 +182,11 @@ Example: 01234567
 Rule: Only digits
 Issued By: MCA
 Purpose: Director ID`,
+    cin_rules: `Format: 21-digit alphanumeric
+Example: U74899DL2021PTC123456
+Rule: Starts with L/U + industry code + state + year + ownership + registration no.
+Issued By: ROC
+Purpose: Corporate Identity Number`,
     iec_rules: `Format: 10-char alphanumeric
 Example: ABCDE1234F
 Rule: Same as PAN
@@ -205,7 +210,19 @@ Rule:
 - Then 2-digit district code
 - Ends with 7-digit unique number
 Issued By: Ministry of MSME
-Purpose: Recognition for Micro, Small, and Medium Enterprises`
+Purpose: Recognition for Micro, Small, and Medium Enterprises`,
+    mobile_rules: `Format: 10-digit numeric
+Example: 9876543210
+Rule: Must be a valid 10-digit Indian mobile number. Can have +91 prefix.
+Purpose: Contact Information`,
+    email_rules: `Format: Standard email format
+Example: contact@example.com
+Rule: Must be a valid email address (e.g., user@domain.com)
+Purpose: Electronic Communication`,
+    website_rules: `Format: Standard URL
+Example: https://www.example.com
+Rule: Must be a valid URL.
+Purpose: Online Presence`,
 };
 
 
@@ -277,7 +294,7 @@ const App = () => {
     setBusinessRules(updatedRules);
   };
 
-  // 3. Handle input changes for Aadhar/DIN rules
+  // 3. Handle input changes for Aadhar/DIN/etc rules
   const handleOtherRuleChange = (fieldKey, value) => {
     setOtherRules(prevRules => ({
         ...prevRules,
@@ -456,7 +473,7 @@ const App = () => {
                     <TextField
                         fullWidth
                         multiline
-                        rows={6}
+                        rows={8}
                         label="Aadhaar Rules"
                         value={otherRules.aadhar_rules}
                         onChange={(e) => handleOtherRuleChange('aadhar_rules', e.target.value)}
@@ -466,7 +483,7 @@ const App = () => {
                     <TextField
                         fullWidth
                         multiline
-                        rows={6}
+                        rows={8}
                         label="DIN Rules"
                         value={otherRules.din_rules}
                         onChange={(e) => handleOtherRuleChange('din_rules', e.target.value)}
@@ -476,7 +493,17 @@ const App = () => {
                     <TextField
                         fullWidth
                         multiline
-                        rows={6}
+                        rows={8}
+                        label="CIN Rules"
+                        value={otherRules.cin_rules}
+                        onChange={(e) => handleOtherRuleChange('cin_rules', e.target.value)}
+                    />
+                </Grid>
+                 <Grid item xs={12} md={4}>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={8}
                         label="IEC Rules"
                         value={otherRules.iec_rules}
                         onChange={(e) => handleOtherRuleChange('iec_rules', e.target.value)}
@@ -486,7 +513,7 @@ const App = () => {
                     <TextField
                         fullWidth
                         multiline
-                        rows={6}
+                        rows={8}
                         label="PF (UAN) Rules"
                         value={otherRules.pf_uan_rules}
                         onChange={(e) => handleOtherRuleChange('pf_uan_rules', e.target.value)}
@@ -496,10 +523,40 @@ const App = () => {
                     <TextField
                         fullWidth
                         multiline
-                        rows={6}
+                        rows={8}
                         label="ESIC Rules"
                         value={otherRules.esic_rules}
                         onChange={(e) => handleOtherRuleChange('esic_rules', e.target.value)}
+                    />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={8}
+                        label="Mobile Number Rules"
+                        value={otherRules.mobile_rules}
+                        onChange={(e) => handleOtherRuleChange('mobile_rules', e.target.value)}
+                    />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={8}
+                        label="Email Rules"
+                        value={otherRules.email_rules}
+                        onChange={(e) => handleOtherRuleChange('email_rules', e.target.value)}
+                    />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={8}
+                        label="Website Rules"
+                        value={otherRules.website_rules}
+                        onChange={(e) => handleOtherRuleChange('website_rules', e.target.value)}
                     />
                 </Grid>
                 <Grid item xs={12} md={4}>
