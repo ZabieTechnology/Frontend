@@ -51,7 +51,6 @@ import {
   Undo as UndoIcon
 } from '@mui/icons-material';
 import { format, parseISO, isValid } from 'date-fns';
-import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 // Create a default theme as a fallback
@@ -299,38 +298,7 @@ export default function InvoicePage() {
     };
   }, [invoiceId]);
 
-  const handleDownloadPdf = async () => {
-    const element = printRef.current;
-    if (!element) return;
-    setIsDownloading(true);
-    try {
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        const contentWidth = pageWidth - (margin * 2);
-        const imgProperties = pdf.getImageProperties(imgData);
-        const contentHeight = (imgProperties.height * contentWidth) / imgProperties.width;
-        let heightLeft = contentHeight;
-        let position = 0;
-        pdf.addImage(imgData, 'PNG', margin, position + margin, contentWidth, contentHeight);
-        heightLeft -= (pageHeight - (margin * 2));
-        while (heightLeft > 0) {
-            position -= (pageHeight - margin);
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', margin, position + margin, contentWidth, contentHeight);
-            heightLeft -= (pageHeight - (margin * 2));
-        }
-        pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
-    } catch (err) {
-        console.error("Error generating PDF:", err);
-        setError("Failed to generate PDF.");
-    } finally {
-        setIsDownloading(false);
-    }
-  };
+
 
   const handleEditInvoice = () => {
     navigate(`/sales/edit/${invoice._id}`);
@@ -438,8 +406,7 @@ export default function InvoicePage() {
                 )}
 
                 <ButtonGroup variant="outlined" aria-label="action button group">
-                    <ActionButton startIcon={isDownloading ? <CircularProgress size={20} /> : <Download />} onClick={handleDownloadPdf} disabled={isDownloading}>Download PDF</ActionButton>
-                    <ActionButton onClick={handlePrintMenuClick} endIcon={<ArrowDropDownIcon />}>Print PDF</ActionButton>
+
                 </ButtonGroup>
                 <Menu anchorEl={printMenuAnchorEl} open={Boolean(printMenuAnchorEl)} onClose={handleMenuClose}>
                     <MenuItem onClick={handleMenuClose}>Thermal Print</MenuItem>
