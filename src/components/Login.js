@@ -29,12 +29,12 @@ const Login = ({ setToken }) => {
   // useEffect to check backend status and set the update message
   useEffect(() => {
     // Set the confirmation message that the component has been updated
-    setUpdateMessage('Page updated successfully with the latest features.');
+    setUpdateMessage('Page updated with enhanced error logging and a test function.');
 
     const checkBackendStatus = async () => {
       try {
-        // This simulates a health check to your backend.
-        // You can replace this with an actual API call, e.g., await axios.get(`${apiUrl}/api/health`);
+        // This simulates a health check. In a real app, you might have a dedicated endpoint.
+        // e.g., await axios.get(`${apiUrl}/api/health`);
         setDbStatus({
           message: "Successfully connected to the database (Azure Reference).",
           type: "success",
@@ -50,6 +50,36 @@ const Login = ({ setToken }) => {
 
     checkBackendStatus();
   }, [apiUrl]); // Re-run if apiUrl changes
+
+  // Function to test the POST request independently
+  const testPostFunction = async () => {
+    setError("Testing POST to /api/auth/login...");
+    setLoading(true);
+    try {
+      const response = await axios.post(`${apiUrl}/api/auth/login`, {
+        username: "testuser",
+        password: "testpassword",
+      });
+      setError("Test successful! Received response: " + JSON.stringify(response.data));
+    } catch (err) {
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const status = err.response.status;
+        const message = err.response.data.message || err.message;
+        setError(`Test Failed: Server responded with status ${status}. Message: ${message}`);
+      } else if (err.request) {
+        // The request was made but no response was received
+        setError("Test Failed: No response from server. Check network and CORS configuration.");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        setError(`Test Failed: An error occurred during the request setup. ${err.message}`);
+      }
+      console.error("Test POST function error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -68,11 +98,13 @@ const Login = ({ setToken }) => {
       navigate("/home");
     } catch (err) {
       if (err.response) {
-        setError(err.response.data.message || "Login failed. Please check your credentials.");
+        const status = err.response.status;
+        const message = err.response.data.message || "Please check your credentials.";
+        setError(`Login Failed: Status ${status}. ${message}`);
       } else if (err.request) {
-        setError("No response from server. Please try again later.");
+        setError("Login Failed: No response from server. Please try again later.");
       } else {
-        setError("An error occurred during login. Please try again.");
+        setError(`Login Failed: An error occurred. ${err.message}`);
       }
       console.error("Login error:", err);
     } finally {
@@ -98,22 +130,17 @@ const Login = ({ setToken }) => {
           Login
         </Typography>
 
-        {/* Confirmation message for the page update */}
         {updateMessage && (
-          <Alert severity="success" sx={{ width: '100%', mb: 2 }} onClose={() => setUpdateMessage("")}>
+          <Alert severity="info" sx={{ width: '100%', mb: 2 }} onClose={() => setUpdateMessage("")}>
             {updateMessage}
           </Alert>
         )}
 
-        {/* Display DB connection status message */}
-        {dbStatus.message && (
-          <Alert severity={dbStatus.type} sx={{ width: '100%', mb: 2 }}>
-            {dbStatus.message}
+        {error && (
+          <Alert severity={error.includes("Failed") ? "error" : "info"} sx={{ width: '100%', mb: 2, whiteSpace: 'pre-wrap' }} onClose={() => setError("")}>
+            {error}
           </Alert>
         )}
-
-        {/* Display login error message */}
-        {error && <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
 
         <Box component="form" onSubmit={handleLogin} noValidate sx={{ mt: 1, width: '100%' }}>
           <TextField
@@ -161,10 +188,19 @@ const Login = ({ setToken }) => {
             fullWidth
             variant="contained"
             color="primary"
-            sx={{ mt: 2, mb: 2, py: 1.5 }}
+            sx={{ mt: 2, mb: 1, py: 1.5 }}
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
+          </Button>
+          <Button
+            onClick={testPostFunction}
+            fullWidth
+            variant="outlined"
+            sx={{ mb: 2 }}
+            disabled={loading}
+          >
+            Test POST to API
           </Button>
           <Grid container justifyContent="flex-end">
             <Grid item>
