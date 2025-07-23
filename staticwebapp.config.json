@@ -1,0 +1,14 @@
+{
+  "routes": [
+    {
+      "route": "/api/auth/*",
+      "methods": ["POST", "GET"],
+      "rewrite": "/api/auth"
+    }
+  ],
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html"
+    }
+  }
+}
