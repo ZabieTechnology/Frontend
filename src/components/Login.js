@@ -136,6 +136,13 @@ const Login = ({ setToken }) => {
           </Alert>
         )}
 
+        {/* Display DB connection status message */}
+        {dbStatus.message && (
+          <Alert severity={dbStatus.type} sx={{ width: '100%', mb: 2 }}>
+            {dbStatus.message}
+          </Alert>
+        )}
+
         {error && (
           <Alert severity={error.includes("Failed") ? "error" : "info"} sx={{ width: '100%', mb: 2, whiteSpace: 'pre-wrap' }} onClose={() => setError("")}>
             {error}
