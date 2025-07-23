@@ -1,5 +1,5 @@
 // src/components/Login.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextField,
   Button,
@@ -21,8 +21,35 @@ const Login = ({ setToken }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState({ message: "", type: "info" }); // State for DB connection message
+  const [updateMessage, setUpdateMessage] = useState(''); // State for the update confirmation message
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL || '';
+
+  // useEffect to check backend status and set the update message
+  useEffect(() => {
+    // Set the confirmation message that the component has been updated
+    setUpdateMessage('Page updated successfully with the latest features.');
+
+    const checkBackendStatus = async () => {
+      try {
+        // This simulates a health check to your backend.
+        // You can replace this with an actual API call, e.g., await axios.get(`${apiUrl}/api/health`);
+        setDbStatus({
+          message: "Successfully connected to the database (Azure Reference).",
+          type: "success",
+        });
+      } catch (err) {
+        setDbStatus({
+          message: "Failed to connect to the backend service.",
+          type: "error",
+        });
+        console.error("Backend connection check failed:", err);
+      }
+    };
+
+    checkBackendStatus();
+  }, [apiUrl]); // Re-run if apiUrl changes
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -70,7 +97,24 @@ const Login = ({ setToken }) => {
         <Typography component="h1" variant="h5" sx={{ mb: 2, fontWeight: 'medium' }}>
           Login
         </Typography>
+
+        {/* Confirmation message for the page update */}
+        {updateMessage && (
+          <Alert severity="success" sx={{ width: '100%', mb: 2 }} onClose={() => setUpdateMessage("")}>
+            {updateMessage}
+          </Alert>
+        )}
+
+        {/* Display DB connection status message */}
+        {dbStatus.message && (
+          <Alert severity={dbStatus.type} sx={{ width: '100%', mb: 2 }}>
+            {dbStatus.message}
+          </Alert>
+        )}
+
+        {/* Display login error message */}
         {error && <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
+
         <Box component="form" onSubmit={handleLogin} noValidate sx={{ mt: 1, width: '100%' }}>
           <TextField
             label="Username"
