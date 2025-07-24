@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Checkbox, // Added Checkbox
 } from "@mui/material";
 import {
     Save as SaveIcon,
@@ -88,6 +89,11 @@ const initialFormData = {
     paymentTerms: 'Net30',
     creditLimit: '',
   },
+  billsAndPayments: {
+    enabled: false,
+    allowBillRaising: false,
+    allowPurchaseOrder: false,
+  },
   logo: null,
   logoPreview: null,
   logoFilename: '',
@@ -125,8 +131,7 @@ const getPanTooltipText = (customerType, companyType, businessRules) => {
     return `Format: 5 letters, 4 numbers, 1 letter (e.g., ABCDE1234F). The 4th character must be '${panTypeChar}' for a(n) ${panTypeDesc}.`;
 };
 
-// --- Opening Balance Invoice Dialog Component ---
-// A separate component to handle the entry of multiple opening balance invoices.
+// --- Opening Balance Invoice Dialog Component (Redesigned) ---
 function OpeningBalanceDialog({ open, onClose, onSave, initialInvoices, isViewMode }) {
     const [invoices, setInvoices] = useState([]);
     const [total, setTotal] = useState(0);
@@ -161,44 +166,90 @@ function OpeningBalanceDialog({ open, onClose, onSave, initialInvoices, isViewMo
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-            <DialogTitle>Opening Balance Invoices</DialogTitle>
+            <DialogTitle>Opening Balance Breakdown</DialogTitle>
             <DialogContent>
-                {invoices.map(invoice => (
-                    <Grid container spacing={1} key={invoice.id} alignItems="center" sx={{ mb: 2 }}>
-                        <Grid item xs={12} sm={3}>
-                            <TextField label="Invoice Number" value={invoice.number} onChange={(e) => handleInvoiceChange(invoice.id, 'number', e.target.value)} fullWidth size="small" disabled={isViewMode} />
+                {/* Header Row */}
+                <Box sx={{ display: { xs: 'none', sm: 'block' }, mb: 1, px: 1 }}>
+                    <Grid container spacing={2} sx={{ color: 'text.secondary' }}>
+                        <Grid item sm={3}><Typography variant="subtitle2" fontWeight="bold">Invoice Number</Typography></Grid>
+                        <Grid item sm={3}><Typography variant="subtitle2" fontWeight="bold">Date</Typography></Grid>
+                        <Grid item sm={3}><Typography variant="subtitle2" fontWeight="bold">Description</Typography></Grid>
+                        <Grid item sm={2}><Typography variant="subtitle2" fontWeight="bold">Amount</Typography></Grid>
+                        <Grid item sm={1}></Grid>
+                    </Grid>
+                </Box>
+
+                {/* Invoice List */}
+                <Box sx={{ maxHeight: 400, overflowY: 'auto', pr: 1 }}>
+                    {invoices.length > 0 ? invoices.map((invoice, index) => (
+                        <Grid
+                            container
+                            spacing={2}
+                            key={invoice.id}
+                            alignItems="center"
+                            sx={{
+                                p: 1,
+                                mb: 1,
+                                borderRadius: 2,
+                                backgroundColor: index % 2 === 0 ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                            }}
+                        >
+                            <Grid item xs={12} sm={3}>
+                                <TextField label="Invoice Number" value={invoice.number} onChange={(e) => handleInvoiceChange(invoice.id, 'number', e.target.value)} fullWidth size="small" disabled={isViewMode} variant="outlined" />
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                                <TextField label="Invoice Date" type="date" value={invoice.date} onChange={(e) => handleInvoiceChange(invoice.id, 'date', e.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} disabled={isViewMode} variant="outlined" />
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                                <TextField label="Description" value={invoice.description} onChange={(e) => handleInvoiceChange(invoice.id, 'description', e.target.value)} fullWidth size="small" disabled={isViewMode} variant="outlined" />
+                            </Grid>
+                            <Grid item xs={12} sm={2}>
+                                <TextField label="Amount" type="number" value={invoice.amount} onChange={(e) => handleInvoiceChange(invoice.id, 'amount', e.target.value)} fullWidth size="small" InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} disabled={isViewMode} variant="outlined" />
+                            </Grid>
+                            <Grid item xs={12} sm={1} sx={{ textAlign: 'center' }}>
+                                {!isViewMode && (
+                                    <Tooltip title="Remove Invoice">
+                                        <IconButton onClick={() => handleRemoveInvoice(invoice.id)} color="error" size="small">
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12} sm={3}>
-                            <TextField label="Invoice Date" type="date" value={invoice.date} onChange={(e) => handleInvoiceChange(invoice.id, 'date', e.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} disabled={isViewMode} />
+                    )) : (
+                        <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
+                           <Typography>No invoices added for opening balance.</Typography>
+                        </Box>
+                    )}
+                </Box>
+
+                {!isViewMode &&
+                    <Button onClick={handleAddInvoice} startIcon={<AddIcon />} sx={{ mt: 2 }}>
+                        Add Invoice
+                    </Button>
+                }
+
+                <Box sx={{ mt: 3, p: 2, backgroundColor: 'grey.100', borderRadius: 2 }}>
+                    <Grid container justifyContent="flex-end" alignItems="center">
+                        <Grid item>
+                            <Typography variant="h6">Total Balance:</Typography>
                         </Grid>
-                        <Grid item xs={12} sm={3}>
-                            <TextField label="Description" value={invoice.description} onChange={(e) => handleInvoiceChange(invoice.id, 'description', e.target.value)} fullWidth size="small" disabled={isViewMode} />
-                        </Grid>
-                        <Grid item xs={12} sm={2}>
-                            <TextField label="Amount" type="number" value={invoice.amount} onChange={(e) => handleInvoiceChange(invoice.id, 'amount', e.target.value)} fullWidth size="small" InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} disabled={isViewMode} />
-                        </Grid>
-                        <Grid item xs={12} sm={1}>
-                            {!isViewMode && (
-                                <IconButton onClick={() => handleRemoveInvoice(invoice.id)} color="error">
-                                    <DeleteIcon />
-                                </IconButton>
-                            )}
+                        <Grid item sx={{minWidth: 150, textAlign: 'right'}}>
+                            <Typography variant="h6" fontWeight="bold">₹{total.toFixed(2)}</Typography>
                         </Grid>
                     </Grid>
-                ))}
-                {!isViewMode && <Button onClick={handleAddInvoice} startIcon={<AddIcon />} sx={{ mt: 1 }}>Add Invoice</Button>}
-                <Box sx={{ mt: 2, textAlign: 'right' }}>
-                    <Typography variant="h6">Total Amount: ₹{total.toFixed(2)}</Typography>
                 </Box>
             </DialogContent>
-            <DialogActions>
+            <DialogActions sx={{ p: '16px 24px' }}>
                 <Button onClick={onClose}>Cancel</Button>
-                {!isViewMode && <Button onClick={handleSave} variant="contained">Save</Button>}
+                {!isViewMode ?
+                    <Button onClick={handleSave} variant="contained" color="primary">Save Balance</Button> :
+                    <Button onClick={onClose} variant="contained" color="primary">Close</Button>
+                }
             </DialogActions>
         </Dialog>
     );
 }
-
 
 // --- Main Customer Form Component ---
 function CustomerForm() {
@@ -286,12 +337,16 @@ function CustomerForm() {
         const newFormData = {
           ...initialFormData,
           ...fetched,
-          customFields: Array.isArray(fetched.customFields) ? fetched.customFields.map(cf => ({...cf, id: cf.id || Date.now()})) : [],
+          customFields: Array.isArray(fetched.customFields) ? fetched.customFields.map(cf => ({...cf, id: cf.id || Date.now(), show: cf.show !== false })) : [],
           _id: fetched._id,
           primaryContact: { ...initialFormData.primaryContact, ...(fetched.primaryContact || {}) },
           financialDetails: {
             ...initialFormData.financialDetails,
             ...(fetched.financialDetails || {}),
+          },
+          billsAndPayments: {
+            ...initialFormData.billsAndPayments,
+            ...(fetched.billsAndPayments || {}),
           },
           billingAddressLine1: fetched.billingAddress?.street || '',
           billingAddressLine2: fetched.billingAddress?.street2 || '',
@@ -373,14 +428,15 @@ function CustomerForm() {
     }
   }, [formData.customerType, companyTypes, individualTypeName]);
 
-  // Generic handler for most form input changes
+  // Generic handler for most form input changes (including text, select, radio, switch)
   const handleChange = (event) => {
     if (isViewMode) return;
     const { name, value, type, checked } = event.target;
+    const val = type === 'checkbox' ? checked : value;
 
     // Special handling for customer type change
     if (name === 'customerType') {
-        const newCustomerType = value;
+        const newCustomerType = val;
         setFormData((prev) => {
             const newState = { ...prev, customerType: newCustomerType };
             if (newCustomerType === 'B2C') {
@@ -395,7 +451,7 @@ function CustomerForm() {
 
     // Special handling for GSTIN to auto-fill PAN
     if (name === 'gstNumber') {
-        const gstValue = value.toUpperCase();
+        const gstValue = val.toUpperCase();
         setFormData(prev => {
             const newState = {...prev, gstNumber: gstValue};
             if (gstValue.length === 15) {
@@ -406,33 +462,26 @@ function CustomerForm() {
         return;
     }
 
-    // Handling for nested state objects like 'primaryContact'
-    const [section, field] = name.split('.');
-    if (section && field) {
-      setFormData((prev) => ({
-        ...prev,
-        [section]: {
-          ...(prev[section] || {}),
-          [field]: type === 'checkbox' ? checked : value,
-        },
-      }));
+    // Handling for nested state objects
+    const keys = name.split('.');
+    if (keys.length > 1) {
+        const [section, field] = keys;
+        setFormData((prev) => ({
+            ...prev,
+            [section]: {
+                ...(prev[section] || {}),
+                [field]: val,
+            },
+        }));
     } else {
+      // Handling for top-level properties
       setFormData((prev) => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : value,
+        [name]: val,
+        // Special logic from original handleSwitchChange
+        ...(name === 'gstRegistered' && !val && { gstNumber: '', pan: '' }),
       }));
     }
-  };
-
-  // Handler for switch components
-  const handleSwitchChange = (event) => {
-    if (isViewMode) return;
-    const { name, checked } = event.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: checked,
-      ...(name === 'gstRegistered' && !checked && { gstNumber: '', pan: '' }), // Clear GST/PAN if unregistered
-    }));
   };
 
   // Handler for the "Same as Billing" switch
@@ -463,7 +512,7 @@ function CustomerForm() {
   const handleAddCustomField = () => {
     setFormData(prev => ({
         ...prev,
-        customFields: [...prev.customFields, { id: Date.now(), label: '', value: '', dataType: 'text' }]
+        customFields: [...prev.customFields, { id: Date.now(), label: '', value: '', dataType: 'text', show: true }]
     }));
   };
 
@@ -480,8 +529,16 @@ function CustomerForm() {
         customFields: prev.customFields.map(field => {
             if (field.id === id) {
                 const updatedField = { ...field, [fieldName]: value };
-                if (fieldName === 'dataType') { // Reset value if type changes
-                    updatedField.value = '';
+                // When data type changes, reset the value to prevent data mismatch
+                if (fieldName === 'dataType') {
+                    switch(updatedField.dataType) {
+                        case 'tick-box':
+                            updatedField.value = false; // Default for checkbox
+                            break;
+                        default:
+                            updatedField.value = ''; // Default for other types
+                            break;
+                    }
                 }
                 return updatedField;
             }
@@ -575,6 +632,7 @@ function CustomerForm() {
         tdsEnabled: formData.tdsEnabled,
         note: formData.note,
         financialDetails: formData.financialDetails,
+        billsAndPayments: formData.billsAndPayments,
         gstRegistered: formData.gstRegistered,
         gstNumber: formData.gstRegistered ? formData.gstNumber : "",
         gstTdsEnabled: formData.gstTdsEnabled,
@@ -655,7 +713,7 @@ function CustomerForm() {
                 </FormControl>
 
                 <Box sx={{ mt: 1, p: 1.5, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                    <FormControlLabel control={ <Switch checked={formData.gstRegistered} onChange={handleSwitchChange} name="gstRegistered" size="small" disabled={isViewMode}/>} label="GST Registered" />
+                    <FormControlLabel control={ <Switch checked={formData.gstRegistered} onChange={handleChange} name="gstRegistered" size="small" disabled={isViewMode}/>} label="GST Registered" />
                     {formData.gstRegistered && (
                         <TextField
                             margin="dense"
@@ -807,41 +865,115 @@ function CustomerForm() {
                 </Select> </FormControl>
 
                 <Typography variant="h6" sx={{fontSize: '1.1rem', color: '#4CAF50', fontWeight: 'bold', mb:1, mt:2}}>Tax Details</Typography>
-                <FormControlLabel control={<Switch checked={formData.tcsEnabled} onChange={handleSwitchChange} name="tcsEnabled" size="small" disabled={isViewMode}/>} label="TCS on sale" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
-                <FormControlLabel control={<Switch checked={formData.tdsEnabled} onChange={handleSwitchChange} name="tdsEnabled" size="small" disabled={isViewMode}/>} label="TDS on sale" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
-                <FormControlLabel control={<Switch checked={formData.gstTdsEnabled} onChange={handleSwitchChange} name="gstTdsEnabled" size="small" disabled={isViewMode}/>} label="GST TDS" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
-                <FormControlLabel control={<Switch checked={formData.gstTcsEnabled} onChange={handleSwitchChange} name="gstTcsEnabled" size="small" disabled={isViewMode}/>} label="GST TCS" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
-                 <Typography variant="h6" sx={{fontSize: '1.1rem', color: '#4CAF50', fontWeight: 'bold', mb:1, mt:2}}>Others</Typography>
+                <FormControlLabel control={<Switch checked={formData.tcsEnabled} onChange={handleChange} name="tcsEnabled" size="small" disabled={isViewMode}/>} label="TCS on sale" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
+                <FormControlLabel control={<Switch checked={formData.tdsEnabled} onChange={handleChange} name="tdsEnabled" size="small" disabled={isViewMode}/>} label="TDS on sale" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
+                <FormControlLabel control={<Switch checked={formData.gstTdsEnabled} onChange={handleChange} name="gstTdsEnabled" size="small" disabled={isViewMode}/>} label="GST TDS" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
+                <FormControlLabel control={<Switch checked={formData.gstTcsEnabled} onChange={handleChange} name="gstTcsEnabled" size="small" disabled={isViewMode}/>} label="GST TCS" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
+
+                <Typography variant="h6" sx={{fontSize: '1.1rem', color: '#4CAF50', fontWeight: 'bold', mb:1, mt:2}}>Bills & Payments</Typography>
+                <FormControlLabel control={<Switch checked={formData.billsAndPayments?.enabled || false} onChange={handleChange} name="billsAndPayments.enabled" size="small" disabled={isViewMode}/>} label="Enable Bills & Payments" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
+                {formData.billsAndPayments?.enabled && (
+                    <Box sx={{ pl: 2, borderLeft: '2px solid #e0e0e0', ml: 1, mt: 1, pt: 1, pb: 1 }}>
+                        <FormControlLabel control={<Switch checked={formData.billsAndPayments?.allowBillRaising || false} onChange={handleChange} name="billsAndPayments.allowBillRaising" size="small" disabled={isViewMode}/>} label="Enable Bill Raising" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
+                        <FormControlLabel control={<Switch checked={formData.billsAndPayments?.allowPurchaseOrder || false} onChange={handleChange} name="billsAndPayments.allowPurchaseOrder" size="small" disabled={isViewMode}/>} label="Enable Purchase Order" labelPlacement="start" sx={{ justifyContent: 'space-between', ml: 0, width: '100%' }} />
+                    </Box>
+                )}
+
+                <Typography variant="h6" sx={{fontSize: '1.1rem', color: '#4CAF50', fontWeight: 'bold', mb:1, mt:2}}>Others</Typography>
                 <TextField name="note" label="Note" value={formData.note} onChange={handleChange} fullWidth margin="normal" size="small" multiline rows={2} disabled={isViewMode}/>
+
+                {/* --- UPDATED CUSTOM FIELDS SECTION --- */}
                 {formData.customFields.map((field) => (
                     <Grid container spacing={1} key={field.id} alignItems="center" sx={{mb: 1}}>
-                        <Grid item xs={12} sm={4}>
-                            <TextField label="Custom Label" value={field.label} onChange={(e) => handleCustomFieldChange(field.id, 'label', e.target.value)} fullWidth margin="dense" size="small" disabled={isViewMode} />
-                        </Grid>
                         <Grid item xs={12} sm={3}>
-                             <FormControl fullWidth margin="dense" size="small">
-                                <InputLabel>Type</InputLabel>
-                                <Select value={field.dataType} onChange={(e) => handleCustomFieldChange(field.id, 'dataType', e.target.value)} label="Type" disabled={isViewMode}>
-                                    <MenuItem value="text">Text</MenuItem>
-                                    <MenuItem value="number">Number</MenuItem>
-                                    <MenuItem value="date">Date</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
                             <TextField
-                                label="Value"
-                                value={field.value}
-                                type={field.dataType}
-                                onChange={(e) => handleCustomFieldChange(field.id, 'value', e.target.value)}
+                                label="Field Label"
+                                value={field.label}
+                                onChange={(e) => handleCustomFieldChange(field.id, 'label', e.target.value)}
                                 fullWidth
                                 margin="dense"
                                 size="small"
                                 disabled={isViewMode}
-                                InputLabelProps={field.dataType === 'date' ? { shrink: true } : {}}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={1}>
+                        <Grid item xs={12} sm={3}>
+                             <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}>
+                                <InputLabel>Type</InputLabel>
+                                <Select
+                                    value={field.dataType}
+                                    onChange={(e) => handleCustomFieldChange(field.id, 'dataType', e.target.value)}
+                                    label="Type"
+                                >
+                                    <MenuItem value="text">Text</MenuItem>
+                                    <MenuItem value="number">Number</MenuItem>
+                                    <MenuItem value="date">Date</MenuItem>
+                                    <MenuItem value="date-month-year">Date (Month/Year)</MenuItem>
+                                    <MenuItem value="tick-box">Tick box</MenuItem>
+                                    <MenuItem value="yes-no">Yes/No (Radio)</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={3}>
+                            {(() => {
+                                switch (field.dataType) {
+                                    case 'tick-box':
+                                        return (
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        checked={!!field.value}
+                                                        onChange={(e) => handleCustomFieldChange(field.id, 'value', e.target.checked)}
+                                                        disabled={isViewMode}
+                                                    />
+                                                }
+                                                label="Checked"
+                                            />
+                                        );
+                                    case 'yes-no':
+                                        return (
+                                            <RadioGroup
+                                                row
+                                                value={field.value}
+                                                onChange={(e) => handleCustomFieldChange(field.id, 'value', e.target.value)}
+                                            >
+                                                <FormControlLabel value="yes" control={<Radio size="small"/>} label="Yes" disabled={isViewMode} />
+                                                <FormControlLabel value="no" control={<Radio size="small"/>} label="No" disabled={isViewMode} />
+                                            </RadioGroup>
+                                        );
+                                    default:
+                                        return (
+                                            <TextField
+                                                label="Value"
+                                                value={field.value}
+                                                type={
+                                                    field.dataType === 'date' ? 'date' :
+                                                    field.dataType === 'number' ? 'number' :
+                                                    field.dataType === 'date-month-year' ? 'month' : 'text'
+                                                }
+                                                onChange={(e) => handleCustomFieldChange(field.id, 'value', e.target.value)}
+                                                fullWidth
+                                                margin="dense"
+                                                size="small"
+                                                disabled={isViewMode}
+                                                InputLabelProps={['date', 'date-month-year'].includes(field.dataType) ? { shrink: true } : {}}
+                                            />
+                                        );
+                                }
+                            })()}
+                        </Grid>
+                        <Grid item xs={9} sm={2}>
+                             <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={field.show}
+                                        onChange={(e) => handleCustomFieldChange(field.id, 'show', e.target.checked)}
+                                        disabled={isViewMode}
+                                    />
+                                }
+                                label="Show"
+                             />
+                        </Grid>
+                        <Grid item xs={3} sm={1}>
                             <IconButton onClick={() => handleRemoveCustomField(field.id)} size="small" disabled={isViewMode}>
                                 <DeleteIcon />
                             </IconButton>

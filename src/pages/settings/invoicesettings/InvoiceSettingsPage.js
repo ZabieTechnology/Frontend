@@ -22,15 +22,22 @@ import InvoicePreview from './InvoicePreview';
 const baseThemes = [
     { name: "Modern", previewImage: "/images/themes/001-bank.png" },
     { name: "Stylish", previewImage: "/images/themes/002-online banking.png" },
-    { name: "Advanced GST (Tally)", previewImage: "/images/themes/004-receptionist.png" },
-    { name: "Advanced GST (A)", previewImage: "/images/themes/019-currency.png" },
-    { name: "Billbook (A)", previewImage: "/images/themes/023-cut card.png" },
     { name: "Simple", previewImage: "/images/themes/038-tax.png" },
 ];
 
+// Expanded color palette for better visibility and accessibility
 const colorPalette = [
-    '#4CAF50', '#2196F3', '#F44336', '#FF9800', '#9C27B0', '#009688', '#795548', '#000000'
+    '#4CAF50', '#2196F3', '#F44336', '#FF9800', '#9C27B0', '#009688', '#795548', '#000000',
+    '#0D47A1', // Dark Blue
+    '#4A148C', // Deep Purple
+    '#1B5E20', // Dark Green
+    '#B71C1C', // Dark Red
+    '#FF6F00', // Amber Dark
+    '#006064', // Cyan Dark
 ];
+
+// Text color palette with more light colors added
+const textColorPalette = ['#212121', '#D32F2F', '#1976D2', '#757575', '#616161', '#8D6E63'];
 
 const MANDATORY_ITEM_COLUMNS = {
     pricePerItem: true,
@@ -46,11 +53,13 @@ const OPTIONAL_ITEM_COLUMNS_DEFAULT = {
     serialNo: false,
     showCess: false,
     showVat: false, // Added for VAT toggle
+    showGrossValue: true,
 };
 
 const initialSingleThemeProfileData = {
-    baseThemeName: "Modern",
-    selectedColor: "#4CAF50",
+    baseThemeName: "Simple",
+    selectedColor: "#757575",
+    textColor: "#212121",
     itemTableColumns: {
         ...MANDATORY_ITEM_COLUMNS,
         ...OPTIONAL_ITEM_COLUMNS_DEFAULT,
@@ -81,7 +90,8 @@ const initialSingleThemeProfileData = {
     notesDefault: "Thank you for your business!",
     // New Round Off Settings
     enableRounding: false,
-    roundingMethod: 'auto', // 'auto' or 'manual'
+    roundingMethod: 'auto', // 'auto' is the only option now
+    invoiceTotalCalculation: 'auto', // 'auto' or 'manual'
     roundOffAccountId: '',
     // Additional Charges below subtotal
     additionalCharges: [
@@ -115,7 +125,7 @@ const initialInvoiceSettings = {
     savedThemes: [
         {
             id: `theme_profile_${Date.now()}`,
-            profileName: 'Default Modern Green',
+            profileName: 'Default Simple Grey',
             isDefault: true,
             ...JSON.parse(JSON.stringify(initialSingleThemeProfileData))
         }
@@ -136,6 +146,7 @@ const getColumnLabel = (key, customItemColumns) => {
     const labels = {
         pricePerItem: "Price Per Item", quantity: "Quantity", batchNo: "Batch No", expDate: "Expiry Date",
         mfgDate: "Mfg Date", discountPerItem: "Discount Per Item", hsnSacCode: "HSN/SAC Code", serialNo: "Serial No",
+        showGrossValue: "Gross Value",
     };
     return labels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 };
@@ -169,6 +180,7 @@ const InvoiceSettingsPage = () => {
     const [themeForPreviewStyle, setThemeForPreviewStyle] = useState({
         baseThemeName: settings.savedThemes.find(t => t.isDefault)?.baseThemeName || baseThemes[0].name,
         selectedColor: settings.savedThemes.find(t => t.isDefault)?.selectedColor || colorPalette[0],
+        textColor: settings.savedThemes.find(t => t.isDefault)?.textColor || textColorPalette[0],
     });
 
     const [bankAccountOptions, setBankAccountOptions] = useState([]);
@@ -217,6 +229,7 @@ const InvoiceSettingsPage = () => {
             setThemeForPreviewStyle({
                 baseThemeName: activeProfile.baseThemeName,
                 selectedColor: activeProfile.selectedColor,
+                textColor: activeProfile.textColor,
             });
         }
     }, [activeThemeProfileId, getActiveThemeProfile, API_BASE_URL]);
@@ -227,11 +240,13 @@ const InvoiceSettingsPage = () => {
             setThemeForPreviewStyle({
                 baseThemeName: defaultTheme.baseThemeName,
                 selectedColor: defaultTheme.selectedColor,
+                textColor: defaultTheme.textColor || textColorPalette[0],
             });
         } else if (savedThemesArray.length > 0) {
              setThemeForPreviewStyle({
                 baseThemeName: savedThemesArray[0].baseThemeName,
                 selectedColor: savedThemesArray[0].selectedColor,
+                textColor: savedThemesArray[0].textColor || textColorPalette[0],
             });
         }
     }, []);
@@ -274,21 +289,20 @@ const InvoiceSettingsPage = () => {
 
     const fetchRoundOffAccounts = useCallback(async () => {
         try {
-            const expensePromise = axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Expense`, { withCredentials: true });
-            const incomePromise = axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Other Income`, { withCredentials: true });
+            const promises = [
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Expense`, { withCredentials: true }),
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Other Income`, { withCredentials: true }),
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Direct Incomes`, { withCredentials: true }),
+                axios.get(`${API_BASE_URL}/api/chart-of-accounts?accountType=Sales`, { withCredentials: true }),
+            ];
 
-            const [expenseResponse, incomeResponse] = await Promise.all([expensePromise, incomePromise]);
+            const responses = await Promise.all(promises);
 
-            let accounts = [];
-            if (expenseResponse.data && Array.isArray(expenseResponse.data.data)) {
-                accounts.push(...expenseResponse.data.data);
-            }
-            if (incomeResponse.data && Array.isArray(incomeResponse.data.data)) {
-                accounts.push(...incomeResponse.data.data);
-            }
+            const accounts = responses.flatMap(response => (response.data && Array.isArray(response.data.data)) ? response.data.data : []);
 
             if (accounts.length > 0) {
-                setRoundOffAccountOptions(accounts.map(acc => ({
+                const uniqueAccounts = Array.from(new Map(accounts.map(acc => [acc._id, acc])).values());
+                setRoundOffAccountOptions(uniqueAccounts.map(acc => ({
                     value: acc._id,
                     label: `${acc.name || 'N/A'} ${acc.code ? `(${acc.code})` : ''} [${acc.accountType}]`.trim()
                 })));
@@ -355,8 +369,9 @@ const InvoiceSettingsPage = () => {
                         ...JSON.parse(JSON.stringify(initialSingleThemeProfileData)),
                         ...theme,
                         itemTableColumns: {
+                            ...OPTIONAL_ITEM_COLUMNS_DEFAULT,
+                            ...theme.itemTableColumns,
                             ...MANDATORY_ITEM_COLUMNS,
-                            ...(theme.itemTableColumns || OPTIONAL_ITEM_COLUMNS_DEFAULT)
                         },
                         id: theme.id || `theme_profile_${Date.now()}_${Math.random()}`,
                     };
@@ -477,10 +492,11 @@ const InvoiceSettingsPage = () => {
                         }
                     }
 
-                    if (eventOrPath === 'baseThemeName' || eventOrPath === 'selectedColor' || eventOrPath.target?.name === 'baseThemeName' || eventOrPath.target?.name === 'selectedColor') {
+                    if (eventOrPath === 'baseThemeName' || eventOrPath === 'selectedColor' || eventOrPath.target?.name === 'baseThemeName' || eventOrPath.target?.name === 'selectedColor' || eventOrPath === 'textColor') {
                         setThemeForPreviewStyle({
                             baseThemeName: updatedProfile.baseThemeName,
                             selectedColor: updatedProfile.selectedColor,
+                            textColor: updatedProfile.textColor,
                         });
                     }
                     return updatedProfile;
@@ -765,7 +781,11 @@ const InvoiceSettingsPage = () => {
         }));
         const newDefault = settings.savedThemes.find(t => t.id === idToSetAsDefault);
         if (newDefault) {
-             setThemeForPreviewStyle({ baseThemeName: newDefault.baseThemeName, selectedColor: newDefault.selectedColor });
+             setThemeForPreviewStyle({
+                baseThemeName: newDefault.baseThemeName,
+                selectedColor: newDefault.selectedColor,
+                textColor: newDefault.textColor || textColorPalette[0]
+            });
         }
     };
 
@@ -947,6 +967,7 @@ const InvoiceSettingsPage = () => {
         ...activeProfileForSettingsUI,
         activeThemeName: themeForPreviewStyle.baseThemeName,
         selectedColor: themeForPreviewStyle.selectedColor,
+        textColor: themeForPreviewStyle.textColor,
         companyLogoUrl: settings.global.companyLogoUrl,
         currency: settings.global.currency,
         nextInvoiceNumber: settings.global.nextInvoiceNumber,
@@ -1005,6 +1026,10 @@ const InvoiceSettingsPage = () => {
                                 <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
                                     Color: <Box component="span" sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: activeProfileForSettingsUI.selectedColor, ml: 1, border: '1px solid #ccc' }} />
                                     <Box component="span" sx={{ ml: 0.5 }}>{activeProfileForSettingsUI.selectedColor}</Box>
+                                </Typography>
+                                 <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Text Color: <Box component="span" sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: activeProfileForSettingsUI.textColor, ml: 1, border: '1px solid #ccc' }} />
+                                    <Box component="span" sx={{ ml: 0.5 }}>{activeProfileForSettingsUI.textColor}</Box>
                                 </Typography>
                                 <Typography variant="body2">Currency: {settings.global.currency}</Typography>
                                 <Typography variant="body2">
@@ -1096,12 +1121,21 @@ const InvoiceSettingsPage = () => {
                                               {baseThemes.map(bt => <MenuItem key={bt.name} value={bt.name}>{bt.name}</MenuItem>)}
                                           </Select>
                                       </FormControl>
-                                      <Typography variant="caption">Selected Color:</Typography>
-                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, mt:0.5 }}>
+                                      <Typography variant="caption">Accent Color:</Typography>
+                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, mt:0.5 }}>
                                           {colorPalette.map(color => (
                                               <Tooltip title={color} key={`${activeThemeProfileId}-${color}`}>
                                                   <Box onClick={() => handleActiveThemeProfileChange('selectedColor', color)}
                                                        sx={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: color, cursor: 'pointer', border: activeProfileForSettingsUI.selectedColor === color ? '3px solid white' : `1px solid ${color}`, boxShadow: activeProfileForSettingsUI.selectedColor === color ? `0 0 0 2px ${color}` : '0 1px 2px rgba(0,0,0,0.2)' }}/>
+                                              </Tooltip>
+                                          ))}
+                                      </Box>
+                                       <Typography variant="caption">Text Color:</Typography>
+                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt:0.5 }}>
+                                          {textColorPalette.map(color => (
+                                              <Tooltip title={color} key={`${activeThemeProfileId}-text-${color}`}>
+                                                  <Box onClick={() => handleActiveThemeProfileChange('textColor', color)}
+                                                       sx={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: color, cursor: 'pointer', border: `1px solid ${color === '#FFFFFF' ? '#ccc' : 'transparent'}`, outline: activeProfileForSettingsUI.textColor === color ? `2px solid ${activeProfileForSettingsUI.selectedColor}` : 'none', outlineOffset: '2px' }}/>
                                               </Tooltip>
                                           ))}
                                       </Box>
@@ -1346,18 +1380,9 @@ const InvoiceSettingsPage = () => {
                                     <AccordionDetails sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                                         <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.enableRounding} onChange={(e) => handleActiveThemeProfileChange('enableRounding', e.target.checked)} name="enableRounding" />} label="Enable Round Off for Total Amount" />
                                         <Box sx={{ pl: 4, display: 'flex', flexDirection: 'column', gap: 2, opacity: activeProfileForSettingsUI.enableRounding ? 1 : 0.5, transition: 'opacity 0.3s' }}>
-                                            <FormControl component="fieldset" disabled={!activeProfileForSettingsUI.enableRounding}>
-                                                <RadioGroup
-                                                    row
-                                                    aria-label="rounding-method"
-                                                    name="roundingMethod"
-                                                    value={activeProfileForSettingsUI.roundingMethod || 'auto'}
-                                                    onChange={(e) => handleActiveThemeProfileChange(e)}
-                                                >
-                                                    <FormControlLabel value="auto" control={<Radio />} label="Automatic" />
-                                                    <FormControlLabel value="manual" control={<Radio />} label="Manual" />
-                                                </RadioGroup>
-                                            </FormControl>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                                                Rounding method is always Automatic.
+                                            </Typography>
                                             <FormControl fullWidth size="small" disabled={!activeProfileForSettingsUI.enableRounding}>
                                                 <InputLabel id="round-off-account-select-label">Round Off Account</InputLabel>
                                                 <Select
@@ -1374,6 +1399,38 @@ const InvoiceSettingsPage = () => {
                                                         <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                                                     ))}
                                                 </Select>
+                                            </FormControl>
+                                        </Box>
+                                        <Divider sx={{ my: 1 }} />
+                                        <Box>
+                                            <Typography variant="subtitle1" gutterBottom>Invoice Creation</Typography>
+                                            <Typography
+                                                component="div"
+                                                sx={{
+                                                    display: 'inline-block',
+                                                    px: 1.5,
+                                                    py: 0.5,
+                                                    mb: 1.5,
+                                                    bgcolor: '#E8F5E9',
+                                                    color: '#388E3C',
+                                                    borderRadius: '16px',
+                                                    fontWeight: 500,
+                                                    fontSize: '0.75rem',
+                                                }}
+                                            >
+                                                Set how totals are calculated on the sales invoice screen.
+                                            </Typography>
+                                            <FormControl component="fieldset">
+                                                <RadioGroup
+                                                    row
+                                                    aria-label="invoice-total-calculation"
+                                                    name="invoiceTotalCalculation"
+                                                    value={activeProfileForSettingsUI.invoiceTotalCalculation || 'auto'}
+                                                    onChange={(e) => handleActiveThemeProfileChange(e)}
+                                                >
+                                                    <FormControlLabel value="auto" control={<Radio />} label="Automatic Calculation" />
+                                                    <FormControlLabel value="manual" control={<Radio />} label="Allow Manual Entry" />
+                                                </RadioGroup>
                                             </FormControl>
                                         </Box>
                                     </AccordionDetails>

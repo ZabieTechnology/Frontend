@@ -1,5 +1,5 @@
-// src/pages/AccountTransaction/AccountListPage.js (or your ChartOfAccounts.js)
-import React, { useState, useEffect, useCallback } from 'react';
+// src/pages/AccountTransaction/AccountListPage.js
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -10,8 +10,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Tabs,
-  Tab,
   IconButton,
   TableSortLabel,
   Typography,
@@ -22,37 +20,132 @@ import {
   CircularProgress,
   Alert,
   Link,
-  Tooltip
+  Tooltip,
+  List,
+  ListItem,
+  ListItemText,
+  ListSubheader,
+  Popover,
+  Menu,
+  Checkbox,
+  FormControlLabel,
+  Toolbar,
+  Drawer,
+  styled,
 } from '@mui/material';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
-import StarIcon from '@mui/icons-material/Star';
+import { alpha } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined'; // Balance Sheet
+import EqualizerIcon from '@mui/icons-material/Equalizer'; // Profit & Loss
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useConfirmationDialog from '../../hooks/useConfirmationDialog'; // Adjust path if needed
 
-// Moved tabCategories outside the component to prevent re-creation on every render
-const tabCategories = [
-    "All Accounts", // Index 0
-    "Asset",        // Index 1
-    "Liability",    // Index 2
-    "Equity",       // Index 3
-    "Expense",      // Index 4
-    "Income",       // Index 5 (Revenue)
-    "Tax",          // Index 6 (This will fetch from ca_tax)
-    "Inactive"      // Index 7
+const allHeadCells = [
+    { id: 'nature', label: 'Nature', sortable: true, filterable: true },
+    { id: 'mainHead', label: 'Main Head', sortable: true, filterable: true },
+    { id: 'parentCategory', label: 'Category', sortable: true, filterable: true },
+    { id: 'code', label: 'Account Code', sortable: true, filterable: true },
+    { id: 'name', label: 'Account Name', sortable: true, filterable: true },
+    { id: 'openingBalance', label: 'Opening Balance', sortable: true, numeric: true },
+    { id: 'description', label: 'Description', sortable: false },
+    { id: 'subAccount', label: 'Sub Account', sortable: true, filterable: true },
+    { id: 'paymentEnabled', label: 'Payment Enabled', sortable: true, filterable: true },
+    { id: 'isLocked', label: 'Locked', sortable: true, filterable: true },
+    { id: 'actions', label: 'Actions', sortable: false },
 ];
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(odd)': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  '&:last-child td, &:last-child th': {
+    border: 0,
+  },
+}));
+
+// A dedicated component for the filter popover
+const FilterPopover = ({ open, anchorEl, onClose, columnName, options, selectedValues, onApplyFilter }) => {
+    const [currentSelection, setCurrentSelection] = useState(selectedValues);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        setCurrentSelection(selectedValues);
+    }, [selectedValues, open]);
+
+    const handleToggle = (value) => {
+        const newSelection = new Set(currentSelection);
+        if (newSelection.has(value)) {
+            newSelection.delete(value);
+        } else {
+            newSelection.add(value);
+        }
+        setCurrentSelection(Array.from(newSelection));
+    };
+
+    const handleSelectAll = () => {
+        if (currentSelection.length === filteredOptions.length) {
+            setCurrentSelection([]);
+        } else {
+            setCurrentSelection(filteredOptions.map(opt => opt.value));
+        }
+    };
+
+    const handleApply = () => {
+        onApplyFilter(currentSelection);
+        onClose();
+    };
+
+    const filteredOptions = useMemo(() => options.filter(opt =>
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [options, searchTerm]);
+
+    return (
+        <Popover open={open} anchorEl={anchorEl} onClose={onClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+            <Box sx={{ p: 2, width: 280, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="subtitle1" sx={{ mb: 1 }}>Filter by {columnName}</Typography>
+                <TextField placeholder="Search values..." variant="outlined" size="small" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} sx={{ mb: 1 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                     <Button onClick={handleSelectAll}>
+                        {currentSelection.length === filteredOptions.length ? 'Clear' : 'Select All'}
+                    </Button>
+                    <Button onClick={() => setCurrentSelection([])}>Clear All</Button>
+                </Box>
+                <List dense sx={{ maxHeight: 200, overflow: 'auto' }}>
+                    {filteredOptions.map(option => (
+                        <ListItem key={option.value} dense disablePadding>
+                           <FormControlLabel control={<Checkbox checked={currentSelection.includes(option.value)} onChange={() => handleToggle(option.value)} />} label={option.label} sx={{width: '100%'}}/>
+                        </ListItem>
+                    ))}
+                </List>
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                    <Button onClick={onClose}>Cancel</Button>
+                    <Button variant="contained" onClick={handleApply}>Apply</Button>
+                </Box>
+            </Box>
+        </Popover>
+    );
+};
 
 const AccountListPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [selected, setSelected] = useState([]);
 
-  const [currentTab, setCurrentTab] = useState(0);
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [previewType, setPreviewType] = useState('');
+
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('name');
 
@@ -62,40 +155,31 @@ const AccountListPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [filters, setFilters] = useState({});
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [activeFilterColumn, setActiveFilterColumn] = useState(null);
+
+  const [columnMenuAnchorEl, setColumnMenuAnchorEl] = useState(null);
+  const [visibleColumns, setVisibleColumns] = useState(allHeadCells.reduce((acc, headCell) => ({ ...acc, [headCell.id]: true }), {}));
+
   const navigate = useNavigate();
   const { confirm, ConfirmationDialog } = useConfirmationDialog();
   const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
+  const [allAccountsForPreview, setAllAccountsForPreview] = useState([]);
+
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     setError(null);
-    let endpoint = `${API_BASE_URL}/api/chart-of-accounts`;
-    let params = {
+    const endpoint = `${API_BASE_URL}/api/chart-of-accounts`;
+    const params = {
       page,
       limit: itemsPerPage,
       search: searchTerm,
-      // Send category only if it's not "All Accounts" or "Tax" (handled differently)
-      // Backend needs to know that "All Accounts" means no category filter or a specific value.
-      // And "Tax" tab has its own endpoint.
+      orderBy,
+      order,
+      ...Object.fromEntries(Object.entries(filters).map(([key, value]) => [key, value.join(',')]).filter(([, value]) => value))
     };
-
-    const currentCategory = tabCategories[currentTab];
-
-    if (currentCategory === "Tax") {
-      endpoint = `${API_BASE_URL}/api/gst-rates/derived-tax-accounts`;
-      // For the "Tax" tab, only send parameters that its specific endpoint expects.
-      // If it doesn't support search, page, limit, remove them or adjust.
-      // Keeping them for now, assuming the backend might handle them.
-      params = {
-        page,
-        limit: itemsPerPage,
-        search: searchTerm,
-      };
-    } else if (currentCategory !== "All Accounts") {
-      // For specific categories like "Asset", "Liability", etc.
-      params.category = currentCategory;
-    }
-    // For "All Accounts", params.category will not be set, so backend should fetch all (excluding inactive if that's the logic)
 
     try {
       const response = await axios.get(endpoint, { params, withCredentials: true });
@@ -104,283 +188,198 @@ const AccountListPage = () => {
         setTotalItems(response.data.total || 0);
         setTotalPages(response.data.totalPages || 0);
       } else {
-        setAccounts([]);
-        setTotalItems(0);
-        setTotalPages(0);
-        setError(`Failed to fetch data for ${currentCategory}: Invalid data format.`);
+        setAccounts([]); setError(`Failed to fetch accounts: Invalid data format.`);
       }
     } catch (err) {
-      console.error(`Error fetching ${currentCategory}:`, err);
-      setError(`Error fetching ${currentCategory}: ${err.response?.data?.message || err.message}`);
+      setError(`Error fetching accounts: ${err.response?.data?.message || err.message}`);
       setAccounts([]);
-      setTotalItems(0);
-      setTotalPages(0);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, page, itemsPerPage, searchTerm, currentTab]); // CORRECTED: Removed unnecessary dependencies 'order' and 'orderBy'
+  }, [API_BASE_URL, page, itemsPerPage, searchTerm, orderBy, order, filters]);
 
   useEffect(() => {
     fetchAccounts();
+    setSelected([]);
   }, [fetchAccounts]);
 
-  const handleChangeTab = (event, newValue) => {
-    setCurrentTab(newValue);
-    setPage(1);
-    setOrderBy('name'); // Reset orderBy when tab changes
-    setOrder('asc');
-  };
+  useEffect(() => {
+      const fetchAllForPreview = async () => {
+        try {
+            const { data } = await axios.get(`${API_BASE_URL}/api/chart-of-accounts`, { params: { limit: 1000 }, withCredentials: true });
+            if (data && Array.isArray(data.data)) setAllAccountsForPreview(data.data);
+        } catch (error) {
+             console.error(`Error fetching all accounts for preview:`, error);
+        }
+      };
+      fetchAllForPreview();
+  }, [API_BASE_URL, success]);
+
+  const filterOptions = useMemo(() => {
+    const options = {};
+    allHeadCells.forEach(headCell => {
+        if (headCell.filterable) {
+            const uniqueValues = new Set(allAccountsForPreview.map(acc => {
+                if(headCell.id === 'paymentEnabled' || headCell.id === 'isLocked') return acc[headCell.id] ? 'Yes' : 'No';
+                return acc[headCell.id] || 'N/A';
+            }));
+            options[headCell.id] = Array.from(uniqueValues).map(val => ({ label: String(val), value: val }));
+        }
+    });
+    return options;
+  }, [allAccountsForPreview]);
 
   const handleRequestSort = (property) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
+    setOrder(orderBy === property && order === 'asc' ? 'desc' : 'asc');
     setOrderBy(property);
-    setPage(1); // Reset to first page when sorting changes
   };
 
-  const stableSort = (array, comparator) => {
-    const stabilizedThis = array.map((el, index) => [el, index]);
-    stabilizedThis.sort((a, b) => {
-      const orderResult = comparator(a[0], b[0]);
-      if (orderResult !== 0) return orderResult;
-      return a[1] - b[1];
-    });
-    return stabilizedThis.map((el) => el[0]);
+  const handleSelectAllClick = (event) => setSelected(event.target.checked ? accounts.map((n) => n._id) : []);
+
+  const handleClick = (event, id) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelected(Array.from(newSelected));
   };
 
-  const getComparator = (sortOrder, sortBy) => {
-    return sortOrder === 'desc'
-      ? (a, b) => descendingComparator(a, b, sortBy)
-      : (a, b) => -descendingComparator(a, b, sortBy);
-  };
+  const isSelected = (id) => selected.includes(id);
 
-  const descendingComparator = (a, b, sortBy) => {
-    const isTaxTab = tabCategories[currentTab] === "Tax";
-    // Use 'taxRate' for sorting if on Tax tab and orderBy is 'gstTaxRate' (which is the ID in coaHeadCells)
-    // or if orderBy is directly 'taxRate' (which is the ID in caTaxHeadCells)
-    const actualSortByField = isTaxTab && (sortBy === 'gstTaxRate' || sortBy === 'taxRate') ? 'taxRate' : sortBy;
+  const handleAddAccountClick = () => navigate('/account-transaction/chart-of-accounts/new');
+  const handleEditAccountClick = (accountId) => navigate(`/account-transaction/chart-of-accounts/edit/${accountId}`);
+  const handleViewAccountClick = (accountId) => navigate(`/account-transaction/chart-of-accounts/edit/${accountId}?view=true`);
 
-    if (b[actualSortByField] < a[actualSortByField]) return -1;
-    if (b[actualSortByField] > a[actualSortByField]) return 1;
-    return 0;
-  };
-
-  const sortedAccounts = accounts ? stableSort(accounts, getComparator(order, orderBy)) : [];
-
-  const coaHeadCells = [
-    { id: 'isFavorite', numeric: false, disablePadding: true, label: '', sortable: true },
-    { id: 'code', numeric: false, disablePadding: false, label: 'Code', sortable: true },
-    { id: 'name', numeric: false, disablePadding: false, label: 'Name', sortable: true },
-    { id: 'parentCategory', numeric: false, disablePadding: false, label: 'Heads/Category', sortable: true },
-    { id: 'gstTaxRate', numeric: false, disablePadding: false, label: 'Default Tax', sortable: true },
-    { id: 'description', numeric: false, disablePadding: false, label: 'Description', sortable: true },
-    { id: 'status', numeric: false, disablePadding: false, label: 'Status', sortable: true },
-    { id: 'actions', numeric: false, disablePadding: false, label: 'Actions', sortable: false },
-  ];
-
-  const caTaxHeadCells = [
-    { id: 'code', numeric: false, disablePadding: false, label: 'Code', sortable: true },
-    { id: 'name', numeric: false, disablePadding: false, label: 'Name', sortable: true },
-    { id: 'taxType', numeric: false, disablePadding: false, label: 'Tax Type', sortable: true },
-    { id: 'head', numeric: false, disablePadding: false, label: 'Heads', sortable: true },
-    { id: 'taxRate', numeric: false, disablePadding: false, label: 'Tax Rate (%)', sortable: true },
-  ];
-
-  const currentHeadCells = tabCategories[currentTab] === "Tax" ? caTaxHeadCells : coaHeadCells;
-
-  const handleAddAccountClick = () => {
-    navigate('/account-transaction/chart-of-accounts/new');
-  };
-
-  const handleEditAccountClick = (accountId) => {
-    navigate(`/account-transaction/chart-of-accounts/edit/${accountId}`);
-  };
-
-  const handleViewAccountClick = (accountId) => {
-    navigate(`/account-transaction/chart-of-accounts/edit/${accountId}?view=true`);
-  };
-
-  const handleDeleteAccount = async (accountId, accountName) => {
+  const handleDeleteAccount = async (accountIds) => {
     setError(null); setSuccess(null);
     try {
-      await axios.delete(`${API_BASE_URL}/api/chart-of-accounts/${accountId}`, { withCredentials: true });
-      setSuccess(`Account "${accountName}" deleted successfully.`);
+      await Promise.all(accountIds.map(id => axios.delete(`${API_BASE_URL}/api/chart-of-accounts/${id}`, { withCredentials: true })));
+      setSuccess(`Successfully deleted ${accountIds.length} account(s).`);
       fetchAccounts();
-      setTimeout(() => setSuccess(null), 3000);
+      setSelected([]);
     } catch (err) {
-      setError(`Failed to delete account: ${err.response?.data?.message || err.message}`);
-      setTimeout(() => setError(null), 5000);
+      setError(`Failed to delete account(s): ${err.response?.data?.message || err.message}`);
     }
   };
 
-  const confirmDeleteAccount = (accountId, accountName) => {
-    confirm({
-      title: 'Confirm Deletion',
-      message: `Are you sure you want to delete account "${accountName || accountId}"? This action cannot be revoked.`,
-      onConfirmAction: () => handleDeleteAccount(accountId, accountName),
-    });
+  const confirmDelete = (accountIds) => {
+     const message = accountIds.length > 1 ? `Are you sure you want to delete these ${accountIds.length} accounts?` : `Are you sure you want to delete this account?`;
+     confirm({ title: 'Confirm Deletion', message, onConfirmAction: () => handleDeleteAccount(accountIds) });
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+  const handleFilterIconClick = (event, columnId) => {
+    setActiveFilterColumn(columnId);
+    setFilterAnchorEl(event.currentTarget);
   };
 
-  const handleChangeItemsPerPage = (event) => {
-    setItemsPerPage(parseInt(event.target.value, 10));
+  const handleFilterApply = (selectedValues) => {
+    setFilters(prev => ({...prev, [activeFilterColumn]: selectedValues}));
     setPage(1);
   };
 
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-    setPage(1);
-  };
+  const handleColumnVisibilityChange = (columnId) => setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }));
+
+  const handlePreviewClick = (type) => { setPreviewType(type); setDrawerOpen(true); };
+
+  const renderAccountList = (list, title) => (
+    <List dense subheader={<ListSubheader sx={{bgcolor: 'inherit', fontWeight: 'bold'}}>{title}</ListSubheader>}>
+      {list.length > 0 ? list.map(acc => <ListItem key={acc._id} sx={{py: 0, pl: 4}}><ListItemText primary={acc.name} secondary={acc.code} /></ListItem>) : <ListItem sx={{pl: 4}}><ListItemText primaryTypographyProps={{ color: 'text.secondary', fontStyle: 'italic' }}>No accounts yet</ListItemText></ListItem>}
+    </List>
+  );
+
+  const assetAccounts = allAccountsForPreview.filter(a => a.parentCategory === 'Asset');
+  const liabilityAccounts = allAccountsForPreview.filter(a => a.parentCategory === 'Liability');
+  const equityAccounts = allAccountsForPreview.filter(a => a.parentCategory === 'Equity');
+  const incomeAccounts = allAccountsForPreview.filter(a => a.parentCategory === 'Income');
+  const expenseAccounts = allAccountsForPreview.filter(a => a.parentCategory === 'Expense');
+
+  const visibleHeadCells = allHeadCells.filter(headCell => visibleColumns[headCell.id]);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, backgroundColor: '#f9fafb' }}>
       <ConfirmationDialog />
-      <Typography variant="h4" gutterBottom sx={{ color: '#4CAF50', fontWeight: 'bold' }}>
-        Chart of Accounts
-      </Typography>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#111827' }}>Chart of Accounts</Typography>
 
+      <Alert severity="info" sx={{mb: 2}}>Note: Filters are based on all accounts in the system, not just the currently displayed page.</Alert>
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>{success}</Alert>}
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-        <TextField
-            label={`Search ${tabCategories[currentTab]}`}
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={handleSearchChange}
-            sx={{ minWidth: '300px' }}
-        />
-        {tabCategories[currentTab] !== "Tax" && (
-            <Button variant="outlined" sx={{ mr: 1 }} onClick={handleAddAccountClick} startIcon={<AddIcon />}>
-                Add Account
-            </Button>
-        )}
-      </Box>
-
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={currentTab} onChange={handleChangeTab} aria-label="account-tabs" variant="scrollable" scrollButtons="auto">
-          {tabCategories.map((label, index) => (
-            <Tab key={index} label={label} />
-          ))}
-        </Tabs>
-      </Box>
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 750 }} aria-label="chart of accounts table">
+      <Paper sx={{ width: '100%', mb: 2, borderRadius: '12px', overflow: 'hidden' }}>
+        <Toolbar sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 }, ...(selected.length > 0 && { bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity), }), display: 'flex', justifyContent: 'space-between' }}>
+            {selected.length > 0 ? (<Typography color="inherit" variant="subtitle1">{selected.length} selected</Typography>) : (<TextField label="Search Accounts" variant="outlined" size="small" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} sx={{ flexGrow: 1, maxWidth: '400px' }} />)}
+            {selected.length > 0 ? (<Tooltip title="Delete"><IconButton onClick={() => confirmDelete(selected)}><DeleteIcon /></IconButton></Tooltip>) : (
+                <Box>
+                  <Tooltip title="Balance Sheet Preview"><IconButton onClick={() => handlePreviewClick('balanceSheet')}><AssessmentOutlinedIcon /></IconButton></Tooltip>
+                  <Tooltip title="Profit & Loss Preview"><IconButton onClick={() => handlePreviewClick('profitAndLoss')}><EqualizerIcon /></IconButton></Tooltip>
+                  <Button variant="contained" onClick={handleAddAccountClick} startIcon={<AddIcon />} sx={{mx: 1, borderRadius: '8px'}}>Add Account</Button>
+                  <IconButton onClick={(e) => setColumnMenuAnchorEl(e.currentTarget)}><MoreVertIcon /></IconButton>
+                </Box>
+            )}
+        </Toolbar>
+        <TableContainer>
+          <Table sx={{ minWidth: 750 }} aria-labelledby="tableTitle">
             <TableHead>
-              <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                {currentHeadCells.map((headCell) => (
-                  <TableCell
-                    key={headCell.id}
-                    align={headCell.numeric ? 'right' : 'left'}
-                    padding={headCell.disablePadding ? 'none' : 'default'}
-                    sortDirection={orderBy === headCell.id ? order : false}
-                  >
-                    {headCell.sortable ? (
-                      <TableSortLabel
-                        active={orderBy === headCell.id}
-                        direction={orderBy === headCell.id ? order : 'asc'}
-                        onClick={() => handleRequestSort(headCell.id)}
-                      >
-                        {headCell.label}
-                      </TableSortLabel>
-                    ) : (
-                      headCell.label
-                    )}
+              <TableRow>
+                <TableCell padding="checkbox"><Checkbox indeterminate={selected.length > 0 && selected.length < accounts.length} checked={accounts.length > 0 && selected.length === accounts.length} onChange={handleSelectAllClick} /></TableCell>
+                {visibleHeadCells.map((headCell) => (
+                  <TableCell key={headCell.id} align='left' sortDirection={orderBy === headCell.id ? order : false}>
+                    <Box sx={{display: 'flex', alignItems: 'center'}}>
+                       <TableSortLabel active={orderBy === headCell.id} direction={orderBy === headCell.id ? order : 'asc'} onClick={() => handleRequestSort(headCell.id)}>{headCell.label}</TableSortLabel>
+                       {headCell.filterable && <IconButton size="small" onClick={(e) => handleFilterIconClick(e, headCell.id)}><FilterListIcon fontSize="small" color={filters[headCell.id]?.length > 0 ? 'primary' : 'inherit'}/></IconButton>}
+                    </Box>
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedAccounts.length > 0 ? sortedAccounts.map((account) => (
-                <TableRow key={account._id} hover>
-                  {tabCategories[currentTab] !== "Tax" && (
-                    <TableCell padding="none">
-                      <IconButton size="small" onClick={() => alert('Toggle favorite not implemented yet for COA')}>
-                        {account.isFavorite ? <StarIcon color="warning" /> : <StarBorderIcon />}
-                      </IconButton>
-                    </TableCell>
-                  )}
-                  <TableCell>{account.code}</TableCell>
-                  <TableCell>
-                    {tabCategories[currentTab] !== "Tax" ? (
-                      <Link component="button" variant="body2" onClick={() => handleViewAccountClick(account._id)} sx={{ textAlign: 'left' }}>
-                        {account.name}
-                      </Link>
-                    ) : (
-                      account.name
-                    )}
-                  </TableCell>
-                  {tabCategories[currentTab] === "Tax" ? (
-                    <>
-                      <TableCell>{account.taxType}</TableCell>
-                      <TableCell>{account.head}</TableCell>
-                      <TableCell>{account.taxRate?.toFixed(2)}%</TableCell>
-                    </>
-                  ) : (
-                    <>
-                      <TableCell>{account.parentCategory || account.accountType || 'N/A'}</TableCell>
-                      <TableCell>{account.gstTaxRate ? `${account.gstTaxRate}%` : 'N/A'}</TableCell>
-                      <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <Tooltip title={account.description || ''}>
-                            <span>{account.description || 'N/A'}</span>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>{account.status || 'Active'}</TableCell>
-                      <TableCell align="right">
-                        <Tooltip title="View">
-                            <IconButton size="small" onClick={() => handleViewAccountClick(account._id)}><VisibilityIcon fontSize="small"/></IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit">
-                            <IconButton size="small" color="primary" onClick={() => handleEditAccountClick(account._id)}><EditIcon fontSize="small"/></IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                            <IconButton size="small" color="error" onClick={() => confirmDeleteAccount(account._id, account.name)}><DeleteIcon fontSize="small"/></IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </>
-                  )}
-                </TableRow>
-              )) : (
-                <TableRow>
-                  <TableCell colSpan={currentHeadCells.length} align="center">
-                    No accounts found for the selected criteria.
-                  </TableCell>
-                </TableRow>
-              )}
+              {loading ? <TableRow><TableCell colSpan={visibleHeadCells.length + 2} align="center"><CircularProgress /></TableCell></TableRow> :
+              accounts.length > 0 ? accounts.map((account) => {
+                const isItemSelected = isSelected(account._id);
+                return (
+                <StyledTableRow hover onClick={(event) => handleClick(event, account._id)} role="checkbox" aria-checked={isItemSelected} tabIndex={-1} key={account._id} selected={isItemSelected}>
+                  <TableCell padding="checkbox"><Checkbox checked={isItemSelected} /></TableCell>
+                  {visibleColumns.nature && <TableCell>{account.nature || 'N/A'}</TableCell>}
+                  {visibleColumns.mainHead && <TableCell>{account.mainHead || 'N/A'}</TableCell>}
+                  {visibleColumns.parentCategory && <TableCell>{account.parentCategory || 'N/A'}</TableCell>}
+                  {visibleColumns.code && <TableCell>{account.code}</TableCell>}
+                  {visibleColumns.name && <TableCell><Link component="button" variant="body2" onClick={(e) => { e.stopPropagation(); handleViewAccountClick(account._id); }}>{account.name}</Link></TableCell>}
+                  {visibleColumns.openingBalance && <TableCell align="right">{account.openingBalance != null ? account.openingBalance.toLocaleString() : 'N/A'}</TableCell>}
+                  {visibleColumns.description && <TableCell><Tooltip title={account.description || ''}><Typography noWrap sx={{maxWidth: 150}}>{account.description || 'N/A'}</Typography></Tooltip></TableCell>}
+                  {visibleColumns.subAccount && <TableCell>{account.subAccount || 'N/A'}</TableCell>}
+                  {visibleColumns.paymentEnabled && <TableCell align="center">{account.paymentEnabled ? <CheckCircleOutlineIcon color="success" /> : <CancelOutlinedIcon color="error" />}</TableCell>}
+                  {visibleColumns.isLocked && <TableCell align="center">{account.isLocked ? <LockIcon color="action" /> : <LockOpenIcon color="action" />}</TableCell>}
+                  {visibleColumns.actions && <TableCell align="right">
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleEditAccountClick(account._id); }}><EditIcon fontSize="small"/></IconButton>
+                      <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); confirmDelete([account._id]); }}><DeleteIcon fontSize="small"/></IconButton>
+                  </TableCell>}
+                </StyledTableRow>
+              )}) : <TableRow><TableCell colSpan={visibleHeadCells.length + 2} align="center">No accounts found for the current filters.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </TableContainer>
-      )}
-
-      {!loading && totalItems > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="body2">Items per page:</Typography>
-            <Select value={itemsPerPage} onChange={handleChangeItemsPerPage} size="small" sx={{ ml: 1, mr: 2 }}>
-              {[5, 10, 20, 50, 100].map(val => <MenuItem key={val} value={val}>{val}</MenuItem>)}
-            </Select>
-            <Typography variant="body2">
-              Showing {Math.min((page - 1) * itemsPerPage + 1, totalItems)}-{Math.min(page * itemsPerPage, totalItems)} of {totalItems}
-            </Typography>
-          </Box>
-          <Pagination
-            count={totalPages}
-            page={page} // MUI Pagination is 1-based for 'page' prop when displaying, but 0-based for onChange
-            onChange={(event, newPage) => handleChangePage(event, newPage)} // Pass newPage directly
-            color="primary"
-            variant="outlined"
-            shape="rounded"
-          />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{mr: 1}}>Rows:</Typography>
+                <Select value={itemsPerPage} onChange={(e) => {setItemsPerPage(e.target.value); setPage(1);}} size="small" sx={{ mr: 2 }}>{[10, 20, 50, 100].map(val => <MenuItem key={val} value={val}>{val}</MenuItem>)}</Select>
+                <Typography variant="body2" color="text.secondary">{totalItems > 0 ? `${((page - 1) * itemsPerPage) + 1}-${Math.min(page * itemsPerPage, totalItems)} of ${totalItems}` : '0 items'}</Typography>
+            </Box>
+            <Pagination count={totalPages} page={page} onChange={(e, val) => setPage(val)} color="primary" />
         </Box>
-      )}
+      </Paper>
+
+       <Drawer anchor="right" open={isDrawerOpen} onClose={() => setDrawerOpen(false)}>
+         <Box sx={{ width: 400, p: 2 }}>
+           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}><Typography variant="h6">{previewType === 'balanceSheet' ? 'Balance Sheet' : 'Profit & Loss'}</Typography><IconButton onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton></Box>
+           {previewType === 'balanceSheet' && (<Box>{renderAccountList(assetAccounts, 'Assets')}{renderAccountList(liabilityAccounts, 'Liabilities')}{renderAccountList(equityAccounts, 'Equity')}</Box>)}
+           {previewType === 'profitAndLoss' && (<Box>{renderAccountList(incomeAccounts, 'Income')}{renderAccountList(expenseAccounts, 'Expenses')}</Box>)}
+         </Box>
+       </Drawer>
+
+       {activeFilterColumn && <FilterPopover open={Boolean(filterAnchorEl)} anchorEl={filterAnchorEl} onClose={() => setFilterAnchorEl(null)} columnName={allHeadCells.find(h => h.id === activeFilterColumn)?.label} options={filterOptions[activeFilterColumn] || []} selectedValues={filters[activeFilterColumn] || []} onApplyFilter={handleFilterApply} />}
+
+       <Menu anchorEl={columnMenuAnchorEl} open={Boolean(columnMenuAnchorEl)} onClose={() => setColumnMenuAnchorEl(null)}>
+            <Typography sx={{px: 2, py: 1}}>Visible Columns</Typography>
+            {allHeadCells.filter(hc => hc.id !== 'actions').map((headCell) => (<MenuItem key={headCell.id}><FormControlLabel control={<Checkbox checked={visibleColumns[headCell.id]} onChange={() => handleColumnVisibilityChange(headCell.id)}/>} label={headCell.label} /></MenuItem>))}
+       </Menu>
     </Box>
   );
 };

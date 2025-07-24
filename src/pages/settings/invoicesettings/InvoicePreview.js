@@ -35,6 +35,7 @@ const sampleInvoiceData = {
     invoiceTo: "Sample Customer Pvt. Ltd.",
     invoiceToAddress: "123 Business Park, Tech City, 560001",
     invoiceToGstin: "29AAPCS1234A1Z5",
+    invoiceToVat: "VAT123456789", // Added VAT for customer
     invoiceToMobile: "9876543210",
     shipToAddress: "456 Industrial Area, Tech City, 560002",
     invoiceNumber: "007",
@@ -68,34 +69,34 @@ const sampleInvoiceData = {
 };
 
 // --- THEME WRAPPERS ---
-const ModernThemeWrapper = styled(Paper)(({ theme, selectedColor }) => ({
+const ModernThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) => ({
     padding: theme.spacing(3),
     fontFamily: 'Arial, sans-serif',
     borderTop: `5px solid ${selectedColor || '#2196F3'}`,
     minHeight: '500px',
-    color: '#333',
+    color: textColor || '#333',
     backgroundColor: '#fff',
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     position: 'relative',
 }));
 
-const StylishThemeWrapper = styled(Paper)(({ theme, selectedColor }) => ({
+const StylishThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) => ({
     padding: theme.spacing(3),
     fontFamily: 'Georgia, serif',
     borderLeft: `8px solid ${selectedColor || '#FF5722'}`,
     backgroundColor: '#f9f9f9',
     minHeight: '500px',
-    color: '#444',
+    color: textColor || '#444',
     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     position: 'relative',
 }));
 
-const SimpleThemeWrapper = styled(Paper)(({ theme, selectedColor }) => ({
+const SimpleThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) => ({
     padding: theme.spacing(2),
     fontFamily: 'Verdana, sans-serif',
     border: `1px solid ${selectedColor || '#ccc'}`,
     minHeight: '500px',
-    color: '#555',
+    color: textColor || '#555',
     backgroundColor: '#fff',
     position: 'relative',
 }));
@@ -152,6 +153,48 @@ const renderCustomField = (field, value) => {
     }
 };
 
+// Reusable component for the header contact details
+const CompanyContactDetails = ({ company, sx, typographyVariant = 'body2' }) => (
+    <Box sx={sx}>
+        {company.mobile && <Typography variant={typographyVariant} sx={{color: 'inherit'}}>Mobile: {company.mobile}</Typography>}
+        {company.email && <Typography variant={typographyVariant} sx={{color: 'inherit'}}>Email: {company.email}</Typography>}
+        {company.gstin && <Typography variant={typographyVariant} sx={{color: 'inherit'}}>GSTIN: {company.gstin}</Typography>}
+        {company.vatNumber && <Typography variant={typographyVariant} sx={{color: 'inherit'}}>VAT: {company.vatNumber}</Typography>}
+        {company.website && <Typography variant={typographyVariant} sx={{color: 'inherit'}}>Website: {company.website}</Typography>}
+    </Box>
+);
+
+// Component for the Simple theme footer, designed to be clean and people-friendly.
+const SimpleThemeFooter = ({ company, sx }) => {
+    // Create an array of company details with labels, filtering out any that are not provided.
+    const details = [
+        { label: 'Address', value: company.address },
+        { label: 'Mobile', value: company.mobile },
+        { label: 'E-mail', value: company.email },
+        { label: 'GSTIN', value: company.gstin },
+        { label: 'VAT', value: company.vatNumber }
+    ].filter(item => item.value);
+
+    if (details.length === 0) {
+        return null;
+    }
+
+    return (
+        <Box sx={{ ...sx, textAlign: 'center' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {details.map((detail, index) => (
+                    <React.Fragment key={detail.label}>
+                        <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary' }}>{detail.label}:</Box> {detail.value}
+                        {index < details.length - 1 && (
+                            <Box component="span" sx={{ mx: 1.5, color: 'text.disabled' }}>|</Box>
+                        )}
+                    </React.Fragment>
+                ))}
+            </Typography>
+        </Box>
+    );
+};
+
 
 // --- INVOICE PREVIEW COMPONENT ---
 const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceData, bankAccountOptions = [] }) => {
@@ -161,8 +204,9 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
 
     // Default settings merged with passed settings to ensure preview is always complete
     const defaultSettings = {
-        activeThemeName: "Modern",
-        selectedColor: "#4CAF50",
+        activeThemeName: "Stylish",
+        selectedColor: "#2196F3",
+        textColor: "#212121",
         itemTableColumns: {
             pricePerItem: true, quantity: true, hsnSacCode: true, discountPerItem: true,
             showCess: false, showVat: false, showGrossValue: true,
@@ -190,6 +234,7 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         companyLogoUrl: "/images/default_logo.png",
         invoiceFooter: "",
         invoiceFooterImageUrl: "",
+        enableRounding: false,
         additionalCharges: [
             { id: 'charge1', label: 'Delivery Charges', value: '100', valueType: 'fixed' },
             { id: 'charge2', label: 'Service Fee', value: '2', valueType: 'percentage' },
@@ -206,13 +251,13 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
     };
 
     const {
-        activeThemeName, selectedColor, itemTableColumns, customItemColumns,
+        activeThemeName, selectedColor, textColor, itemTableColumns, customItemColumns,
         termsAndConditionsId, signatureImageUrl, authorisedSignatory, notesDefault,
         showBillToSection, showShipToSection, showSaleAgentOnInvoice,
         upiId, upiQrCodeImageUrl, bankAccountId, invoicePrefix, invoiceSuffix,
         invoiceHeading, invoiceFooter, invoiceFooterImageUrl, showPoNumber,
         customHeaderFields, taxDisplayMode, showAmountReceived,
-        showCreditNoteIssued, showExpensesAdjusted, additionalCharges
+        showCreditNoteIssued, showExpensesAdjusted, additionalCharges, enableRounding,
     } = effectiveSettings;
 
     // Use company details from props, with a fallback structure
@@ -224,10 +269,11 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
             companyDetailsProp?.billingAddressLine3,
             companyDetailsProp?.state,
             companyDetailsProp?.pinCode
-        ].filter(Boolean).join(', '),
+        ].filter(Boolean).join(', ') || companyDetailsProp?.address, // Fallback to the address field if detailed fields are not present
         mobile: companyDetailsProp?.mobileNo || "555-1234",
         email: companyDetailsProp?.email || "contact@example.com",
         gstin: companyDetailsProp?.gstNumber || "YOUR_GSTIN_HERE",
+        vatNumber: companyDetailsProp?.vatNumber || "YOUR_VAT_NUMBER_HERE", // Added company VAT
         logoUrl: companyDetailsProp?.logoUrl || effectiveSettings.companyLogoUrl,
         website: companyDetailsProp?.website || ""
     };
@@ -325,10 +371,11 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
     };
 
     const InvoiceLayout = ({ children }) => {
+        const themeProps = { elevation: 3, selectedColor, textColor };
         const themeMap = {
-            "Stylish": <StylishThemeWrapper elevation={3} selectedColor={selectedColor}>{children}</StylishThemeWrapper>,
-            "Simple": <SimpleThemeWrapper elevation={1} selectedColor={selectedColor}>{children}</SimpleThemeWrapper>,
-            "Modern": <ModernThemeWrapper elevation={3} selectedColor={selectedColor}>{children}</ModernThemeWrapper>,
+            "Stylish": <StylishThemeWrapper {...themeProps}>{children}</StylishThemeWrapper>,
+            "Simple": <SimpleThemeWrapper elevation={1} selectedColor={selectedColor} textColor={textColor}>{children}</SimpleThemeWrapper>,
+            "Modern": <ModernThemeWrapper {...themeProps}>{children}</ModernThemeWrapper>,
         };
         const SelectedThemeWrapper = themeMap[activeThemeName] || themeMap["Modern"];
         return React.cloneElement(SelectedThemeWrapper, {}, <>{children}</>);
@@ -362,16 +409,21 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
             const grossValue = item.quantity * item.pricePerItem;
             const discount = item.discountPerItem || 0;
             const taxableAmount = grossValue - discount;
+            const cgst = taxableAmount * ((item.cgstRate || 0) / 100);
+            const sgst = taxableAmount * ((item.sgstRate || 0) / 100);
+            const igst = taxableAmount * ((item.igstRate || 0) / 100);
+            const cess = taxableAmount * ((item.cessRate || 0) / 100);
+            const vat = taxableAmount * ((item.vatRate || 0) / 100);
 
             totals.grossValue += grossValue;
             totals.discount += discount;
             totals.taxableAmount += taxableAmount;
-            totals.cgst += taxableAmount * ((item.cgstRate || 0) / 100);
-            totals.sgst += taxableAmount * ((item.sgstRate || 0) / 100);
-            totals.igst += taxableAmount * ((item.igstRate || 0) / 100);
-            totals.cess += taxableAmount * ((item.cessRate || 0) / 100);
-            totals.vat += taxableAmount * ((item.vatRate || 0) / 100);
-            totals.amount += item.amount || taxableAmount + totals.cgst + totals.sgst + totals.igst + totals.cess + totals.vat;
+            totals.cgst += cgst;
+            totals.sgst += sgst;
+            totals.igst += igst;
+            totals.cess += cess;
+            totals.vat += vat;
+            totals.amount += taxableAmount + cgst + sgst + igst + cess + vat;
         });
 
         return totals;
@@ -401,23 +453,73 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
         };
     });
 
-    const totalAdditionalChargesWithTax = calculatedCharges.reduce((sum, charge) => sum + charge.total, 0);
+    const totalAdditionalCharges = calculatedCharges.reduce((acc, charge) => {
+        acc.gross += charge.amount;
+        acc.cgst += charge.cgst;
+        acc.sgst += charge.sgst;
+        acc.igst += charge.igst;
+        acc.cess += charge.cess;
+        acc.vat += charge.vat;
+        acc.total += charge.total;
+        return acc;
+    }, { gross: 0, cgst: 0, sgst: 0, igst: 0, cess: 0, vat: 0, total: 0 });
 
-    const finalGrandTotal = columnTotals.amount + totalAdditionalChargesWithTax;
+
+    const finalGrandTotal = columnTotals.amount + totalAdditionalCharges.total;
+
+    let roundingOffAmount = 0;
+    let finalAmountPayable = finalGrandTotal;
+
+    if (enableRounding) {
+        const roundedTotal = Math.round(finalGrandTotal);
+        roundingOffAmount = roundedTotal - finalGrandTotal;
+        finalAmountPayable = roundedTotal;
+    }
+
     const totalPaid = (invoiceDataToUse.amountReceived || 0) + (invoiceDataToUse.creditNoteIssued || 0) + (invoiceDataToUse.expensesAdjusted || 0);
-    const finalBalanceDue = finalGrandTotal - totalPaid;
+    const finalBalanceDue = finalAmountPayable - totalPaid;
+
+    // **NEW**: Robust calculation for footer column spans
+    const numCols = tableHeaderCells.props.children.length;
+    let numFooterValueCells = 1; // For the final 'Amount' column
+    if (itemTableColumns.showGrossValue) numFooterValueCells++;
+    if (itemTableColumns.discountPerItem) numFooterValueCells++;
+    if (taxDisplayMode === 'breakdown') {
+        numFooterValueCells++; // Tax %
+        numFooterValueCells++; // CGST
+        numFooterValueCells++; // SGST
+        numFooterValueCells++; // IGST
+        if (itemTableColumns.showCess) numFooterValueCells++;
+        if (itemTableColumns.showVat) numFooterValueCells++;
+    }
+    const totalLabelColSpan = numCols - numFooterValueCells;
 
     return (
         <InvoiceLayout>
             <Grid container spacing={2}>
                 <Grid item xs={7}>
-                    {displayCompany.logoUrl && <Avatar src={displayCompany.logoUrl} alt="Company Logo" variant="square" sx={{ width: 80, height: 80, mb: 1, objectFit: 'contain' }} />}
-                    <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: selectedColor || 'inherit' }}>{displayCompany.name}</Typography>
-                    <Typography variant="body2" sx={{color: 'inherit', whiteSpace: 'pre-line'}}>{displayCompany.address}</Typography>
-                    {displayCompany.mobile && <Typography variant="body2" sx={{color: 'inherit'}}>Mobile: {displayCompany.mobile}</Typography>}
-                    {displayCompany.email && <Typography variant="body2" sx={{color: 'inherit'}}>Email: {displayCompany.email}</Typography>}
-                    {displayCompany.gstin && <Typography variant="body2" sx={{color: 'inherit'}}>GSTIN: {displayCompany.gstin}</Typography>}
-                    {displayCompany.website && <Typography variant="body2" sx={{color: 'inherit'}}>Website: {displayCompany.website}</Typography>}
+                    {activeThemeName === 'Stylish' ? (
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                            {displayCompany.logoUrl && <Avatar src={displayCompany.logoUrl} alt="Company Logo" variant="square" sx={{ width: 80, height: 80, objectFit: 'contain' }} />}
+                            <Box>
+                                <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: selectedColor || 'inherit' }}>{displayCompany.name}</Typography>
+                                <Typography variant="body2" sx={{color: 'inherit', whiteSpace: 'pre-line'}}>{displayCompany.address}</Typography>
+                                <CompanyContactDetails company={displayCompany} />
+                            </Box>
+                        </Box>
+                    ) : (
+                        <>
+                            {displayCompany.logoUrl && <Avatar src={displayCompany.logoUrl} alt="Company Logo" variant="square" sx={{ width: 80, height: 80, mb: 1, objectFit: 'contain' }} />}
+                            <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: selectedColor || 'inherit' }}>{displayCompany.name}</Typography>
+                            {/* For 'Simple' theme, address and contact details are moved to the footer */}
+                            {activeThemeName !== 'Simple' && (
+                                <>
+                                    <Typography variant="body2" sx={{color: 'inherit', whiteSpace: 'pre-line'}}>{displayCompany.address}</Typography>
+                                    <CompanyContactDetails company={displayCompany} />
+                                </>
+                            )}
+                        </>
+                    )}
                 </Grid>
                 <Grid item xs={5} sx={{ textAlign: 'right' }}>
                     <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold', color: selectedColor || 'inherit' }}>{invoiceHeading}</Typography>
@@ -446,6 +548,7 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                         <Typography variant="body1" sx={{color: 'inherit'}}>{invoiceDataToUse.invoiceTo}</Typography>
                         <Typography variant="body2" sx={{color: 'inherit', whiteSpace: 'pre-line'}}>{invoiceDataToUse.invoiceToAddress}</Typography>
                         {invoiceDataToUse.invoiceToGstin && <Typography variant="body2" sx={{color: 'inherit'}}>GSTIN: {invoiceDataToUse.invoiceToGstin}</Typography>}
+                        {invoiceDataToUse.invoiceToVat && <Typography variant="body2" sx={{color: 'inherit'}}>VAT: {invoiceDataToUse.invoiceToVat}</Typography>}
                         {invoiceDataToUse.invoiceToMobile && <Typography variant="body2" sx={{color: 'inherit'}}>Mobile: {invoiceDataToUse.invoiceToMobile}</Typography>}
                     </Grid>
                 )}
@@ -467,7 +570,7 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                             </TableBody>
                             <TableFooter>
                                 <TableRow sx={{ '& td, & th': { fontWeight: 'bold', backgroundColor: '#f0f0f0' } }}>
-                                    <TableCell colSpan={2 + (itemTableColumns.hsnSacCode ? 1 : 0) + (customItemColumns?.filter(c => itemTableColumns[c.id]).length || 0) + 2} align="right">
+                                    <TableCell colSpan={totalLabelColSpan} align="right">
                                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Sub-total (A)</Typography>
                                     </TableCell>
                                     {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.grossValue, currencySymbol)}</Typography></TableCell>}
@@ -483,23 +586,18 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
 
                                 {calculatedCharges.length > 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={tableHeaderCells.props.children.length} style={{ borderBottom: "none", paddingTop: '16px' }}>
+                                        <TableCell colSpan={numCols} style={{ borderBottom: "none", paddingTop: '16px' }}>
                                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Additional Charges:</Typography>
                                         </TableCell>
                                     </TableRow>
                                 )}
 
-                                {calculatedCharges.length > 0 && calculatedCharges.map((charge) => (
+                                {calculatedCharges.map((charge) => (
                                     <TableRow key={charge.id}>
-                                        <TableCell></TableCell>
-                                        <TableCell>{charge.label}</TableCell>
-                                        {itemTableColumns.hsnSacCode && <TableCell></TableCell>}
-                                        {customItemColumns?.map(colConfig => itemTableColumns[colConfig.id] && <TableCell key={colConfig.id}></TableCell>)}
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
+                                        <TableCell colSpan={totalLabelColSpan} align="right">{charge.label}</TableCell>
                                         {itemTableColumns.showGrossValue && <TableCell align="right">{formatCurrency(charge.amount, currencySymbol)}</TableCell>}
                                         {itemTableColumns.discountPerItem && <TableCell></TableCell>}
-                                        {taxDisplayMode === 'breakdown' && <TableCell></TableCell>}
+                                        {taxDisplayMode === 'breakdown' && <TableCell align="right">18%</TableCell>}
                                         {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.cgst, currencySymbol)}</TableCell>}
                                         {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.sgst, currencySymbol)}</TableCell>}
                                         {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.igst, currencySymbol)}</TableCell>}
@@ -509,58 +607,38 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                                     </TableRow>
                                 ))}
 
-                                {calculatedCharges.length > 0 && (() => {
-                                    const totalChargesGross = calculatedCharges.reduce((sum, charge) => sum + charge.amount, 0);
-                                    const totalChargesCgst = calculatedCharges.reduce((sum, charge) => sum + charge.cgst, 0);
-                                    const totalChargesSgst = calculatedCharges.reduce((sum, charge) => sum + charge.sgst, 0);
-                                    const totalChargesIgst = calculatedCharges.reduce((sum, charge) => sum + charge.igst, 0);
-                                    const totalChargesCess = calculatedCharges.reduce((sum, charge) => sum + (charge.cess || 0), 0);
-                                    const totalChargesVat = calculatedCharges.reduce((sum, charge) => sum + (charge.vat || 0), 0);
-                                    const totalChargesAmount = calculatedCharges.reduce((sum, charge) => sum + charge.total, 0);
-                                    const visibleCustomColumnsCount = customItemColumns?.filter(col => itemTableColumns[col.id]).length || 0;
-                                    const colSpanCount = 2 + (itemTableColumns.hsnSacCode ? 1 : 0) + visibleCustomColumnsCount + 2;
-
-                                    const grandTotalGross = columnTotals.grossValue + totalChargesGross;
-                                    const grandTotalDiscount = columnTotals.discount;
-                                    const grandTotalCgst = columnTotals.cgst + totalChargesCgst;
-                                    const grandTotalSgst = columnTotals.sgst + totalChargesSgst;
-                                    const grandTotalIgst = columnTotals.igst + totalChargesIgst;
-                                    const grandTotalCess = columnTotals.cess + totalChargesCess;
-                                    const grandTotalVat = columnTotals.vat + totalChargesVat;
-
-                                    return (
-                                        <>
-                                            <TableRow sx={{ '& td, & th': { fontWeight: 'bold', backgroundColor: '#f0f0f0' } }}>
-                                                <TableCell colSpan={colSpanCount} align="right">
-                                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Sub-total (B)</Typography>
-                                                </TableCell>
-                                                {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalChargesGross, currencySymbol)}</Typography></TableCell>}
-                                                {itemTableColumns.discountPerItem && <TableCell></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && <TableCell></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalChargesCgst, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalChargesSgst, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalChargesIgst, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalChargesCess, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalChargesVat, currencySymbol)}</Typography></TableCell>}
-                                                <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalChargesAmount, currencySymbol)}</Typography></TableCell>
-                                            </TableRow>
-                                            <TableRow sx={{ '& td, & th': { fontWeight: 'bold', borderTop: '2px solid #333' } }}>
-                                                <TableCell colSpan={colSpanCount} align="right">
-                                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Grand Total (A+B)</Typography>
-                                                </TableCell>
-                                                {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(grandTotalGross, currencySymbol)}</Typography></TableCell>}
-                                                {itemTableColumns.discountPerItem && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(grandTotalDiscount, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && <TableCell />}
-                                                {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(grandTotalCgst, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(grandTotalSgst, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(grandTotalIgst, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(grandTotalCess, currencySymbol)}</Typography></TableCell>}
-                                                {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(grandTotalVat, currencySymbol)}</Typography></TableCell>}
-                                                <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(finalGrandTotal, currencySymbol)}</Typography></TableCell>
-                                            </TableRow>
-                                        </>
-                                    );
-                                })()}
+                                {calculatedCharges.length > 0 && (
+                                    <>
+                                        <TableRow sx={{ '& td, & th': { fontWeight: 'bold', backgroundColor: '#f0f0f0' } }}>
+                                            <TableCell colSpan={totalLabelColSpan} align="right">
+                                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Sub-total (B)</Typography>
+                                            </TableCell>
+                                            {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.gross, currencySymbol)}</Typography></TableCell>}
+                                            {itemTableColumns.discountPerItem && <TableCell></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell />}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.cgst, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.sgst, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.igst, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.cess, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.vat, currencySymbol)}</Typography></TableCell>}
+                                            <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.total, currencySymbol)}</Typography></TableCell>
+                                        </TableRow>
+                                        <TableRow sx={{ '& td, & th': { fontWeight: 'bold', borderTop: '2px solid #333' } }}>
+                                            <TableCell colSpan={totalLabelColSpan} align="right">
+                                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Grand Total (A+B)</Typography>
+                                            </TableCell>
+                                            {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.grossValue + totalAdditionalCharges.gross, currencySymbol)}</Typography></TableCell>}
+                                            {itemTableColumns.discountPerItem && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.discount, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell />}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cgst + totalAdditionalCharges.cgst, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.sgst + totalAdditionalCharges.sgst, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.igst + totalAdditionalCharges.igst, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cess + totalAdditionalCharges.cess, currencySymbol)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.vat + totalAdditionalCharges.vat, currencySymbol)}</Typography></TableCell>}
+                                            <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(finalGrandTotal, currencySymbol)}</Typography></TableCell>
+                                        </TableRow>
+                                    </>
+                                )}
                             </TableFooter>
                         </Table>
                     </TableContainer>
@@ -594,6 +672,22 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                             )}
                         </Grid>
                         <Grid item xs={12} md={5}>
+                            {enableRounding && (
+                                <TableContainer component={Paper} sx={{ mb: 2, border: '1px solid #ccc' }}>
+                                    <Table size="small">
+                                        <TableBody>
+                                            <TableRow>
+                                                <TableCell sx={{color: 'inherit'}}>Rounding Off</TableCell>
+                                                <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(roundingOffAmount, currencySymbol)}</TableCell>
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableCell sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #ccc'}}>Total Amount</TableCell>
+                                                <TableCell align="right" sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #ccc'}}>{formatCurrency(finalAmountPayable, currencySymbol)}</TableCell>
+                                            </TableRow>
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            )}
                             <TableContainer>
                                 <Table size="small" sx={{ border: '1px solid #ccc' }}>
                                     <TableHead>
@@ -644,8 +738,19 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                     </Grid>
                 </Grid>
 
-                <Grid item xs={12} sx={{textAlign: 'center', mt: 2, pt: 2, borderTop: `1px solid ${selectedColor || 'rgba(0,0,0,0.08)'}`}}>
-                    {invoiceFooter && <Typography variant="caption" display="block" sx={{color: 'inherit', mt: 1, whiteSpace: 'pre-line'}}>{invoiceFooter}</Typography>}
+                <Grid item xs={12} sx={{textAlign: 'center', mt: 2 }}>
+                    {/* For 'Simple' theme, render contact details above the line */}
+                    {activeThemeName === 'Simple' && (
+                        <SimpleThemeFooter
+                            company={displayCompany}
+                            sx={{ mb: 2 }} // Add some margin for spacing
+                        />
+                    )}
+                </Grid>
+
+                <Grid item xs={12} sx={{textAlign: 'center', pt: 2, borderTop: `1px solid ${selectedColor || 'rgba(0,0,0,0.08)'}`}}>
+                    {/* Other footer content remains below the line */}
+                    {invoiceFooter && <Typography variant="caption" display="block" sx={{color: 'inherit', whiteSpace: 'pre-line'}}>{invoiceFooter}</Typography>}
                     {displayFooterImageUrl && <Box component="img" src={displayFooterImageUrl} alt="Invoice Footer" sx={{maxWidth: '100%', maxHeight: '80px', mt: 1}} />}
                 </Grid>
             </Grid>

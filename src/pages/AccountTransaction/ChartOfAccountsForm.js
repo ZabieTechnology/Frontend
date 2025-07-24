@@ -15,32 +15,177 @@ import {
     FormControl,
     InputLabel,
     Switch,
-    Checkbox, // For isSubAccount
+    Checkbox,
     FormControlLabel,
     Divider,
     InputAdornment,
+    FormGroup,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-// import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'; // Not currently used
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import LockIcon from '@mui/icons-material/Lock';
 import axios from 'axios';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 
+// This data could be moved to a separate config file or fetched from an API
+const accountHierarchy = [
+    // Assets
+    { nature: 'Assets', mainHead: 'Current Asset', category: 'Cash & Cash Equivalents', enableOptions: ['Cash', 'Bank', 'Credit Card', 'Wallet', 'Cheque-in-transit'] },
+    { nature: 'Assets', mainHead: 'Current Asset', category: 'Current Investments'},
+    { nature: 'Assets', mainHead: 'Current Asset', category: 'Inventories', enableOptions: ['Raw Material', 'Work-In-Progress', 'Finished Goods'] },
+    { nature: 'Assets', mainHead: 'Current Asset', category: 'Other Current assets'},
+    { nature: 'Assets', mainHead: 'Current Asset', category: 'Short term loans and advances'},
+    { nature: 'Assets', mainHead: 'Current Asset', category: 'Trade receivables'},
+    { nature: 'Assets', mainHead: 'Fixed Asset', category: 'Accumulated Depreciation'},
+    { nature: 'Assets', mainHead: 'Fixed Asset', category: 'Acquistion Cost'},
+    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Deferred tax asset (net)'},
+    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Long term loans and advances'},
+    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Non-current Investments'},
+    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Other Non-current Assets'},
+    // Expense
+    { nature: 'Expense', mainHead: 'Direct Expense', category: null },
+    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Depreciation' },
+    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Amortisation'},
+    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Employee Benefit Expenses'},
+    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Finance Cost'},
+    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Other expenses'},
+    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Tax Expense'},
+    { nature: 'Expense', mainHead: 'Purchases', category: 'Purchase of Finished Goods' },
+    { nature: 'Expense', mainHead: 'Purchases', category: 'Purchase of Raw Material' },
+    { nature: 'Expense', mainHead: 'Purchases', category: 'Purchase of Work-in-progress' },
+    // Income
+    { nature: 'Income', mainHead: 'Direct Income', category: null },
+    { nature: 'Income', mainHead: 'Indirect Income', category: 'Interest Income' },
+    { nature: 'Income', mainHead: 'Indirect Income', category: 'Others' },
+    // Equity
+    { nature: 'Equity', mainHead: 'Reserves & Surplus', category: 'Retained Earnings'},
+    { nature: 'Equity', mainHead: 'Reserves & Surplus', category: 'Accumulated Earnings'},
+    { nature: 'Equity', mainHead: 'Reserves & Surplus', category: 'Current period earnings'},
+    { nature: 'Equity', mainHead: 'Share Capital', category: null },
+    // Liability
+    { nature: 'Liability', mainHead: 'Current Liability', category: 'Other Current Liability (Duties & Taxes)', enableOptions: ['GST', 'TDS', 'Income Tax', 'ESIC', 'EPF'] },
+    { nature: 'Liability', mainHead: 'Current Liability', category: 'Other Current Liability (Others)'},
+    { nature: 'Liability', mainHead: 'Current Liability', category: 'Short term Borrowings', enableOptions: ['Loan'] },
+    { nature: 'Liability', mainHead: 'Current Liability', category: 'Short term provision'},
+    { nature: 'Liability', mainHead: 'Current Liability', category: 'Trade Payables'},
+    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Deferred tax liability (net)'},
+    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Long term Borrowings', enableOptions: ['Loan'] },
+    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Other Long term liability'},
+    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Other Long term Provision'},
+];
+
+const natureOptions = [...new Set(accountHierarchy.map(item => item.nature))];
+
 const initialFormData = {
     _id: null,
-    accountType: '', // To be fetched from dropdown (type: CA_Account_Type)
+    nature: '',
+    mainHead: '',
+    category: '',
     code: '',
     name: '',
     description: '',
-    defaultGstRateId: '', // Stores the _id of the selected GST rate from gst_rates collection
+    defaultGstRateId: '',
     isSubAccount: false,
-    subAccountOf: null, // Store ID of parent account if it's a sub-account
-    allowPayments: false, // New field replacing reconcile
+    subAccountOf: null,
+    allowPayments: false,
     openingBalance: '',
-    balanceAsOf: '', // Store as YYYY-MM-DD
+    balanceAsOf: '',
     status: 'Active',
+    enabledOptions: {},
+    isLocked: false,
 };
+
+// --- Child Components for better structure ---
+
+const SectionHeader = ({ title }) => (
+    <Grid item xs={12} sx={{ mt: 2, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: '600', color: 'primary.main' }}>{title}</Typography>
+        <Divider />
+    </Grid>
+);
+
+const AccountHierarchyFields = ({ formData, setFormData, isViewMode, mainHeadOptions, categoryOptions }) => {
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+        setFormData(prev => {
+            const newState = { ...prev, [name]: value };
+            // When nature changes, reset mainHead and category
+            if (name === 'nature') {
+                newState.mainHead = '';
+                newState.category = '';
+            } else if (name === 'mainHead') {
+                // When mainHead changes, reset category
+                newState.category = '';
+            }
+            return newState;
+        });
+    };
+
+    return (
+        <>
+            <SectionHeader title="Account Classification" />
+            <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small" disabled={isViewMode} required>
+                    <InputLabel>Nature *</InputLabel>
+                    <Select name="nature" value={formData.nature} label="Nature *" onChange={handleChange}>
+                        {natureOptions.map(nature => (<MenuItem key={nature} value={nature}>{nature}</MenuItem>))}
+                    </Select>
+                </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small" disabled={isViewMode || !formData.nature} required>
+                    <InputLabel>Main Head *</InputLabel>
+                    <Select name="mainHead" value={formData.mainHead} label="Main Head *" onChange={handleChange}>
+                        {mainHeadOptions.map(head => (<MenuItem key={head} value={head}>{head}</MenuItem>))}
+                    </Select>
+                </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small" disabled={isViewMode || !formData.mainHead || categoryOptions.length === 0} required={categoryOptions.length > 0}>
+                    <InputLabel>Category {categoryOptions.length > 0 ? "*" : ""}</InputLabel>
+                    <Select name="category" value={formData.category} label={`Category ${categoryOptions.length > 0 ? "*" : ""}`} onChange={handleChange}>
+                        <MenuItem value=""><em>None</em></MenuItem>
+                        {categoryOptions.map(cat => (<MenuItem key={cat} value={cat}>{cat}</MenuItem>))}
+                    </Select>
+                </FormControl>
+            </Grid>
+        </>
+    );
+};
+
+const DynamicOptions = ({ notes, options, formData, setFormData, isViewMode }) => {
+     if (!notes && options.length === 0) return null;
+
+     const handleEnabledOptionsChange = (event) => {
+        const { name, checked } = event.target;
+        setFormData(prev => ({
+            ...prev,
+            enabledOptions: { ...prev.enabledOptions, [name]: checked }
+        }));
+    };
+
+    return (
+        <Grid item xs={12} sx={{ my: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, background: '#fafafa' }}>
+           {notes && <Typography variant="caption" color="text.secondary" display="block" sx={{mb: 1}}>{notes}</Typography>}
+           {options.length > 0 && (
+                <FormGroup row>
+                    {options.map(option => (
+                        <FormControlLabel
+                            key={option}
+                            control={<Checkbox checked={!!formData.enabledOptions[option]} onChange={handleEnabledOptionsChange} name={option} size="small" />}
+                            label={option}
+                            disabled={isViewMode}
+                        />
+                    ))}
+                </FormGroup>
+           )}
+        </Grid>
+    );
+}
+
+// --- Main Form Component ---
 
 const ChartOfAccountsForm = ({ onSaveSuccess }) => {
     const [formData, setFormData] = useState(initialFormData);
@@ -48,46 +193,26 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [isViewMode, setIsViewMode] = useState(false);
-    const [parentAccounts, setParentAccounts] = useState([]); // For sub-account dropdown
-    const [accountTypeOptions, setAccountTypeOptions] = useState([]); // For Account Type dropdown
-    const [taxRateOptions, setTaxRateOptions] = useState([]); // For Tax dropdown (from gst_rates)
+    const [parentAccounts, setParentAccounts] = useState([]);
+    const [taxRateOptions, setTaxRateOptions] = useState([]);
 
-    const { accountId } = useParams(); // For edit/view mode
+    const [mainHeadOptions, setMainHeadOptions] = useState([]);
+    const [categoryOptions, setCategoryOptions] = useState([]);
+    const [notes, setNotes] = useState('');
+    const [dynamicEnableOptions, setDynamicEnableOptions] = useState([]);
+
+    const { accountId } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
-
     const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
-    // Fetch Account Type options
-    const fetchAccountTypeOptions = useCallback(async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/api/dropdown?type=CA_Account_Type`, { withCredentials: true });
-            if (response.data && Array.isArray(response.data.data)) {
-                setAccountTypeOptions(response.data.data.map(opt => ({ value: opt.value, label: opt.label })));
-            } else {
-                setAccountTypeOptions([]);
-            }
-        } catch (err) {
-            console.error("Error fetching Account Type options:", err);
-            setAccountTypeOptions([]);
-            // setError("Could not load Account Types."); // Optional: show specific error
-        }
-    }, [API_BASE_URL]);
-
-    // Fetch Tax Rate options (from gst_rates collection)
+    // --- Data Fetching ---
     const fetchTaxRateOptions = useCallback(async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/gst-rates?limit=-1`, { withCredentials: true }); // Fetch all GST rates
-            if (response.data && Array.isArray(response.data.data)) {
-                // Assuming gst_rates have _id and taxName
-                setTaxRateOptions(response.data.data.map(rate => ({ value: rate._id, label: rate.taxName })));
-            } else {
-                setTaxRateOptions([]);
-            }
+            const response = await axios.get(`${API_BASE_URL}/api/gst-rates?limit=-1`, { withCredentials: true });
+            setTaxRateOptions(response.data?.data.map(rate => ({ value: rate._id, label: rate.taxName })) || []);
         } catch (err) {
             console.error("Error fetching Tax Rate options:", err);
-            setTaxRateOptions([]);
-            // setError("Could not load Tax Rates."); // Optional: show specific error
         }
     }, [API_BASE_URL]);
 
@@ -96,26 +221,17 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
         setError(null);
         try {
             const response = await axios.get(`${API_BASE_URL}/api/chart-of-accounts/${id}`, { withCredentials: true });
-            if (response.data) {
-                const fetched = response.data;
+            const fetched = response.data;
+            if (fetched) {
                 setFormData({
-                    ...initialFormData, // Start with defaults
-                    ...fetched,        // Override with fetched data
-                    _id: fetched._id,
+                    ...initialFormData,
+                    ...fetched,
                     balanceAsOf: fetched.balanceAsOf ? new Date(fetched.balanceAsOf).toISOString().split('T')[0] : '',
-                    // Ensure boolean fields are booleans
-                    isSubAccount: !!fetched.isSubAccount,
-                    allowPayments: !!fetched.allowPayments, // Updated from reconcile
-                    // Ensure defaultGstRateId and subAccountOf are empty strings if null/undefined for Select component
-                    defaultGstRateId: fetched.defaultGstRateId || '',
-                    subAccountOf: fetched.subAccountOf || null,
                 });
             } else {
                 setError("Account not found.");
-                setFormData(initialFormData);
             }
         } catch (err) {
-            console.error("Error fetching account data:", err);
             setError(`Failed to load account data: ${err.response?.data?.message || err.message}`);
         } finally {
             setLoading(false);
@@ -125,50 +241,62 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
     const fetchParentAccounts = useCallback(async () => {
         try {
             const response = await axios.get(`${API_BASE_URL}/api/chart-of-accounts?limit=-1`, { withCredentials: true });
-            if (response.data && Array.isArray(response.data.data)) {
-                let PAccounts = response.data.data;
-                if (accountId) { // If editing, remove current account from list of potential parents
-                    PAccounts = PAccounts.filter(acc => acc._id !== accountId);
-                }
-                setParentAccounts(PAccounts);
+            let pAccounts = response.data?.data || [];
+            if (accountId) {
+                pAccounts = pAccounts.filter(acc => acc._id !== accountId);
             }
+            setParentAccounts(pAccounts);
         } catch (err) {
             console.error("Error fetching parent accounts:", err);
         }
     }, [API_BASE_URL, accountId]);
 
+    // --- Effects ---
+
+    // Destructure properties from formData to satisfy exhaustive-deps lint rule
+    const { nature, mainHead, category } = formData;
 
     useEffect(() => {
-        fetchAccountTypeOptions();
+        const heads = nature ? [...new Set(accountHierarchy.filter(item => item.nature === nature).map(item => item.mainHead))] : [];
+        setMainHeadOptions(heads);
+    }, [nature]);
+
+    useEffect(() => {
+        const cats = mainHead ? [...new Set(accountHierarchy.filter(item => item.nature === nature && item.mainHead === mainHead).map(item => item.category))].filter(Boolean) : [];
+        setCategoryOptions(cats);
+    }, [nature, mainHead]);
+
+    useEffect(() => {
+        let entry = accountHierarchy.find(item =>
+            item.nature === nature &&
+            item.mainHead === mainHead &&
+            (category ? item.category === category : !item.category)
+        );
+        setNotes(entry?.notes || '');
+        setDynamicEnableOptions(entry?.enableOptions || []);
+    }, [nature, mainHead, category]);
+
+    useEffect(() => {
         fetchTaxRateOptions();
         fetchParentAccounts();
-
-        const queryParams = new URLSearchParams(location.search);
-        const viewMode = queryParams.get('view') === 'true';
+        const viewMode = new URLSearchParams(location.search).get('view') === 'true';
         setIsViewMode(viewMode);
 
         if (accountId) {
             fetchAccountData(accountId);
         } else {
             setFormData(initialFormData);
-            if (viewMode) setIsViewMode(false);
         }
-    }, [accountId, location.search, fetchAccountData, fetchParentAccounts, fetchAccountTypeOptions, fetchTaxRateOptions]);
+    }, [accountId, location.search, fetchAccountData, fetchParentAccounts, fetchTaxRateOptions]);
 
+    // --- Handlers ---
     const handleChange = (event) => {
         if (isViewMode) return;
         const { name, value, type, checked } = event.target;
-
-        setFormData((prev) => {
-            const newState = {
-                ...prev,
-                [name]: type === 'checkbox' || type === 'switch' ? checked : value,
-            };
-            if (name === 'isSubAccount' && !checked) {
-                newState.subAccountOf = null; // Clear subAccountOf when isSubAccount is unchecked
-            }
-            return newState;
-        });
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' || type === 'switch' ? checked : value,
+        }));
     };
 
     const handleSubmit = async (event) => {
@@ -179,30 +307,15 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
         setError(null);
         setSuccess(null);
 
-        // Validation based on current form fields
-        if (!formData.accountType || !formData.code || !formData.name ) { // Tax (defaultGstRateId) is optional
-            setError("Account Type, Code, and Name are required fields.");
+        const hasCategories = categoryOptions.length > 0;
+        if (!formData.nature || !formData.mainHead || (hasCategories && !formData.category) || !formData.code || !formData.name) {
+            setError("Please fill all required fields marked with *.");
             setLoading(false);
-            setTimeout(() => setError(null), 5000);
-            return;
-        }
-        if (formData.isSubAccount && !formData.subAccountOf) {
-            setError("Please select a parent account for the sub-account.");
-            setLoading(false);
-            setTimeout(() => setError(null), 5000);
             return;
         }
 
         const submissionData = { ...formData };
-        if (!submissionData._id) {
-            delete submissionData._id;
-        }
-        // Ensure numeric and optional fields are correctly formatted
-        submissionData.openingBalance = submissionData.openingBalance ? parseFloat(submissionData.openingBalance) : null;
-        submissionData.defaultGstRateId = submissionData.defaultGstRateId || null;
-        submissionData.subAccountOf = submissionData.subAccountOf || null;
-        submissionData.balanceAsOf = submissionData.balanceAsOf || null;
-
+        if (!submissionData._id) delete submissionData._id;
 
         try {
             let response;
@@ -212,198 +325,124 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
             } else {
                 response = await axios.post(`${API_BASE_URL}/api/chart-of-accounts`, submissionData, { withCredentials: true });
                 setSuccess("Account created successfully!");
+                if (onSaveSuccess) onSaveSuccess(response.data.data);
+                setFormData(initialFormData); // Reset form
             }
-
-            if (response.data && response.data.data) {
-                const savedData = response.data.data;
-                 setFormData({
-                    ...initialFormData,
-                    ...savedData,
-                    _id: savedData._id,
-                    balanceAsOf: savedData.balanceAsOf ? new Date(savedData.balanceAsOf).toISOString().split('T')[0] : '',
-                    isSubAccount: !!savedData.isSubAccount,
-                    allowPayments: !!savedData.allowPayments,
-                    defaultGstRateId: savedData.defaultGstRateId || '',
-                    subAccountOf: savedData.subAccountOf || null,
-                });
-                if (onSaveSuccess) onSaveSuccess(savedData);
-                if (!formData._id) { // If it was a new account, optionally navigate
-                    // navigate('/account-transaction/chart-of-accounts');
-                }
-            }
-            setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
-            console.error("Error saving account:", err);
             setError(`Failed to save account: ${err.response?.data?.message || err.message}`);
-            setTimeout(() => setError(null), 5000);
         } finally {
             setLoading(false);
+            setTimeout(() => { setSuccess(null); setError(null); }, 4000);
         }
     };
 
-    const title = accountId ? (isViewMode ? "View Account Details" : "Edit Account") : "Add New Account";
-    const paperStyle = { p: 3, borderRadius: 2, border: '1px solid #e0e0e0', boxShadow: 'none', width: '100%', maxWidth: '700px', margin: 'auto' };
+    const title = accountId ? (isViewMode ? "View Account" : "Edit Account") : "Add New Account";
+    const paperStyle = { p: {xs: 2, sm: 3}, borderRadius: 2, border: '1px solid #e0e0e0', boxShadow: 'none', width: '100%', maxWidth: '800px', margin: 'auto' };
 
     const textFieldProps = (name, label, required = false, otherProps = {}) => ({
-        name: name,
+        name,
         label: label + (required ? " *" : ""),
-        value: formData[name] === null || formData[name] === undefined ? '' : formData[name],
+        value: formData[name] ?? '',
         onChange: handleChange,
         variant: "outlined",
         size: "small",
         fullWidth: true,
-        sx: { mb: 2.5 },
         disabled: isViewMode,
-        required: required,
+        required,
         ...otherProps,
     });
 
-    if (loading && !formData._id && !accountId) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-                <CircularProgress />
-            </Box>
-        );
+    if (loading && !accountId) {
+        return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
     }
 
     return (
-        <Box component="form" onSubmit={handleSubmit} sx={{ p: 3, backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-            <Paper sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '700px', margin: 'auto' }}>
-                <Typography variant="h5" sx={{ color: '#4CAF50', fontWeight: 'bold' }}>{title}</Typography>
-                <IconButton onClick={() => navigate('/account-transaction/chart-of-accounts')} aria-label="back to chart of accounts list">
+        <Box component="form" onSubmit={handleSubmit} sx={{ p: {xs: 1, sm: 2, md: 3}, backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+            <Paper sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '800px', margin: 'auto', background: 'transparent', boxShadow: 'none' }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{title}</Typography>
+                <IconButton onClick={() => navigate('/account-transaction/chart-of-accounts')} aria-label="Back">
                     <ArrowBackIcon />
                 </IconButton>
             </Paper>
 
-            {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2, maxWidth: '700px', margin: 'auto auto 16px auto' }}>{error}</Alert>}
-            {success && <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2, maxWidth: '700px', margin: 'auto auto 16px auto' }}>{success}</Alert>}
+            <Box sx={{ maxWidth: '800px', margin: 'auto' }}>
+                {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
+                {success && <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>{success}</Alert>}
+            </Box>
 
             <Paper sx={paperStyle}>
                 <Grid container spacing={2.5}>
-                    <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth size="small" sx={{ mb: 2.5 }} disabled={isViewMode} required>
-                            <InputLabel>Account Type *</InputLabel>
-                            <Select
-                                name="accountType"
-                                value={formData.accountType}
-                                label="Account Type *"
-                                onChange={handleChange}
-                            >
-                                <MenuItem value=""><em>None</em></MenuItem>
-                                {accountTypeOptions.map(type => (
-                                    <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                    <AccountHierarchyFields
+                        formData={formData}
+                        setFormData={setFormData}
+                        isViewMode={isViewMode}
+                        mainHeadOptions={mainHeadOptions}
+                        categoryOptions={categoryOptions}
+                    />
+
+                    <DynamicOptions
+                        notes={notes}
+                        options={dynamicEnableOptions}
+                        formData={formData}
+                        setFormData={setFormData}
+                        isViewMode={isViewMode}
+                    />
+
+                    <SectionHeader title="Account Details" />
+                    <Grid item xs={12} sm={4}>
+                        <TextField {...textFieldProps("code", "Account Code", true)} />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                        <TextField {...textFieldProps("code", "Code", true)} />
-                    </Grid>
-                    <Grid item xs={12}>
-                        <TextField {...textFieldProps("name", "Name", true)} />
+                    <Grid item xs={12} sm={8}>
+                        <TextField {...textFieldProps("name", "Account Name", true)} />
                     </Grid>
                     <Grid item xs={12}>
                         <TextField {...textFieldProps("description", "Description", false, { multiline: true, rows: 3 })} />
                     </Grid>
-                     <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth size="small" sx={{ mb: 2.5 }} disabled={isViewMode}> {/* Tax is now optional */}
-                            <InputLabel>Tax</InputLabel>
-                            <Select
-                                name="defaultGstRateId"
-                                value={formData.defaultGstRateId}
-                                label="Tax"
-                                onChange={handleChange}
-                            >
-                                <MenuItem value=""><em>None</em></MenuItem>
-                                {taxRateOptions.map(rate => (
-                                    <MenuItem key={rate.value} value={rate.value}>{rate.label}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                         <Typography variant="caption" display="block" sx={{ color: 'text.secondary', mt: -1.5 }}>
-                            Tax rate can be added from GST Settings or can select the existing rate.
-                        </Typography>
-                    </Grid>
-                    {/* parentCategory field removed from UI */}
-
-                    <Grid item xs={12}> <Divider sx={{ my: 1 }} /> </Grid>
-
                     <Grid item xs={12} sm={6}>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={formData.isSubAccount}
-                                    onChange={handleChange}
-                                    name="isSubAccount"
-                                    disabled={isViewMode}
-                                    size="small"
-                                />
-                            }
-                            label="Is Sub-Account"
-                        />
+                       <FormControlLabel control={<Checkbox checked={formData.isSubAccount} onChange={handleChange} name="isSubAccount" disabled={isViewMode} />} label="This is a Sub-Account" />
                     </Grid>
-                    {formData.isSubAccount && (
+                     {formData.isSubAccount && (
                         <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth size="small" sx={{ mb: 2.5 }} disabled={isViewMode || !formData.isSubAccount} required={formData.isSubAccount}>
-                                <InputLabel>Sub-account of *</InputLabel>
-                                <Select
-                                    name="subAccountOf"
-                                    value={formData.subAccountOf || ''}
-                                    label="Sub-account of *"
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value=""><em>None</em></MenuItem>
-                                    {parentAccounts.map(acc => (
-                                        <MenuItem key={acc._id} value={acc._id}>{acc.name} ({acc.code})</MenuItem>
-                                    ))}
+                            <FormControl fullWidth size="small" disabled={isViewMode} required={formData.isSubAccount}>
+                                <InputLabel>Parent Account *</InputLabel>
+                                <Select name="subAccountOf" value={formData.subAccountOf || ''} label="Parent Account *" onChange={handleChange}>
+                                    {parentAccounts.map(acc => (<MenuItem key={acc._id} value={acc._id}>{`${acc.name} (${acc.code})`}</MenuItem>))}
                                 </Select>
                             </FormControl>
                         </Grid>
                     )}
-                    <Grid item xs={12} sm={formData.isSubAccount ? 12 : 6}>
-                         <TextField {...textFieldProps("openingBalance", "Opening Balance", false, { type: "number", InputProps: { startAdornment: <InputAdornment position="start">$</InputAdornment> } })} />
-                    </Grid>
-                     <Grid item xs={12} sm={6}>
-                        {/* Balance as of date field removed from UI */}
-                        {/* <TextField {...textFieldProps("balanceAsOf", "Balance as of", false, { type: "date", InputLabelProps: { shrink: true } })} /> */}
-                    </Grid>
 
-                    <Grid item xs={12}> <Divider sx={{ my: 1 }} /> </Grid>
-
-                    <Grid item xs={6} sm={4}>
-                        <FormControlLabel control={<Switch checked={formData.allowPayments} onChange={handleChange} name="allowPayments" disabled={isViewMode} />} label="Allow Payments" />
-                    </Grid>
-                    {/* dashboardWatch and isFavorite switches removed from UI */}
-                     <Grid item xs={6} sm={4}>
+                    <SectionHeader title="Financial Information" />
+                    <Grid item xs={12} sm={6}>
                         <FormControl fullWidth size="small" disabled={isViewMode}>
-                            <InputLabel>Status</InputLabel>
-                            <Select name="status" value={formData.status} label="Status" onChange={handleChange}>
-                                <MenuItem value="Active">Active</MenuItem>
-                                <MenuItem value="Inactive">Inactive</MenuItem>
+                            <InputLabel>Default Tax Rate</InputLabel>
+                            <Select name="defaultGstRateId" value={formData.defaultGstRateId || ''} label="Default Tax Rate" onChange={handleChange}>
+                                <MenuItem value=""><em>None</em></MenuItem>
+                                {taxRateOptions.map(rate => (<MenuItem key={rate.value} value={rate.value}>{rate.label}</MenuItem>))}
                             </Select>
                         </FormControl>
                     </Grid>
+                    <Grid item xs={12} sm={6}>
+                         <TextField {...textFieldProps("openingBalance", "Opening Balance", false, { type: "number", InputProps: { startAdornment: <InputAdornment position="start">$</InputAdornment> } })} />
+                    </Grid>
+
+                    <SectionHeader title="Settings" />
+                    <Grid item xs={12} sm={6}>
+                        <FormControlLabel control={<Switch checked={formData.allowPayments} onChange={handleChange} name="allowPayments" disabled={isViewMode} />} label="Enable payments to this account" />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <FormControlLabel control={<Switch icon={<LockOpenIcon />} checkedIcon={<LockIcon />} checked={formData.isLocked} onChange={handleChange} name="isLocked" disabled={isViewMode} />} label="Lock this ledger" />
+                    </Grid>
                 </Grid>
 
-                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                     {isViewMode ? (
-                        <Button
-                            variant="contained"
-                            color="secondary"
-                            startIcon={<EditIcon />}
-                            onClick={() => navigate(`/account-transaction/chart-of-accounts/edit/${accountId}`)}
-                        >
-                            Edit Account
+                        <Button variant="contained" color="primary" startIcon={<EditIcon />} onClick={() => navigate(`/account-transaction/chart-of-accounts/edit/${accountId}`)}>
+                            Edit
                         </Button>
                     ) : (
-                        <Button
-                            type="submit"
-                            variant="contained"
-                            color="primary"
-                            startIcon={<SaveIcon />}
-                            disabled={loading}
-                        >
-                            {loading ? <CircularProgress size={24} /> : (formData._id ? 'Update Account' : 'Save Account')}
+                        <Button type="submit" variant="contained" color="primary" startIcon={<SaveIcon />} disabled={loading}>
+                            {loading ? <CircularProgress size={24} color="inherit" /> : (formData._id ? 'Update Account' : 'Save Account')}
                         </Button>
                     )}
                 </Box>
