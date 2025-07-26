@@ -80,7 +80,7 @@ import Cheque from "./pages/bank/cheque";
 import Cash from "./pages/bank/cash";
 import Loan from "./pages/bank/loan";
 import Wallet from "./pages/bank/wallet";
-import Ztrail from "./pages/ztrail/samplepage";
+import Ztrail1 from "./pages/ztrail/samplepage";
 
 
 // Reimbursement Page
@@ -222,7 +222,7 @@ function App() {
 
 
             {/* Trail */}
-            <Route path="SamplePage" element={<Ztrail />} />
+            <Route path="SamplePage" element={<Ztrail1 />} />
 
 
             {/* Catch-all for undefined protected routes, redirect to home */}
