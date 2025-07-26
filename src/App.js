@@ -27,16 +27,14 @@ import COAClassifications from "./pages/settings/finance/coaclassification";
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
-import CustomerListPage from "./pages/accounttransaction/customerlist";
-import CustomerForm from "./pages/accounttransaction/customerform";
-import VendorListPage from "./pages/accounttransaction/vendorlist";
-
-// VendorDetailsPage was pointing to vendor list, assuming it's a form like CustomerForm
-import VendorForm from "./pages/accounttransaction/vendorform"; // Corrected: Assuming VendorDetailsPage is a form like CustomerForm
-import ChartOfAccountsListPage from "./pages/accounttransaction/coalist";
-import ChartOfAccountsForm from "./pages/accounttransaction/coaform";
-import StaffListPage from "./pages/accounttransaction/stafflist";
-import StaffForm from "./pages/accounttransaction/staffform";
+import CustomerListPage from "./pages/AccountTransaction/customerlist";
+import CustomerForm from "./pages/AccountTransaction/customerform";
+import VendorListPage from "./pages/AccountTransaction/vendorlist";
+import VendorForm from "./pages/AccountTransaction/vendorform";
+import ChartOfAccountsListPage from "./pages/AccountTransaction/coalist";
+import ChartOfAccountsForm from "./pages/AccountTransaction/coaform";
+import StaffListPage from "./pages/AccountTransaction/stafflist";
+import StaffForm from "./pages/AccountTransaction/staffform";
 
 // Expenses Page
 import ExpenseListPage from "./pages/expenses/ExpenseListPage";
@@ -80,7 +78,7 @@ import Cheque from "./pages/bank/cheque";
 import Cash from "./pages/bank/cash";
 import Loan from "./pages/bank/loan";
 import Wallet from "./pages/bank/wallet";
-import Ztrail1 from "./pages/ztrail/samplepage";
+import Ztrail from "./pages/ztrail/samplepage";
 
 
 // Reimbursement Page
@@ -222,7 +220,7 @@ function App() {
 
 
             {/* Trail */}
-            <Route path="SamplePage" element={<Ztrail1 />} />
+            <Route path="SamplePage" element={<Ztrail />} />
 
 
             {/* Catch-all for undefined protected routes, redirect to home */}
