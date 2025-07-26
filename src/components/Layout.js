@@ -67,7 +67,7 @@ const menuItems = [
         text: 'Accounts',
         icon: <AttachMoneyIcon />,
         children: [
-            { id: 'customer', text: 'Customer', icon: <PeopleIcon />, path: '#' },
+            { id: 'customer', text: 'Customer', icon: <PeopleIcon />, path: 'CustomerList' },
             { id: 'vendor', text: 'Vendor', icon: <VendorIcon />, path: '/account-transaction/vendor' },
             { id: 'staff', text: 'Staff', icon: <StaffIcon />, path: '/account-transaction/staff' },
             { id: 'chart-of-accounts', text: 'Chart of Accounts', icon: <ChartOfAccountsIcon />, path: '/account-transaction/chart-of-accounts' },
