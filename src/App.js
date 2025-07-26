@@ -28,7 +28,7 @@ import COAClassifications from "./pages/settings/finance/coaclassification";
 
 // Account Transaction Pages
 import CustomerListPage from "./pages/AccountTransaction/customerlist";
-import CustomerForm from "./pages/AccountTransaction/customercreate";
+import CustomerForm from "./pages/accountTransaction/customercreate";
 import VendorListPage from "./pages/AccountTransaction/vendorlist";
 import VendorForm from "./pages/AccountTransaction/vendorcreate";
 import ChartOfAccountsListPage from "./pages/AccountTransaction/coalist";
