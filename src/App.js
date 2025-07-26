@@ -30,7 +30,7 @@ import COAClassifications from "./pages/settings/finance/coaclassification";
 import CustomerListPage from "./pages/AccountTransaction/customerlist";
 import CustomerForm from "./pages/accountTransaction/customercreate";
 import VendorListPage from "./pages/AccountTransaction/vendorlist";
-import VendorForm from "./pages/AccountTransaction/vendorcreate";
+import VendorForm from "./pages/accountTransaction/vendorcreate";
 import ChartOfAccountsListPage from "./pages/AccountTransaction/coalist";
 import ChartOfAccountsForm from "./pages/AccountTransaction/coacreate";
 import StaffListPage from "./pages/AccountTransaction/stafflist";
