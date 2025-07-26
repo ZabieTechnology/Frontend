@@ -28,13 +28,13 @@ import COAClassifications from "./pages/settings/finance/coaclassification";
 
 // Account Transaction Pages
 import CustomerListPage from "./pages/AccountTransaction/customerlist";
-import CustomerForm from "./pages/AccountTransaction/customerform";
+import CustomerForm from "./pages/AccountTransaction/customercreate";
 import VendorListPage from "./pages/AccountTransaction/vendorlist";
-import VendorForm from "./pages/AccountTransaction/vendorform";
+import VendorForm from "./pages/AccountTransaction/vendorcreate";
 import ChartOfAccountsListPage from "./pages/AccountTransaction/coalist";
-import ChartOfAccountsForm from "./pages/AccountTransaction/coaform";
+import ChartOfAccountsForm from "./pages/AccountTransaction/coacreate";
 import StaffListPage from "./pages/AccountTransaction/stafflist";
-import StaffForm from "./pages/AccountTransaction/staffform";
+import StaffForm from "./pages/AccountTransaction/staffcreate";
 
 // Expenses Page
 import ExpenseListPage from "./pages/expenses/ExpenseListPage";
@@ -175,8 +175,8 @@ function App() {
             <Route path="account-transaction/customer/edit/:customerId" element={<CustomerForm />} />
 
             <Route path="account-transaction/vendor" element={<VendorListPage />} />
-            <Route path="account-transaction/vendor/new" element={<VendorForm />} /> {/* Assuming VendorForm component */}
-            <Route path="account-transaction/vendor/edit/:vendorId" element={<VendorForm />} /> {/* Assuming VendorForm component */}
+            <Route path="account-transaction/vendor/new" element={<VendorForm />} />
+            <Route path="account-transaction/vendor/edit/:vendorId" element={<VendorForm />} />
 
             <Route path="account-transaction/staff" element={<StaffListPage />} />
             <Route path="account-transaction/staff/new" element={<StaffForm />} />
