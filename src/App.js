@@ -34,7 +34,7 @@ import VendorForm from "./pages/accountTransaction/vendorcreate";
 import ChartOfAccountsListPage from "./pages/accountTransaction/coalist";
 import ChartOfAccountsForm from "./pages/accountTransaction/coacreate";
 import StaffListPage from "./pages/AccountTransaction/stafflist";
-import StaffForm from "./pages/AccountTransaction/staffcreate";
+import StaffForm from "./pages/accountTransaction/staffcreate";
 
 // Expenses Page
 import ExpenseListPage from "./pages/expenses/ExpenseListPage";
