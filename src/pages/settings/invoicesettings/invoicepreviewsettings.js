@@ -22,13 +22,25 @@ import { styled } from '@mui/material/styles';
 
 // --- HELPER FUNCTIONS ---
 
-// Helper to format currency
-const formatCurrency = (amount, currencySymbol = '₹') => {
+const getCurrencySymbol = (currencyCode = 'INR') => {
+    const symbols = {
+        INR: '₹',
+        USD: '$',
+        EUR: '€',
+        GBP: '£',
+    };
+    return symbols[currencyCode] || '₹';
+};
+
+// Helper to format currency, now accepting currency code
+const formatCurrency = (amount, currencyCode = 'INR') => {
+    const currencySymbol = getCurrencySymbol(currencyCode);
     if (amount === null || amount === undefined || isNaN(parseFloat(amount))) {
         return `${currencySymbol}0.00`;
     }
     return `${currencySymbol}${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
+
 
 // --- SAMPLE INVOICE DATA (for items and totals) ---
 const sampleInvoiceData = {
@@ -69,7 +81,9 @@ const sampleInvoiceData = {
 };
 
 // --- THEME WRAPPERS ---
-const ModernThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) => ({
+const ModernThemeWrapper = styled(Paper, {
+    shouldForwardProp: (prop) => prop !== 'selectedColor' && prop !== 'textColor'
+})(({ theme, selectedColor, textColor }) => ({
     padding: theme.spacing(3),
     fontFamily: 'Arial, sans-serif',
     borderTop: `5px solid ${selectedColor || '#2196F3'}`,
@@ -80,7 +94,9 @@ const ModernThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) =
     position: 'relative',
 }));
 
-const StylishThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) => ({
+const StylishThemeWrapper = styled(Paper, {
+    shouldForwardProp: (prop) => prop !== 'selectedColor' && prop !== 'textColor'
+})(({ theme, selectedColor, textColor }) => ({
     padding: theme.spacing(3),
     fontFamily: 'Georgia, serif',
     borderLeft: `8px solid ${selectedColor || '#FF5722'}`,
@@ -91,7 +107,9 @@ const StylishThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) 
     position: 'relative',
 }));
 
-const SimpleThemeWrapper = styled(Paper)(({ theme, selectedColor, textColor }) => ({
+const SimpleThemeWrapper = styled(Paper, {
+    shouldForwardProp: (prop) => prop !== 'selectedColor' && prop !== 'textColor'
+})(({ theme, selectedColor, textColor }) => ({
     padding: theme.spacing(2),
     fontFamily: 'Verdana, sans-serif',
     border: `1px solid ${selectedColor || '#ccc'}`,
@@ -200,7 +218,7 @@ const SimpleThemeFooter = ({ company, sx }) => {
 const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceData, bankAccountOptions = [] }) => {
 
     const invoiceDataToUse = { ...sampleInvoiceData, ...(invoiceData || {}) };
-    const currencySymbol = settings?.currency === 'INR' ? '₹' : '$';
+    const currencyCode = settings?.currency; // Use currency code from settings
 
     // Default settings merged with passed settings to ensure preview is always complete
     const defaultSettings = {
@@ -349,22 +367,22 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                         return null;
                     })}
                     <TableCell align="right" sx={{color: 'inherit'}}>{item.quantity}</TableCell>
-                    <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.pricePerItem, currencySymbol)}</TableCell>
-                    {itemTableColumns.showGrossValue && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(grossValue, currencySymbol)}</TableCell>}
-                    {itemTableColumns.discountPerItem && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.discountPerItem, currencySymbol)}</TableCell>}
+                    <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.pricePerItem, currencyCode)}</TableCell>
+                    {itemTableColumns.showGrossValue && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(grossValue, currencyCode)}</TableCell>}
+                    {itemTableColumns.discountPerItem && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(item.discountPerItem, currencyCode)}</TableCell>}
 
                     {taxDisplayMode === 'breakdown' && (
                         <>
                             <TableCell align="right" sx={{color: 'inherit'}}>{item.taxRate !== undefined ? `${item.taxRate}%` : 'N/A'}</TableCell>
-                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(cgstAmount, currencySymbol)}</TableCell>
-                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(sgstAmount, currencySymbol)}</TableCell>
-                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(igstAmount, currencySymbol)}</TableCell>
-                            {itemTableColumns.showCess && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(cessAmount, currencySymbol)}</TableCell>}
-                            {itemTableColumns.showVat && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(vatAmount, currencySymbol)}</TableCell>}
+                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(cgstAmount, currencyCode)}</TableCell>
+                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(sgstAmount, currencyCode)}</TableCell>
+                            <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(igstAmount, currencyCode)}</TableCell>
+                            {itemTableColumns.showCess && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(cessAmount, currencyCode)}</TableCell>}
+                            {itemTableColumns.showVat && <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(vatAmount, currencyCode)}</TableCell>}
                         </>
                     )}
 
-                    <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(finalAmount, currencySymbol)}</TableCell>
+                    <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(finalAmount, currencyCode)}</TableCell>
                 </TableRow>
             );
         });
@@ -573,15 +591,15 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                                     <TableCell colSpan={totalLabelColSpan} align="right">
                                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Sub-total (A)</Typography>
                                     </TableCell>
-                                    {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.grossValue, currencySymbol)}</Typography></TableCell>}
-                                    {itemTableColumns.discountPerItem && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.discount, currencySymbol)}</Typography></TableCell>}
+                                    {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.grossValue, currencyCode)}</Typography></TableCell>}
+                                    {itemTableColumns.discountPerItem && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.discount, currencyCode)}</Typography></TableCell>}
                                     {taxDisplayMode === 'breakdown' && <TableCell />}
-                                    {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cgst, currencySymbol)}</Typography></TableCell>}
-                                    {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.sgst, currencySymbol)}</Typography></TableCell>}
-                                    {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.igst, currencySymbol)}</Typography></TableCell>}
-                                    {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cess, currencySymbol)}</Typography></TableCell>}
-                                    {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.vat, currencySymbol)}</Typography></TableCell>}
-                                    <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.amount, currencySymbol)}</Typography></TableCell>
+                                    {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cgst, currencyCode)}</Typography></TableCell>}
+                                    {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.sgst, currencyCode)}</Typography></TableCell>}
+                                    {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.igst, currencyCode)}</Typography></TableCell>}
+                                    {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cess, currencyCode)}</Typography></TableCell>}
+                                    {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.vat, currencyCode)}</Typography></TableCell>}
+                                    <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.amount, currencyCode)}</Typography></TableCell>
                                 </TableRow>
 
                                 {calculatedCharges.length > 0 && (
@@ -595,15 +613,15 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                                 {calculatedCharges.map((charge) => (
                                     <TableRow key={charge.id}>
                                         <TableCell colSpan={totalLabelColSpan} align="right">{charge.label}</TableCell>
-                                        {itemTableColumns.showGrossValue && <TableCell align="right">{formatCurrency(charge.amount, currencySymbol)}</TableCell>}
+                                        {itemTableColumns.showGrossValue && <TableCell align="right">{formatCurrency(charge.amount, currencyCode)}</TableCell>}
                                         {itemTableColumns.discountPerItem && <TableCell></TableCell>}
                                         {taxDisplayMode === 'breakdown' && <TableCell align="right">18%</TableCell>}
-                                        {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.cgst, currencySymbol)}</TableCell>}
-                                        {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.sgst, currencySymbol)}</TableCell>}
-                                        {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.igst, currencySymbol)}</TableCell>}
-                                        {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right">{formatCurrency(charge.cess, currencySymbol)}</TableCell>}
-                                        {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right">{formatCurrency(charge.vat, currencySymbol)}</TableCell>}
-                                        <TableCell align="right">{formatCurrency(charge.total, currencySymbol)}</TableCell>
+                                        {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.cgst, currencyCode)}</TableCell>}
+                                        {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.sgst, currencyCode)}</TableCell>}
+                                        {taxDisplayMode === 'breakdown' && <TableCell align="right">{formatCurrency(charge.igst, currencyCode)}</TableCell>}
+                                        {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right">{formatCurrency(charge.cess, currencyCode)}</TableCell>}
+                                        {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right">{formatCurrency(charge.vat, currencyCode)}</TableCell>}
+                                        <TableCell align="right">{formatCurrency(charge.total, currencyCode)}</TableCell>
                                     </TableRow>
                                 ))}
 
@@ -613,29 +631,29 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                                             <TableCell colSpan={totalLabelColSpan} align="right">
                                                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Sub-total (B)</Typography>
                                             </TableCell>
-                                            {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.gross, currencySymbol)}</Typography></TableCell>}
+                                            {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.gross, currencyCode)}</Typography></TableCell>}
                                             {itemTableColumns.discountPerItem && <TableCell></TableCell>}
                                             {taxDisplayMode === 'breakdown' && <TableCell />}
-                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.cgst, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.sgst, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.igst, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.cess, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.vat, currencySymbol)}</Typography></TableCell>}
-                                            <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.total, currencySymbol)}</Typography></TableCell>
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.cgst, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.sgst, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.igst, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.cess, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.vat, currencyCode)}</Typography></TableCell>}
+                                            <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(totalAdditionalCharges.total, currencyCode)}</Typography></TableCell>
                                         </TableRow>
                                         <TableRow sx={{ '& td, & th': { fontWeight: 'bold', borderTop: '2px solid #333' } }}>
                                             <TableCell colSpan={totalLabelColSpan} align="right">
                                                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Grand Total (A+B)</Typography>
                                             </TableCell>
-                                            {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.grossValue + totalAdditionalCharges.gross, currencySymbol)}</Typography></TableCell>}
-                                            {itemTableColumns.discountPerItem && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.discount, currencySymbol)}</Typography></TableCell>}
+                                            {itemTableColumns.showGrossValue && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.grossValue + totalAdditionalCharges.gross, currencyCode)}</Typography></TableCell>}
+                                            {itemTableColumns.discountPerItem && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.discount, currencyCode)}</Typography></TableCell>}
                                             {taxDisplayMode === 'breakdown' && <TableCell />}
-                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cgst + totalAdditionalCharges.cgst, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.sgst + totalAdditionalCharges.sgst, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.igst + totalAdditionalCharges.igst, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cess + totalAdditionalCharges.cess, currencySymbol)}</Typography></TableCell>}
-                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.vat + totalAdditionalCharges.vat, currencySymbol)}</Typography></TableCell>}
-                                            <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(finalGrandTotal, currencySymbol)}</Typography></TableCell>
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cgst + totalAdditionalCharges.cgst, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.sgst + totalAdditionalCharges.sgst, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.igst + totalAdditionalCharges.igst, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showCess && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.cess + totalAdditionalCharges.cess, currencyCode)}</Typography></TableCell>}
+                                            {taxDisplayMode === 'breakdown' && itemTableColumns.showVat && <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(columnTotals.vat + totalAdditionalCharges.vat, currencyCode)}</Typography></TableCell>}
+                                            <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 'bold' }}>{formatCurrency(finalGrandTotal, currencyCode)}</Typography></TableCell>
                                         </TableRow>
                                     </>
                                 )}
@@ -678,11 +696,11 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                                         <TableBody>
                                             <TableRow>
                                                 <TableCell sx={{color: 'inherit'}}>Rounding Off</TableCell>
-                                                <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(roundingOffAmount, currencySymbol)}</TableCell>
+                                                <TableCell align="right" sx={{color: 'inherit'}}>{formatCurrency(roundingOffAmount, currencyCode)}</TableCell>
                                             </TableRow>
                                             <TableRow>
                                                 <TableCell sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #ccc'}}>Total Amount</TableCell>
-                                                <TableCell align="right" sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #ccc'}}>{formatCurrency(finalAmountPayable, currencySymbol)}</TableCell>
+                                                <TableCell align="right" sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #ccc'}}>{formatCurrency(finalAmountPayable, currencyCode)}</TableCell>
                                             </TableRow>
                                         </TableBody>
                                     </Table>
@@ -701,26 +719,26 @@ const InvoicePreview = ({ settings, companyDetails: companyDetailsProp, invoiceD
                                         {showAmountReceived && (
                                             <TableRow>
                                                 <TableCell sx={{color: 'inherit', borderBottom: '1px solid #ccc'}}>Amount Received:</TableCell>
-                                                <TableCell align="right" sx={{color: 'inherit', borderBottom: '1px solid #ccc'}}>{formatCurrency(invoiceDataToUse.amountReceived, currencySymbol)}</TableCell>
+                                                <TableCell align="right" sx={{color: 'inherit', borderBottom: '1px solid #ccc'}}>{formatCurrency(invoiceDataToUse.amountReceived, currencyCode)}</TableCell>
                                             </TableRow>
                                         )}
                                         {showCreditNoteIssued && (
                                             <TableRow>
                                                 <TableCell sx={{color: 'inherit', borderBottom: '1px solid #ccc'}}>Credit Note Issued:</TableCell>
-                                                <TableCell align="right" sx={{color: 'inherit', borderBottom: '1px solid #ccc'}}>{formatCurrency(invoiceDataToUse.creditNoteIssued, currencySymbol)}</TableCell>
+                                                <TableCell align="right" sx={{color: 'inherit', borderBottom: '1px solid #ccc'}}>{formatCurrency(invoiceDataToUse.creditNoteIssued, currencyCode)}</TableCell>
                                             </TableRow>
                                         )}
                                         {showExpensesAdjusted && (
                                             <TableRow>
-                                                <TableCell sx={{color: 'inherit', borderBottom: 'none'}}>Expenses Adjusted:</TableCell>
-                                                <TableCell align="right" sx={{color: 'inherit', borderBottom: 'none'}}>{formatCurrency(invoiceDataToUse.expensesAdjusted, currencySymbol)}</TableCell>
+                                                <TableCell sx={{color: 'inherit', borderBottom: 'none'}}>Bill/Expenses Adjusted:</TableCell>
+                                                <TableCell align="right" sx={{color: 'inherit', borderBottom: 'none'}}>{formatCurrency(invoiceDataToUse.expensesAdjusted, currencyCode)}</TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
                                     <TableFooter>
                                         <TableRow>
                                             <TableCell sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #000'}}>Balance Due:</TableCell>
-                                            <TableCell align="right" sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #000'}}>{formatCurrency(finalBalanceDue, currencySymbol)}</TableCell>
+                                            <TableCell align="right" sx={{color: 'inherit', fontWeight: 'bold', borderTop: '1px solid #000'}}>{formatCurrency(finalBalanceDue, currencyCode)}</TableCell>
                                         </TableRow>
                                     </TableFooter>
                                 </Table>

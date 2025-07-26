@@ -5,7 +5,8 @@ import {
     InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Switch, Dialog, DialogActions, DialogContent, DialogTitle,
     Checkbox,
-    Pagination
+    Pagination,
+    FormControlLabel
 } from '@mui/material';
 import {
     Add as AddIcon, Delete as DeleteIcon,
@@ -87,11 +88,12 @@ const renderModalSectionTitle = (title) => (
 
 function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
     const [itemType, setItemType] = useState('product');
-    const [saleWithTax, setSaleWithTax] = useState(true);
     const [category, setCategory] = useState('');
     const [itemName, setItemName] = useState('');
     const [salePrice, setSalePrice] = useState('');
     const [gstRate, setGstRate] = useState('');
+    const [vatEnabled, setVatEnabled] = useState(false);
+    const [vatRate, setVatRate] = useState('');
     const [cessRate, setCessRate] = useState('');
     const [cessAmount, setCessAmount] = useState('');
     const [measuringUnit, setMeasuringUnit] = useState('');
@@ -113,6 +115,7 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
     const [itemSubCategories, setItemSubCategories] = useState([]);
     const [measuringUnits, setMeasuringUnits] = useState([]);
     const [gstRates, setGstRates] = useState([]);
+    const [vatRates, setVatRates] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
 
     const API_BASE_URL = process.env.REACT_APP_API_URL || '';
@@ -126,14 +129,14 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
         } catch (err) { console.error(`Error fetching ${type}:`, err); }
     }, [API_BASE_URL]);
 
-    const fetchGstRates = useCallback(async () => {
+    const fetchTaxRates = useCallback(async (setter, taxType) => {
         try {
             const response = await axios.get(`${API_BASE_URL}/api/gst-rates`, { withCredentials: true });
             if (response.data && Array.isArray(response.data.data)) {
                 const fetchedTaxes = response.data.data.filter(tax => tax.head && tax.head.toLowerCase().includes('output')).map(tax => ({_id: tax._id, value: tax.taxRate, label: tax.taxName || `Tax @ ${parseFloat(tax.taxRate) || 0}%`}));
-                setGstRates(fetchedTaxes);
+                setter(fetchedTaxes);
             }
-        } catch (err) { console.error("Error fetching GST rates:", err); }
+        } catch (err) { console.error(`Error fetching ${taxType} rates:`, err); }
     }, [API_BASE_URL]);
 
     useEffect(() => {
@@ -142,14 +145,16 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
             fetchDropdownData('Item_sub_Category', setItemSubCategories);
             fetchDropdownData('Measuring_Unit', setMeasuringUnits);
             fetchDropdownData('Warehouse', setWarehouses);
-            fetchGstRates();
+            fetchTaxRates(setGstRates, 'GST');
+            fetchTaxRates(setVatRates, 'VAT');
         }
-    }, [open, fetchDropdownData, fetchGstRates]);
+    }, [open, fetchDropdownData, fetchTaxRates]);
 
     useEffect(() => {
         const resetForm = () => {
-            setItemType('product'); setSaleWithTax(true); setCategory(''); setItemName(''); setSalePrice('');
-            setGstRate(''); setCessRate(''); setCessAmount(''); setMeasuringUnit(''); setWarehouse(''); setItemCode(''); setHsnCode('');
+            setItemType('product'); setCategory(''); setItemName(''); setSalePrice('');
+            setGstRate(''); setVatEnabled(false); setVatRate(''); setCessRate(''); setCessAmount('');
+            setMeasuringUnit(''); setWarehouse(''); setItemCode(''); setHsnCode('');
             setAsOfDate(new Date().toISOString().split('T')[0]); setDescription(''); setLowStockAlertCount('');
             setOpeningStockQty(''); setPricePerItem('');
             setSerialNo(''); setExpiryDate(''); setMfgDate(''); setItemSubCategory(''); setBatchCode('');
@@ -159,11 +164,12 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
         if (open) {
             if (itemToEdit) {
                 setItemType(itemToEdit.itemType || 'product');
-                setSaleWithTax(itemToEdit.saleWithTax || true);
                 setCategory(itemToEdit.category || '');
                 setItemName(itemToEdit.itemName || '');
                 setSalePrice(itemToEdit.salePrice || '');
                 setGstRate(itemToEdit.gstRate || '');
+                setVatEnabled(itemToEdit.vatEnabled || false);
+                setVatRate(itemToEdit.vatRate || '');
                 setCessRate(itemToEdit.cessRate || '');
                 setCessAmount(itemToEdit.cessAmount || '');
                 setMeasuringUnit(itemToEdit.measuringUnit || '');
@@ -214,9 +220,11 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
             return;
         }
         const payload = {
-            itemType, saleWithTax, category, itemName,
+            itemType, category, itemName,
             salePrice: parseFloat(salePrice) || 0,
             gstRate: parseFloat(gstRate) || 0,
+            vatEnabled,
+            vatRate: vatEnabled ? (parseFloat(vatRate) || 0) : 0,
             cessRate: parseFloat(cessRate) || 0,
             cessAmount: parseFloat(cessAmount) || 0,
             measuringUnit, warehouse, itemCode, hsnCode, asOfDate, description,
@@ -274,8 +282,43 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>Item Sub Category</InputLabel><Select value={itemSubCategory} label="Item Sub Category" onChange={(e) => setItemSubCategory(e.target.value)}>{itemSubCategories.map((subCat) => ( <MenuItem key={subCat._id} value={subCat.value}>{subCat.label}</MenuItem> ))}</Select></FormControl>
                         <TextField fullWidth margin="dense" size="small" label="Sale Price" type="number" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} disabled={isViewMode}/>
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>GST Tax Rate (%)</InputLabel><Select value={gstRate} label="GST Tax Rate (%)" onChange={(e) => setGstRate(e.target.value)}>{gstRates.map((rate) => ( <MenuItem key={rate._id} value={rate.value}>{rate.label}</MenuItem> ))}</Select></FormControl>
-                        <TextField fullWidth margin="dense" size="small" label="CESS Rate (%)" type="number" value={cessRate} onChange={(e) => setCessRate(e.target.value)} disabled={isViewMode}/>
-                        <TextField fullWidth margin="dense" size="small" label="Fixed CESS Per Unit" type="number" value={cessAmount} onChange={(e) => setCessAmount(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} disabled={isViewMode}/>
+
+                        {/* VAT Enable Switch */}
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={vatEnabled}
+                                    onChange={(e) => setVatEnabled(e.target.checked)}
+                                    disabled={isViewMode}
+                                />
+                            }
+                            label="Enable VAT"
+                            sx={{ mt: 1, color: 'text.secondary' }}
+                        />
+
+                        {/* VAT % Dropdown */}
+                        <FormControl fullWidth margin="dense" size="small" disabled={isViewMode || !vatEnabled}>
+                            <InputLabel>VAT %</InputLabel>
+                            <Select
+                                value={vatRate}
+                                label="VAT %"
+                                onChange={(e) => setVatRate(e.target.value)}
+                            >
+                                {vatRates.map((rate) => (
+                                    <MenuItem key={rate._id} value={rate.value}>{rate.label}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <Grid container spacing={2}>
+                          <Grid item xs={6}>
+                            <TextField fullWidth margin="dense" size="small" label="CESS Rate (%)" type="number" value={cessRate} onChange={(e) => setCessRate(e.target.value)} disabled={isViewMode}/>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <TextField fullWidth margin="dense" size="small" label="Fixed CESS Per Unit" type="number" value={cessAmount} onChange={(e) => setCessAmount(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} disabled={isViewMode}/>
+                          </Grid>
+                        </Grid>
+
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>Measuring Unit</InputLabel><Select value={measuringUnit} label="Measuring Unit" onChange={(e) => setMeasuringUnit(e.target.value)}>{measuringUnits.map((unit) => ( <MenuItem key={unit._id} value={unit.value}>{unit.label}</MenuItem>))}</Select></FormControl>
                         <FormControl fullWidth margin="dense" size="small" disabled={isViewMode}><InputLabel>Warehouse</InputLabel><Select value={warehouse} label="Warehouse" onChange={(e) => setWarehouse(e.target.value)}>{warehouses.map((wh) => ( <MenuItem key={wh._id} value={wh.value}>{wh.label}</MenuItem> ))}</Select></FormControl>
                     </Grid>

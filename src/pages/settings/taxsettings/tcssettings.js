@@ -51,7 +51,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import SearchIcon from '@mui/icons-material/Search';
 
-
 // --- THEME AND STYLING ---
 const theme = createTheme({
   palette: {

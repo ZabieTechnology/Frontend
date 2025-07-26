@@ -176,7 +176,9 @@ function SalesInvoiceDashboard() {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/sales-invoices/`);
+            const response = await axios.get(`${API_BASE_URL}/api/sales-invoices/`, {
+                withCredentials: true,
+            });
             const processedData = response.data.data.map(invoice => ({
                 ...invoice,
                 invoiceDate: invoice.invoiceDate ? parseISO(invoice.invoiceDate) : null,
@@ -186,7 +188,6 @@ function SalesInvoiceDashboard() {
         } catch (err) {
             console.error("API Error:", err);
             setError("Could not load invoices. Please check the API connection.");
-            setLoading(false);
         } finally {
             setLoading(false);
         }
@@ -322,7 +323,9 @@ function InvoicePage() {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/sales-invoices/${invoiceId}`);
+            const response = await axios.get(`${API_BASE_URL}/api/sales-invoices/${invoiceId}`, {
+                withCredentials: true,
+            });
             const data = response.data.data;
             const processedData = {
                 ...data,

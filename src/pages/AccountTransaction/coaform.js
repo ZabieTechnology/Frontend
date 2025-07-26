@@ -19,7 +19,8 @@ import {
     FormControlLabel,
     Divider,
     InputAdornment,
-    FormGroup,
+    Radio,
+    RadioGroup,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
@@ -29,54 +30,6 @@ import LockIcon from '@mui/icons-material/Lock';
 import axios from 'axios';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 
-// This data could be moved to a separate config file or fetched from an API
-const accountHierarchy = [
-    // Assets
-    { nature: 'Assets', mainHead: 'Current Asset', category: 'Cash & Cash Equivalents', enableOptions: ['Cash', 'Bank', 'Credit Card', 'Wallet', 'Cheque-in-transit'] },
-    { nature: 'Assets', mainHead: 'Current Asset', category: 'Current Investments'},
-    { nature: 'Assets', mainHead: 'Current Asset', category: 'Inventories', enableOptions: ['Raw Material', 'Work-In-Progress', 'Finished Goods'] },
-    { nature: 'Assets', mainHead: 'Current Asset', category: 'Other Current assets'},
-    { nature: 'Assets', mainHead: 'Current Asset', category: 'Short term loans and advances'},
-    { nature: 'Assets', mainHead: 'Current Asset', category: 'Trade receivables'},
-    { nature: 'Assets', mainHead: 'Fixed Asset', category: 'Accumulated Depreciation'},
-    { nature: 'Assets', mainHead: 'Fixed Asset', category: 'Acquistion Cost'},
-    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Deferred tax asset (net)'},
-    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Long term loans and advances'},
-    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Non-current Investments'},
-    { nature: 'Assets', mainHead: 'Non-Current Asset', category: 'Other Non-current Assets'},
-    // Expense
-    { nature: 'Expense', mainHead: 'Direct Expense', category: null },
-    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Depreciation' },
-    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Amortisation'},
-    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Employee Benefit Expenses'},
-    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Finance Cost'},
-    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Other expenses'},
-    { nature: 'Expense', mainHead: 'Indirect Expense', category: 'Tax Expense'},
-    { nature: 'Expense', mainHead: 'Purchases', category: 'Purchase of Finished Goods' },
-    { nature: 'Expense', mainHead: 'Purchases', category: 'Purchase of Raw Material' },
-    { nature: 'Expense', mainHead: 'Purchases', category: 'Purchase of Work-in-progress' },
-    // Income
-    { nature: 'Income', mainHead: 'Direct Income', category: null },
-    { nature: 'Income', mainHead: 'Indirect Income', category: 'Interest Income' },
-    { nature: 'Income', mainHead: 'Indirect Income', category: 'Others' },
-    // Equity
-    { nature: 'Equity', mainHead: 'Reserves & Surplus', category: 'Retained Earnings'},
-    { nature: 'Equity', mainHead: 'Reserves & Surplus', category: 'Accumulated Earnings'},
-    { nature: 'Equity', mainHead: 'Reserves & Surplus', category: 'Current period earnings'},
-    { nature: 'Equity', mainHead: 'Share Capital', category: null },
-    // Liability
-    { nature: 'Liability', mainHead: 'Current Liability', category: 'Other Current Liability (Duties & Taxes)', enableOptions: ['GST', 'TDS', 'Income Tax', 'ESIC', 'EPF'] },
-    { nature: 'Liability', mainHead: 'Current Liability', category: 'Other Current Liability (Others)'},
-    { nature: 'Liability', mainHead: 'Current Liability', category: 'Short term Borrowings', enableOptions: ['Loan'] },
-    { nature: 'Liability', mainHead: 'Current Liability', category: 'Short term provision'},
-    { nature: 'Liability', mainHead: 'Current Liability', category: 'Trade Payables'},
-    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Deferred tax liability (net)'},
-    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Long term Borrowings', enableOptions: ['Loan'] },
-    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Other Long term liability'},
-    { nature: 'Liability', mainHead: 'Non-Current Liability', category: 'Other Long term Provision'},
-];
-
-const natureOptions = [...new Set(accountHierarchy.map(item => item.nature))];
 
 const initialFormData = {
     _id: null,
@@ -95,6 +48,12 @@ const initialFormData = {
     status: 'Active',
     enabledOptions: {},
     isLocked: false,
+    // Bank details fields
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    swiftCode: '',
+    currency: '',
 };
 
 // --- Child Components for better structure ---
@@ -106,17 +65,15 @@ const SectionHeader = ({ title }) => (
     </Grid>
 );
 
-const AccountHierarchyFields = ({ formData, setFormData, isViewMode, mainHeadOptions, categoryOptions }) => {
+const AccountHierarchyFields = ({ formData, setFormData, isViewMode, natureOptions, mainHeadOptions, categoryOptions }) => {
     const handleChange = (event) => {
         const { name, value } = event.target;
         setFormData(prev => {
             const newState = { ...prev, [name]: value };
-            // When nature changes, reset mainHead and category
             if (name === 'nature') {
                 newState.mainHead = '';
                 newState.category = '';
             } else if (name === 'mainHead') {
-                // When mainHead changes, reset category
                 newState.category = '';
             }
             return newState;
@@ -156,34 +113,54 @@ const AccountHierarchyFields = ({ formData, setFormData, isViewMode, mainHeadOpt
 };
 
 const DynamicOptions = ({ notes, options, formData, setFormData, isViewMode }) => {
-     if (!notes && options.length === 0) return null;
+    if ((!notes && options.length === 0) || !options) return null;
 
-     const handleEnabledOptionsChange = (event) => {
-        const { name, checked } = event.target;
+    const handleChange = (event) => {
+        const { value } = event.target;
         setFormData(prev => ({
             ...prev,
-            enabledOptions: { ...prev.enabledOptions, [name]: checked }
+            enabledOptions: { [value]: true }
         }));
     };
+
+    const selectedValue = Object.keys(formData.enabledOptions).find(key => formData.enabledOptions[key] === true) || "";
 
     return (
         <Grid item xs={12} sx={{ my: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, background: '#fafafa' }}>
            {notes && <Typography variant="caption" color="text.secondary" display="block" sx={{mb: 1}}>{notes}</Typography>}
-           {options.length > 0 && (
-                <FormGroup row>
+            <FormControl component="fieldset" disabled={isViewMode}>
+                <RadioGroup row name="enabledOptions" value={selectedValue} onChange={handleChange}>
                     {options.map(option => (
-                        <FormControlLabel
-                            key={option}
-                            control={<Checkbox checked={!!formData.enabledOptions[option]} onChange={handleEnabledOptionsChange} name={option} size="small" />}
-                            label={option}
-                            disabled={isViewMode}
-                        />
+                        <FormControlLabel key={option} value={option} control={<Radio size="small" />} label={option}/>
                     ))}
-                </FormGroup>
-           )}
+                </RadioGroup>
+            </FormControl>
         </Grid>
     );
-}
+};
+
+
+const BankAccountDetails = ({ formData, handleChange, isViewMode }) => (
+    <>
+        <SectionHeader title="Bank Account Details" />
+        <Grid item xs={12} sm={6}>
+            <TextField name="bankName" label="Bank Name" value={formData.bankName} onChange={handleChange} fullWidth size="small" disabled={isViewMode} />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+             <TextField name="accountNumber" label="Account Number" value={formData.accountNumber} onChange={handleChange} fullWidth size="small" disabled={isViewMode} />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+             <TextField name="ifscCode" label="IFSC Code" value={formData.ifscCode} onChange={handleChange} fullWidth size="small" disabled={isViewMode} />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+             <TextField name="swiftCode" label="SWIFT Code" value={formData.swiftCode} onChange={handleChange} fullWidth size="small" disabled={isViewMode} />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+             <TextField name="currency" label="Currency" value={formData.currency} onChange={handleChange} fullWidth size="small" disabled={isViewMode} />
+        </Grid>
+    </>
+);
+
 
 // --- Main Form Component ---
 
@@ -195,7 +172,9 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
     const [isViewMode, setIsViewMode] = useState(false);
     const [parentAccounts, setParentAccounts] = useState([]);
     const [taxRateOptions, setTaxRateOptions] = useState([]);
+    const [accountHierarchy, setAccountHierarchy] = useState([]);
 
+    const [natureOptions, setNatureOptions] = useState([]);
     const [mainHeadOptions, setMainHeadOptions] = useState([]);
     const [categoryOptions, setCategoryOptions] = useState([]);
     const [notes, setNotes] = useState('');
@@ -207,6 +186,17 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
     const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
     // --- Data Fetching ---
+    const fetchClassifications = useCallback(async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/account-classifications`, { withCredentials: true });
+            setAccountHierarchy(response.data || []);
+        } catch (err) {
+            console.error("Error fetching account classifications:", err);
+            setError("Failed to load account classifications. Please try again.");
+        }
+    }, [API_BASE_URL]);
+
+
     const fetchTaxRateOptions = useCallback(async () => {
         try {
             const response = await axios.get(`${API_BASE_URL}/api/gst-rates?limit=-1`, { withCredentials: true });
@@ -253,18 +243,26 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
 
     // --- Effects ---
 
-    // Destructure properties from formData to satisfy exhaustive-deps lint rule
     const { nature, mainHead, category } = formData;
 
     useEffect(() => {
-        const heads = nature ? [...new Set(accountHierarchy.filter(item => item.nature === nature).map(item => item.mainHead))] : [];
+        fetchClassifications();
+    }, [fetchClassifications]);
+
+    useEffect(() => {
+        const natures = [...new Set(accountHierarchy.map(item => item.nature))];
+        setNatureOptions(natures);
+    }, [accountHierarchy]);
+
+    useEffect(() => {
+        const heads = nature ? [...new Set(accountHierarchy.filter(item => item.nature === nature).map(item => item.mainHead))].filter(Boolean) : [];
         setMainHeadOptions(heads);
-    }, [nature]);
+    }, [nature, accountHierarchy]);
 
     useEffect(() => {
         const cats = mainHead ? [...new Set(accountHierarchy.filter(item => item.nature === nature && item.mainHead === mainHead).map(item => item.category))].filter(Boolean) : [];
         setCategoryOptions(cats);
-    }, [nature, mainHead]);
+    }, [nature, mainHead, accountHierarchy]);
 
     useEffect(() => {
         let entry = accountHierarchy.find(item =>
@@ -274,7 +272,15 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
         );
         setNotes(entry?.notes || '');
         setDynamicEnableOptions(entry?.enableOptions || []);
-    }, [nature, mainHead, category]);
+    }, [nature, mainHead, category, accountHierarchy]);
+
+    useEffect(() => {
+        if (category === 'Cash & Cash Equivalents') {
+            if (!formData.allowPayments) {
+                setFormData(prev => ({ ...prev, allowPayments: true }));
+            }
+        }
+    }, [category, formData.allowPayments]);
 
     useEffect(() => {
         fetchTaxRateOptions();
@@ -352,6 +358,10 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
         ...otherProps,
     });
 
+    const showBankDetails = formData.category === 'Cash & Cash Equivalents' && (formData.enabledOptions['Bank'] || formData.enabledOptions['Credit Card'] || formData.enabledOptions['Wallet']);
+    const isCashEquivalent = formData.category === 'Cash & Cash Equivalents';
+
+
     if (loading && !accountId) {
         return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
     }
@@ -376,6 +386,7 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
                         formData={formData}
                         setFormData={setFormData}
                         isViewMode={isViewMode}
+                        natureOptions={natureOptions}
                         mainHeadOptions={mainHeadOptions}
                         categoryOptions={categoryOptions}
                     />
@@ -412,6 +423,15 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
                         </Grid>
                     )}
 
+                    {showBankDetails && (
+                        <BankAccountDetails
+                           formData={formData}
+                           handleChange={handleChange}
+                           isViewMode={isViewMode}
+                        />
+                    )}
+
+
                     <SectionHeader title="Financial Information" />
                     <Grid item xs={12} sm={6}>
                         <FormControl fullWidth size="small" disabled={isViewMode}>
@@ -428,7 +448,17 @@ const ChartOfAccountsForm = ({ onSaveSuccess }) => {
 
                     <SectionHeader title="Settings" />
                     <Grid item xs={12} sm={6}>
-                        <FormControlLabel control={<Switch checked={formData.allowPayments} onChange={handleChange} name="allowPayments" disabled={isViewMode} />} label="Enable payments to this account" />
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={formData.allowPayments}
+                                    onChange={handleChange}
+                                    name="allowPayments"
+                                    disabled={isViewMode || isCashEquivalent}
+                                />
+                            }
+                            label="Enable payments to this account"
+                        />
                     </Grid>
                     <Grid item xs={12} sm={6}>
                         <FormControlLabel control={<Switch icon={<LockOpenIcon />} checkedIcon={<LockIcon />} checked={formData.isLocked} onChange={handleChange} name="isLocked" disabled={isViewMode} />} label="Lock this ledger" />

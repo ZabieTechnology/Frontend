@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import InvoicePreview from './InvoicePreview';
+import InvoicePreview from './invoicepreviewsettings';
 
 // Base themes definition
 const baseThemes = [
@@ -1220,7 +1220,7 @@ const InvoiceSettingsPage = () => {
                                         <Divider sx={{my:1}}><Typography variant="caption">Payment Summary</Typography></Divider>
                                         <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showAmountReceived} onChange={(e) => handleActiveThemeProfileChange('showAmountReceived', e.target.checked)} name="showAmountReceived" />} label="Show 'Amount Received'" />
                                         <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showCreditNoteIssued} onChange={(e) => handleActiveThemeProfileChange('showCreditNoteIssued', e.target.checked)} name="showCreditNoteIssued" />} label="Show 'Credit Note Issued'" />
-                                        <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showExpensesAdjusted} onChange={(e) => handleActiveThemeProfileChange('showExpensesAdjusted', e.target.checked)} name="showExpensesAdjusted" />} label="Show 'Expenses Adjusted'" />
+                                        <FormControlLabel control={<Switch checked={!!activeProfileForSettingsUI.showExpensesAdjusted} onChange={(e) => handleActiveThemeProfileChange('showExpensesAdjusted', e.target.checked)} name="showExpensesAdjusted" />} label="Show 'Bill/Expenses Adjusted'" />
                                     </AccordionDetails>
                                 </Accordion>
 

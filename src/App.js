@@ -10,78 +10,85 @@ import Info from "./components/Info";
 import Protected from "./components/Protected";
 
 // Settings Pages
-import CompanyInformation from "./pages/settings/organizationsettings/companyinformation";
-import ContactDetails from "./pages/settings/organizationsettings/contactdetails";
-import NatureOfBusiness from "./pages/settings/organizationsettings/natureofbusiness";
-import FinancialDetails from "./pages/settings/organizationsettings/financialdetails";
-import DropdownManagement from "./pages/settings/globalsettings/DropdownManagement";
-import GSTManagement from "./pages/settings/taxcompliancedetails/GSTManagement";
-import VATManagement from "./pages/settings/taxcompliancedetails/VATManagement";
-import TDSManagement from "./pages/settings/taxcompliancedetails/tds";
-import TCSManagement from "./pages/settings/taxcompliancedetails/tcs";
-import InvoiceSettingsPage from "./pages/settings/invoicesettings/InvoiceSettingsPage";
-import QuotationSettingsPage from "./pages/settings/Finance/quotationsettings";
-import OfficialDocumentSettings from "./pages/settings/globalsettings/officialdocumentsettings";
+import CompanyInformation from "./pages/settings/organizationsettings/companyinfo";
+import ContactDetails from "./pages/settings/organizationsettings/contactinfo";
+import NatureOfBusiness from "./pages/settings/organizationsettings/businessnature";
+import FinancialDetails from "./pages/settings/organizationsettings/financialconf"; // Corrected path
+import DropdownManagement from "./pages/settings/globalsettings/dropdowndata";
+import GSTManagement from "./pages/settings/taxsettings/gstsettings"; // Corrected path
+import VATManagement from "./pages/settings/taxsettings/vatsettings";
+import TDSManagement from "./pages/settings/taxsettings/tdssettings";
+import TCSManagement from "./pages/settings/taxsettings/tcssettings";
+import InvoiceSettingsPage from "./pages/settings/invoicesettings/invoiceinfosettings"; // Corrected path
+import QuotationSettingsPage from "./pages/settings/invoicesettings/salesquotsettings";
+import OfficialDocumentSettings from "./pages/settings/globalsettings/docrules";
+import COAClassifications from "./pages/settings/finance/coaclassification";
+
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
-import CustomerListPage from "./pages/AccountTransaction/customer";
-import CustomerForm from "./pages/AccountTransaction/CustomerForm";
-import VendorListPage from "./pages/AccountTransaction/vendor";
+import CustomerListPage from "./pages/accounttransaction/customerlist";
+import CustomerForm from "./pages/accounttransaction/customerform";
+import VendorListPage from "./pages/accounttransaction/vendorlist";
 
 // VendorDetailsPage was pointing to vendor list, assuming it's a form like CustomerForm
-import VendorForm from "./pages/AccountTransaction/VendorDetailsPage"; // Corrected: Assuming VendorDetailsPage is a form like CustomerForm
-import ChartOfAccountsListPage from "./pages/AccountTransaction/chartofaccounts";
-import ChartOfAccountsForm from "./pages/AccountTransaction/ChartOfAccountsForm";
-import StaffListPage from "./pages/AccountTransaction/staff";
-import StaffForm from "./pages/AccountTransaction/StaffForm";
+import VendorForm from "./pages/accounttransaction/vendorform"; // Corrected: Assuming VendorDetailsPage is a form like CustomerForm
+import ChartOfAccountsListPage from "./pages/accounttransaction/coalist";
+import ChartOfAccountsForm from "./pages/accounttransaction/coaform";
+import StaffListPage from "./pages/accounttransaction/stafflist";
+import StaffForm from "./pages/accounttransaction/staffform";
 
 // Expenses Page
-import ExpenseListPage from "./pages/Expenses/ExpenseListPage";
-import AddExpensePage from "./pages/Expenses/AddExpensePage";
-import FixedAsset from "./pages/Expenses/FixedAsset";
+import ExpenseListPage from "./pages/expenses/ExpenseListPage";
+import AddExpensePage from "./pages/expenses/AddExpensePage";
+import FixedAsset from "./pages/expenses/FixedAsset";
 
 // Sales Page (Invoice was the old folder name based on comments)
-import OverviewSales from "./pages/Invoice/overviewsales";
-import SalesPage from "./pages/Invoice/Salesinvoicedash";
-import SalesInvoiceCreate from "./pages/Invoice/SalesInvoiceCreate";
-import Creditnotepagedash from "./pages/Invoice/creditnotepagedash";
-import Creditnotecreate from "./pages/Invoice/creditnotecreate";
-import Quotationdash from "./pages/Invoice/estimatedash";
-import Quotecreate from "./pages/Invoice/estimate";
-import OtherPlatform from "./pages/Invoice/Otherplatforms"
-import InvoiceDetails from "./pages/Invoice/SalesInvoicepreview"
+import OverviewSales from "./pages/sales/overviewsales";
+import SalesPage from "./pages/sales/invoicelist";
+import SalesInvoiceCreate from "./pages/sales/invoicecreate";
+import Creditnotepagedash from "./pages/sales/creditnotelist";
+import Creditnotecreate from "./pages/sales/creditnotecreate";
+import Quotationdash from "./pages/sales/estimatelist";
+import Quotecreate from "./pages/sales/estimatecreate";
+import OtherPlatform from "./pages/sales/Otherplatforms"
+import InvoiceDetails from "./pages/sales/invoicesummary"
 
 // Payment Page
-import RecordPaymentPage from "./pages/Payments/RecordPaymentPage";
-import Receiptvoucher from "./pages/Payments/receiptvoucher";
-import ContraVoucher from "./pages/Payments/contravoucher";
+import RecordPaymentPage from "./pages/payments/paymentvoucher";
+import Receiptvoucher from "./pages/payments/receiptvoucher";
+import ContraVoucher from "./pages/payments/contravoucher";
 
 
 // Payroll Page
-import Payrolllist from "./pages/Payroll/Payroll";
+import Payrolllist from "./pages/payroll/Payroll";
 //import AddExpensePage from "./pages/Expenses/AddExpensePage";
 
 // Inventory Page
-import Inventorylist from "./pages/Inventory/inventorylist";
-import DeliveryChallan from "./pages/Inventory/deliverychallandash";
-import StockAdjustment from "./pages/Inventory/stockadjustment";
+import Inventorylist from "./pages/inventory/inventorylist";
+import InventoryCreate from "./pages/inventory/inventorycreate";
+import DeliveryChallan from "./pages/inventory/deliverychallanlist";
+import DeliveryChallanCrte from "./pages/inventory/deliverychallancreate";
+import StockAdjustment from "./pages/inventory/stockadjustment";
 
 // Bank Page
-import BankFront from "./pages/Bank/bankfrontpage";
-import BankRecord from "./pages/Bank/bankrecopage";
-import BankOverview from "./pages/Bank/bankoverview";
-import AccCreditCard from "./pages/Bank/creditcard";
-import Cheque from "./pages/Bank/cheque";
-import Cash from "./pages/Bank/cash";
-import Loan from "./pages/Bank/loan";
-import Wallet from "./pages/Bank/wallet";
+import BankFront from "./pages/bank/bankfrontpage";
+import BankRecord from "./pages/bank/bankrecopage";
+import BankOverview from "./pages/bank/bankoverview";
+import AccCreditCard from "./pages/bank/creditcard";
+import Cheque from "./pages/bank/cheque";
+import Cash from "./pages/bank/cash";
+import Loan from "./pages/bank/loan";
+import Wallet from "./pages/bank/wallet";
+import Ztrail from "./pages/ztrail/samplepage";
 
 
 // Reimbursement Page
-import Reimbursement from "./pages/Reimbursement/CobookReimbursement";
-import Reimbursementexclaim from "./pages/Reimbursement/ExpenseClaim";
-import Reimbursementmiclaim from "./pages/Reimbursement/Milagechaims";
+import Reimbursement from "./pages/reimbursement/CobookReimbursement";
+import Reimbursementexclaim from "./pages/reimbursement/ExpenseClaim";
+import Reimbursementmiclaim from "./pages/reimbursement/Milagechaims";
+
+
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -123,7 +130,7 @@ function App() {
 
             {/* Sales Routes */}
             <Route path="Overviewsale" element={<OverviewSales />} />
-            <Route path="sales" element={<SalesPage />} />
+            <Route path="sales/*" element={<SalesPage />} />
             <Route path="sales/new" element={<SalesInvoiceCreate />} />
             <Route path="CreditNote" element={<Creditnotepagedash />} />
             <Route path="CreditNote/new" element={<Creditnotecreate />} />
@@ -156,6 +163,8 @@ function App() {
             <Route path="settings/taxcompliancedetails/vat-management" element={<VATManagement />} />
             <Route path="tdssettings" element={<TDSManagement />} />
             <Route path="tcssettings" element={<TCSManagement />} />
+            <Route path="coaclass" element={<COAClassifications />} />
+
 
             {/* Corrected Invoice Settings Route to match Layout.js link */}
             <Route path="settings/invoicesettings/InvoiceSettingsPage" element={<InvoiceSettingsPage />} />
@@ -195,8 +204,11 @@ function App() {
 
             {/* Inventory */}
             <Route path="Inventory" element={<Inventorylist />} />
+            <Route path="Inventory/new" element={<InventoryCreate />} />
             <Route path="DeliveryChallan" element={<DeliveryChallan />} />
+            <Route path="DeliveryChallan/new" element={<DeliveryChallanCrte />} />
             <Route path="StockManagement" element={<StockAdjustment />} />
+
 
             {/* Bank */}
             <Route path="Bank" element={<BankFront />} />
@@ -207,6 +219,10 @@ function App() {
             <Route path="cash" element={<Cash />} />
             <Route path="loan" element={<Loan />} />
             <Route path="Wallet" element={<Wallet />} />
+
+
+            {/* Trail */}
+            <Route path="SamplePage" element={<Ztrail />} />
 
 
             {/* Catch-all for undefined protected routes, redirect to home */}

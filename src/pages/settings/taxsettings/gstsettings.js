@@ -31,96 +31,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
+import axios from 'axios'; // Import axios for real API calls
 
-// --- MOCK API SETUP ---
-// This section simulates a backend API for demonstration purposes.
-const mockApi = {
-  db: {
-    rates: [
-      { _id: '1', taxName: 'GST @ 5%', head: 'GST Output', taxRate: 5.00, sgstRate: 2.50, cgstRate: 2.50, igstRate: 5.00, cessRate: 0.00 },
-      { _id: '2', taxName: 'GST @ 12%', head: 'GST Output', taxRate: 12.00, sgstRate: 6.00, cgstRate: 6.00, igstRate: 12.00, cessRate: 0.00 },
-      { _id: '3', taxName: 'GST @ 18% with Cess', head: 'GST Output Cess', taxRate: 0.00, sgstRate: 0.00, cgstRate: 0.00, igstRate: 0.00, cessRate: 18.00 },
-      { _id: '4', taxName: 'GST Exempted', head: 'GST Exempted', taxRate: 0.00, sgstRate: 0.00, cgstRate: 0.00, igstRate: 0.00, cessRate: 0.00 },
-      { _id: '5', taxName: 'GST Zero Rated', head: 'GST Zero Rated', taxRate: 0.00, sgstRate: 0.00, cgstRate: 0.00, igstRate: 0.00, cessRate: 0.00 },
-    ],
-    heads: [
-        { value: 'GST Output', label: 'GST Output' },
-        { value: 'GST Input', label: 'GST Input' },
-        { value: 'GST Output Cess', label: 'GST Output Cess' },
-        { value: 'GST Input Cess', label: 'GST Input Cess' },
-        { value: 'GST RCM', label: 'GST RCM' },
-        { value: 'GST TDS', label: 'GST TDS' },
-        { value: 'GST TCS', label: 'GST TCS' },
-        { value: 'GST Exempted', label: 'GST Exempted' },
-        { value: 'GST Zero Rated', label: 'GST Zero Rated' },
-    ]
-  },
-  get: async (url, config) => {
-    console.log('MOCK GET:', url, config);
-    await new Promise(res => setTimeout(res, 500)); // Simulate network delay
-    if (url.includes('/api/gst-rates')) {
-      return { data: { data: mockApi.db.rates } };
-    }
-    if (url.includes('/api/dropdown')) {
-       if (config.params.type === 'GST_Head') {
-           return { data: { data: mockApi.db.heads } };
-       }
-    }
-    return { data: { data: [] } };
-  },
-  post: async (url, data) => {
-    console.log('MOCK POST:', url, data);
-    await new Promise(res => setTimeout(res, 500));
-    if (url.includes('/api/gst-rates')) {
-      const taxRate = parseFloat(data.taxRate);
-      const cessRate = parseFloat(data.cessRate || 0);
-      const newRate = {
-        ...data,
-        _id: new Date().getTime().toString(),
-        taxRate,
-        sgstRate: taxRate / 2,
-        cgstRate: taxRate / 2,
-        igstRate: taxRate,
-        cessRate,
-      };
-      mockApi.db.rates.push(newRate);
-      return { data: newRate };
-    }
-    return { data: {} };
-  },
-  put: async (url, data) => {
-    console.log('MOCK PUT:', url, data);
-    await new Promise(res => setTimeout(res, 500));
-    if (url.includes('/api/gst-rates')) {
-      const taxRate = parseFloat(data.taxRate);
-      const cessRate = parseFloat(data.cessRate || 0);
-      const updatedRate = {
-        ...data,
-        taxRate,
-        sgstRate: taxRate / 2,
-        cgstRate: taxRate / 2,
-        igstRate: taxRate,
-        cessRate,
-      };
-      mockApi.db.rates = mockApi.db.rates.map(rate => rate._id === data._id ? updatedRate : rate);
-      return { data: updatedRate };
-    }
-    return { data: {} };
-  },
-  delete: async (url) => {
-    console.log('MOCK DELETE:', url);
-    await new Promise(res => setTimeout(res, 500));
-    if (url.includes('/api/gst-rates')) {
-        const id = url.split('/').pop();
-        mockApi.db.rates = mockApi.db.rates.filter(rate => rate._id !== id);
-        return { data: { message: 'Deleted successfully' } };
-    }
-    return { data: {} };
-  }
-};
-
-
-// A mock hook since the original is not provided.
+// --- A mock hook since the original is not provided. ---
 const useConfirmationDialog = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogConfig, setDialogConfig] = useState({ title: '', message: '', onConfirmAction: () => {} });
@@ -233,25 +146,32 @@ function GSTManagement() {
   const [gstHeadOptions, setGstHeadOptions] = useState([]);
 
   const { confirm, ConfirmationDialog } = useConfirmationDialog();
-  const API_BASE_URL = ''; // Not needed with mock
-
-  const api = mockApi; // Use the mock API
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
   const fetchApiData = useCallback(async () => {
     setLoading(true);
     try {
-      const [ratesRes, headsRes] = await Promise.all([
-        api.get(`${API_BASE_URL}/api/gst-rates`, { params: { limit: -1 } }),
-        api.get(`${API_BASE_URL}/api/dropdown`, { params: { type: 'GST_Head' } })
+      // Fetch both GST rates and the filtered chart of accounts to derive the heads
+      const [ratesRes, accountsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/gst-rates`, { params: { limit: -1 }, withCredentials: true }),
+        axios.get(`${API_BASE_URL}/api/chart-of-accounts`, { params: { 'enabledOptions.GST': true, limit: -1 }, withCredentials: true })
       ]);
+
       setTaxRates(ratesRes.data?.data || []);
-      setGstHeadOptions(headsRes.data?.data.map(opt => ({ value: opt.value, label: opt.label })) || []);
+
+      const gstEnabledAccounts = accountsRes.data?.data || [];
+      const headOptions = gstEnabledAccounts.map(acc => ({
+          value: acc.name,
+          label: `${acc.name} (${acc.code})`
+      }));
+      setGstHeadOptions(headOptions);
+
     } catch (err) {
-      setNotification({ open: true, message: `Failed to load data: ${err.message}`, severity: 'error' });
+      setNotification({ open: true, message: `Failed to load data: ${err.response?.data?.message || err.message}`, severity: 'error' });
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, api]);
+  }, [API_BASE_URL]);
 
   useEffect(() => {
     fetchApiData();
@@ -265,19 +185,31 @@ function GSTManagement() {
     const method = isEdit ? 'put' : 'post';
     const successMessage = `GST rate ${isEdit ? 'updated' : 'added'} successfully.`;
 
+    const taxRateValue = parseFloat(taxData.taxRate);
+    const cessRateValue = parseFloat(taxData.cessRate || 0);
+
     const isDuplicate = taxRates.some(rate =>
         (isEdit ? rate._id !== taxData._id : true) &&
         rate.head === taxData.head &&
-        parseFloat(rate.taxRate) === parseFloat(taxData.taxRate) &&
-        parseFloat(rate.cessRate) === parseFloat(taxData.cessRate)
+        parseFloat(rate.taxRate) === taxRateValue &&
+        parseFloat(rate.cessRate) === cessRateValue
     );
 
     if (isDuplicate) {
         throw new Error(`A tax rate with the same head, tax rate, and cess rate already exists.`);
     }
 
+    const payload = {
+        ...taxData,
+        taxRate: taxRateValue,
+        sgstRate: taxRateValue / 2,
+        cgstRate: taxRateValue / 2,
+        igstRate: taxRateValue,
+        cessRate: cessRateValue,
+    };
+
     try {
-      await api[method](`${API_BASE_URL}${endpoint}`, taxData);
+      await axios[method](`${API_BASE_URL}${endpoint}`, payload, { withCredentials: true });
       setNotification({ open: true, message: successMessage, severity: 'success' });
       fetchApiData();
       handleCloseDialog();
@@ -293,11 +225,11 @@ function GSTManagement() {
       message: `Are you sure you want to delete "${taxName}"? This action cannot be undone.`,
       onConfirmAction: async () => {
         try {
-          await api.delete(`${API_BASE_URL}/api/gst-rates/${taxId}`);
+          await axios.delete(`${API_BASE_URL}/api/gst-rates/${taxId}`, { withCredentials: true });
           setNotification({ open: true, message: "GST rate deleted successfully.", severity: 'success' });
           fetchApiData();
         } catch (err) {
-          setNotification({ open: true, message: `Failed to delete: ${err.message}`, severity: 'error' });
+          setNotification({ open: true, message: `Failed to delete: ${err.response?.data?.message || err.message}`, severity: 'error' });
         }
       },
     });
@@ -421,6 +353,7 @@ function AddEditGstDialog({ open, onClose, onSave, tax, gstHeadOptions }) {
       await onSave(formData, isEdit);
     } catch (err) {
       setError(err.message || 'An unexpected error occurred.');
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -430,7 +363,7 @@ function AddEditGstDialog({ open, onClose, onSave, tax, gstHeadOptions }) {
       <DialogTitle sx={{ fontWeight: 'bold' }}>{isEdit ? 'Edit GST Rate' : 'Add New GST Rate'}</DialogTitle>
       <DialogContent>
         <Box display="flex" flexDirection="column" gap={2.5} pt={1}>
-          {error && <Alert severity="error">{error}</Alert>}
+          {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
           <TextField autoFocus name="taxName" label="Tax Name" fullWidth value={formData.taxName || ''} onChange={handleChange} required />
           <TextField
             name="taxRate"
@@ -501,8 +434,4 @@ const DetailItem = ({ label, value }) => (
 );
 
 
-export default function App() {
-  return (
-      <GSTManagement />
-  );
-}
+export default GSTManagement;

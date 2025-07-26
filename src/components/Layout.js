@@ -64,13 +64,13 @@ const menuItems = [
     { id: 'dashboard', text: 'Dashboard', icon: <Home />, path: '/home' },
     {
         id: 'account-transaction',
-        text: 'A/C Transaction',
+        text: 'Accounts',
         icon: <AttachMoneyIcon />,
         children: [
             { id: 'customer', text: 'Customer', icon: <PeopleIcon />, path: '/account-transaction/customer' },
             { id: 'vendor', text: 'Vendor', icon: <VendorIcon />, path: '/account-transaction/vendor' },
-            { id: 'chart-of-accounts', text: 'Chart of Accounts', icon: <ChartOfAccountsIcon />, path: '/account-transaction/chart-of-accounts' },
             { id: 'staff', text: 'Staff', icon: <StaffIcon />, path: '/account-transaction/staff' },
+            { id: 'chart-of-accounts', text: 'Chart of Accounts', icon: <ChartOfAccountsIcon />, path: '/account-transaction/chart-of-accounts' },
         ],
     },
     {
@@ -111,19 +111,27 @@ const menuItems = [
         text: 'Bank',
         icon: <AccountBalanceWallet />,
         children: [
-            { id: 'payment', text: 'Payment', icon: <Receipt />, path: 'payments' },
-            { id: 'Record Page', text: 'Reconsilation', icon: <Receipt />, path: 'Bank/new' },
             { id: 'BankOverview', text: 'Overview', icon: <Receipt />, path: 'BankOverview' },
             { id: 'Banklist', text: 'Bank', icon: <Receipt />, path: 'Bank' },
+            { id: 'Record Page', text: 'Bank Reconciliation', icon: <Receipt />, path: 'Bank/new' },
             { id: 'Creditcardlist', text: 'Credit Card', icon: <Receipt />, path: 'CreditCard' },
             { id: 'ChequeList', text: 'Cheque', icon: <Receipt />, path: 'Cheque' },
             { id: 'Cashlist', text: 'Cash', icon: <Receipt />, path: 'cash' },
             { id: 'LoanList', text: 'Loan', icon: <Receipt />, path: 'loan' },
             { id: 'WalletList', text: 'Wallet', icon: <Receipt />, path: 'Wallet' },
+
+        ]
+    },
+{
+
+    id: 'Payment', text: 'Payments/Receipts', icon: <GavelIcon />,
+        children: [
+            { id: 'payment', text: 'Payment', icon: <Receipt />, path: 'payments' },
             { id: 'receiptvoucher', text: 'Receipts', icon: <Receipt />, path: 'receiptvoucher' },
             { id: 'contravoucher', text: 'Contra', icon: <Receipt />, path: 'contravoucher' },
         ]
     },
+
     { id: 'payroll', text: 'Payroll', icon: <ListAlt />, path: '/Payroll' },
     { id: 'reimbursement', text: 'Reimbursement', icon: <Report />, path: '/Reimbursement' },
     { id: 'taxation', text: 'Taxation', icon: <RequestQuote />, path: '/info' },
@@ -137,34 +145,39 @@ const menuItems = [
             {
                 id: 'organization', text: 'Organization', icon: <BusinessIcon />,
                 children: [
-                    { id: 'company-info', text: 'Company Information', icon: <Info />, path: '/settings/organizationsetting/companyinformation' },
-                    { id: 'contact-details', text: 'Contact Details', icon: <PeopleIcon />, path: '/settings/organizationsettings/contactdetails' },
-                    { id: 'nature-of-business', text: 'Nature of Business', icon: <Work />, path: '/settings/organizationsettings/natureofbusiness' },
-                    { id: 'financial-details', text: 'Financial Details', icon: <AttachMoneyIcon />, path: '/settings/organizationsettings/financialdetails' },
-                    { id: 'dropdown-management', text: 'Dropdown Management', icon: <ListAlt />, path: '/settings/global-settings/dropdown' },
+                    { id: 'company-info', text: 'Business Profile', icon: <Info />, path: '/settings/organizationsetting/companyinformation' },
+                    { id: 'contact-details', text: 'Contact', icon: <PeopleIcon />, path: '/settings/organizationsettings/contactdetails' },
+                    { id: 'nature-of-business', text: 'Business Nature', icon: <Work />, path: '/settings/organizationsettings/natureofbusiness' },
+                    { id: 'financial-details', text: 'Financial Settings', icon: <AttachMoneyIcon />, path: '/settings/organizationsettings/financialdetails' },
+
                 ]
             },
             {
                 id: 'finance', text: 'Finance', icon: <AttachMoneyIcon />,
                 children: [
-                    {
-                        id: 'tax-compliance', text: 'Tax/Compliance', icon: <GavelIcon />,
-                        children: [
-                            { id: 'gst', text: 'GST', path: '/settings/taxcompliancedetails/GSTManagement' },
-                            { id: 'vat', text: 'VAT', path: '/settings/taxcompliancedetails/vat-management' },
-                            { id: 'OfficalDocument', text: 'Document Settings', path: 'OfficaldocumentSettings' },
-                            { id: 'tds', text: 'TDS', path: 'tdssettings' },
-                            { id: 'tcs', text: 'TCS', path: 'tcssettings' },
-                            { id: 'advance-tax', text: 'Advance TAX', action: 'popover' },
-                        ]
-                    },
                     { id: 'invoice-settings', text: 'Invoice', icon: <Receipt />, path: '/settings/invoicesettings/InvoiceSettingsPage' },
                     { id: 'estimate-settings', text: 'Estimate', icon: <RequestQuote />, path: 'settings/Finance/quotationsettings' },
                     { id: 'expense-settings', text: 'Expense', icon: <Money />, action: 'popover' },
-
+                    {id: 'coaclassification', text: 'COA Classification', icon: <Money />, path:'coaclass'},
                 ]
             },
-            { id: 'advanced-settings', text: 'Advanced Settings', icon: <AdvancedSettingsIcon />, action: 'popover' },
+            {
+            id: 'tax-compliance', text: 'Tax/Compliance', icon: <GavelIcon />,
+                        children: [
+                            { id: 'gst', text: 'GST', path: '/settings/taxcompliancedetails/GSTManagement' },
+                            { id: 'vat', text: 'VAT', path: '/settings/taxcompliancedetails/vat-management' },
+                            { id: 'tds', text: 'TDS', path: 'tdssettings' },
+                            { id: 'tcs', text: 'TCS', path: 'tcssettings' },
+                            { id: 'advance-tax', text: 'Advance Tax', action: 'popover' },
+                        ]
+            },
+            { id: 'advanced-settings', text: 'Advanced Settings', icon: <AdvancedSettingsIcon />,
+            children: [
+            { id: 'dropdown-management', text: 'Dropdown Management', icon: <ListAlt />, path: '/settings/global-settings/dropdown' },
+            { id: 'OfficalDocument', text: 'Document Rules', icon: <ListAlt />, path: 'OfficaldocumentSettings' },
+            { id: 'trail', text: 'Sample', icon: <ListAlt />, path: 'SamplePage' },
+            ]
+        }
         ]
     }
 ];

@@ -40,66 +40,11 @@ import {
   ViewColumn,
   CheckCircle,
   Cancel,
-  ArrowUpward,
-  ArrowDownward,
   FileUpload,
   FileDownload
 } from '@mui/icons-material';
 
 // --- Helper Components & Data ---
-
-// An updated styled card for displaying stats with MoM and YoY percentage change indicators.
-const StatCard = ({ title, value, valueColor, changeValueMoM, changeDirectionMoM, changeValueYoY, changeDirectionYoY }) => (
-  <Paper
-    elevation={2}
-    sx={{
-      p: 3,
-      borderRadius: '12px',
-      transition: 'transform 0.2s, box-shadow 0.2s',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: 6,
-      },
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      height: '100%'
-    }}
-  >
-    <Box>
-      <Typography variant="body1" color="text.secondary">
-        {title}
-      </Typography>
-      <Typography variant="h4" component="p" sx={{ fontWeight: 'bold', color: valueColor || 'text.primary', mt: 0.5 }}>
-        {value}
-      </Typography>
-    </Box>
-    <Box>
-        {changeValueMoM && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-            {changeDirectionMoM === 'up' ? <ArrowUpward fontSize="small" color="success" /> : <ArrowDownward fontSize="small" color="error" />}
-            <Typography variant="body2" sx={{ color: changeDirectionMoM === 'up' ? 'success.main' : 'error.main', ml: 0.5 }}>
-              {changeValueMoM}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-              vs last month
-            </Typography>
-          </Box>
-        )}
-        {changeValueYoY && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-            {changeDirectionYoY === 'up' ? <ArrowUpward fontSize="small" color="success" /> : <ArrowDownward fontSize="small" color="error" />}
-            <Typography variant="body2" sx={{ color: changeDirectionYoY === 'up' ? 'success.main' : 'error.main', ml: 0.5 }}>
-              {changeValueYoY}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-              vs last year
-            </Typography>
-          </Box>
-        )}
-    </Box>
-  </Paper>
-);
 
 // Master list of all possible columns, now categorized
 const categorizedColumns = [
@@ -135,7 +80,6 @@ const categorizedColumns = [
     {
         category: 'Financial',
         columns: [
-            { id: 'balance', numeric: true, label: 'Outstanding Amount', filterable: false },
             { id: 'paymentTerms', numeric: false, label: 'Payment Terms', filterable: true },
             { id: 'creditLimit', numeric: true, label: 'Credit Limit', filterable: false },
         ]
@@ -303,11 +247,10 @@ function CustomerDashboard() {
   const [selected, setSelected] = useState([]); // State for selected rows
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(5);
-  const [visibleColumns, setVisibleColumns] = useState(['id', 'name', 'email', 'phone', 'balance', 'status']);
+  const [visibleColumns, setVisibleColumns] = useState(['id', 'name', 'email', 'phone', 'status']);
   const [overdueSettingsOpen, setOverdueSettingsOpen] = useState(false);
   const [overdueDays, setOverdueDays] = useState(30);
   const [columnChooserOpen, setColumnChooserOpen] = useState(false);
-  const [reportType, setReportType] = useState('customers');
   const [exportMenuAnchorEl, setExportMenuAnchorEl] = useState(null);
 
 
@@ -420,52 +363,6 @@ function CustomerDashboard() {
     });
   }, [overdueDays]);
 
-  // Dynamic summary calculations
-  const summaryStats = useMemo(() => {
-    // For stable mock results, we use a fixed "current" date.
-    const now = new Date('2025-07-24T12:00:00Z');
-
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-    const endOfLastYear = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
-
-    const customersAtEndOfLastMonth = processedCustomers.filter(c => new Date(c.creationDate) <= endOfLastMonth);
-    const customersAtEndOfLastYear = processedCustomers.filter(c => new Date(c.creationDate) <= endOfLastYear);
-
-    const getChange = (current, previous) => {
-        if (previous === 0) {
-            return { value: current > 0 ? '+100.0%' : '+0.0%', direction: current > 0 ? 'up' : 'none' };
-        }
-        const change = ((current - previous) / previous) * 100;
-        if (Math.abs(change) < 0.1) return { value: '0.0%', direction: 'none' };
-        return {
-            value: `${change > 0 ? '+' : ''}${change.toFixed(1)}%`,
-            direction: change > 0 ? 'up' : 'down'
-        };
-    };
-
-    const currentStats = {
-        total: processedCustomers.length,
-        active: processedCustomers.filter(c => c.status === 'Active').length,
-        overdue: processedCustomers.filter(c => c.status === 'Overdue').length,
-        outstanding: processedCustomers.reduce((sum, customer) => sum + customer.balance, 0)
-    };
-
-    const totalCustomersMoM = getChange(currentStats.total, customersAtEndOfLastMonth.length);
-    const totalCustomersYoY = getChange(currentStats.total, customersAtEndOfLastYear.length);
-
-    return {
-        totalCustomers: currentStats.total,
-        totalCustomersMoM: totalCustomersMoM.value,
-        totalCustomersMoMDir: totalCustomersMoM.direction,
-        totalCustomersYoY: totalCustomersYoY.value,
-        totalCustomersYoYDir: totalCustomersYoY.direction,
-
-        activeCustomers: currentStats.active,
-        overdueAccounts: currentStats.overdue,
-        totalOutstanding: currentStats.outstanding,
-    };
-  }, [processedCustomers]);
-
   const filteredCustomers = useMemo(() => {
     let customers = [...processedCustomers];
     if (searchTerm) {
@@ -512,55 +409,8 @@ function CustomerDashboard() {
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, bgcolor: '#f8fafc', minHeight: '100vh' }}>
       <Box sx={{ maxWidth: '1400px', mx: 'auto' }}>
-        {/* Header Section */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                    title="Total Customers"
-                    value={summaryStats.totalCustomers}
-                    changeValueMoM={summaryStats.totalCustomersMoM}
-                    changeDirectionMoM={summaryStats.totalCustomersMoMDir}
-                    changeValueYoY={summaryStats.totalCustomersYoY}
-                    changeDirectionYoY={summaryStats.totalCustomersYoYDir}
-                />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                    title="Active Customers"
-                    value={summaryStats.activeCustomers}
-                    valueColor="success.main"
-                    changeValueMoM="+1.2%"
-                    changeDirectionMoM="up"
-                    changeValueYoY="+8.1%"
-                    changeDirectionYoY="up"
-                />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                    title="Overdue Accounts"
-                    value={summaryStats.overdueAccounts}
-                    valueColor="error.main"
-                    changeValueMoM="-3.0%"
-                    changeDirectionMoM="down"
-                    changeValueYoY="+5.0%"
-                    changeDirectionYoY="up"
-                />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                    title="Total Outstanding"
-                    value={`$${summaryStats.totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    valueColor="warning.main"
-                    changeValueMoM="+10.1%"
-                    changeDirectionMoM="up"
-                    changeValueYoY="+15.2%"
-                    changeDirectionYoY="up"
-                />
-            </Grid>
-        </Grid>
-
         {/* Customer List Section */}
-        <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, borderRadius: '16px' }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, borderRadius: '16px', mt: 4 }}>
           {/* Toolbar */}
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { md: 'center' }, gap: 2, mb: 3 }}>
              <Box>
@@ -569,14 +419,17 @@ function CustomerDashboard() {
                     <Typography color="text.secondary" variant="subtitle2" sx={{mt: 0.5}}>{selected.length} of {filteredCustomers.length} selected</Typography>
                 )}
              </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-                <TextField select size="small" label="Report Type" value={reportType} onChange={(e) => setReportType(e.target.value)} sx={{ minWidth: 220, borderRadius: '8px' }}>
-                    <MenuItem value="customers">Customers</MenuItem>
-                    <MenuItem value="aiCustomerWise">AI Customer Wise</MenuItem>
-                    <MenuItem value="aiCustomerSummary">AI Customer Summary</MenuItem>
-                </TextField>
-                <Button variant="outlined" startIcon={<FileUpload />} onClick={handleImport} sx={{ borderRadius: '8px' }}>Import</Button>
-                <Button variant="outlined" startIcon={<FileDownload />} onClick={handleExportMenuClick} sx={{ borderRadius: '8px' }}>Export</Button>
+            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                <Tooltip title="Import Customers">
+                  <IconButton onClick={handleImport}>
+                    <FileUpload />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Export Customers">
+                  <IconButton onClick={handleExportMenuClick}>
+                    <FileDownload />
+                  </IconButton>
+                </Tooltip>
                 <Menu anchorEl={exportMenuAnchorEl} open={Boolean(exportMenuAnchorEl)} onClose={handleExportMenuClose}>
                     <MenuItem onClick={() => handleExport('PDF')}>PDF</MenuItem>
                     <MenuItem onClick={() => handleExport('EXCEL')}>EXCEL</MenuItem>

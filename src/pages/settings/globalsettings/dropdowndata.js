@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import {
     Box, Typography, TextField, Button, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Paper, IconButton, Dialog,
     DialogTitle, DialogContent, DialogActions, Select, MenuItem,
-    FormControl, InputLabel, CircularProgress, Alert
+    FormControl, InputLabel, CircularProgress, Alert, Switch, FormControlLabel, Chip, OutlinedInput, Autocomplete
 } from "@mui/material";
-import { Edit, Delete, CloudUpload, Add as AddIcon } from "@mui/icons-material";
+import { Edit, Delete, CloudUpload, Add as AddIcon, Lock, LockOpen } from "@mui/icons-material";
+
+// This should ideally come from an API or a config file
+const availablePages = ["Home", "About", "Contact", "Products", "Services", "Admin Dashboard", "User Profile"];
 
 function DropdownManagement() {
     const [dropdownValues, setDropdownValues] = useState([]);
@@ -15,8 +18,11 @@ function DropdownManagement() {
     const [currentValue, setCurrentValue] = useState({
         _id: "",
         type: "",
+        sub_type: "", // Added sub_type
         value: "",
         label: "",
+        pages_used: [], // Added for multi-select
+        is_locked: false, // Added for lock option
     });
     const [file, setFile] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -29,6 +35,11 @@ function DropdownManagement() {
 
     const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
+    const uniqueTypes = useMemo(() => {
+        const types = new Set(dropdownValues.map(item => item.type).filter(Boolean));
+        return Array.from(types);
+    }, [dropdownValues]);
+
     const fetchDropdownValues = useCallback(async (page = 1, limit = 25) => {
         setLoading(true);
         setError(null);
@@ -37,11 +48,15 @@ function DropdownManagement() {
                 params: { page, limit },
                 withCredentials: true,
             });
-            console.log("API Response (fetchDropdownValues):", response.data); // Crucial for debugging
+            console.log("API Response (fetchDropdownValues):", response.data);
 
             if (response.data && Array.isArray(response.data.data)) {
-                setDropdownValues(response.data.data);
-                setFilteredValues(response.data.data);
+                const values = response.data.data.map(item => ({
+                    ...item,
+                    pages_used: item.pages_used || [], // Ensure pages_used is an array
+                }));
+                setDropdownValues(values);
+                setFilteredValues(values);
                 setTotalItems(response.data.total || 0);
             } else {
                 console.error("Invalid API response format:", response.data);
@@ -59,7 +74,7 @@ function DropdownManagement() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE_URL]); // currentPage and itemsPerPage are passed as args, so not needed in deps here
+    }, [API_BASE_URL]);
 
     useEffect(() => {
         fetchDropdownValues(currentPage, itemsPerPage);
@@ -71,6 +86,7 @@ function DropdownManagement() {
             const filtered = dropdownValues.filter(
                 (item) =>
                     item.type?.toLowerCase().includes(lowercasedFilter) ||
+                    item.sub_type?.toLowerCase().includes(lowercasedFilter) ||
                     item.value?.toLowerCase().includes(lowercasedFilter) ||
                     item.label?.toLowerCase().includes(lowercasedFilter)
             );
@@ -87,14 +103,17 @@ function DropdownManagement() {
             setError("Type, Value, and Label are required.");
             return;
         }
+
+        // Prevent editing if locked
+        const originalItem = dropdownValues.find(item => item._id === currentValue._id);
+        if (originalItem && originalItem.is_locked) {
+            setError("This item is locked and cannot be edited. Please unlock it first.");
+            return;
+        }
+
         try {
             const updatedUser = "Admin"; // Replace with actual logged-in user
-            const payload = {
-                type: currentValue.type,
-                value: currentValue.value,
-                label: currentValue.label,
-                updated_user: updatedUser,
-            };
+            const payload = { ...currentValue, updated_user: updatedUser };
 
             if (currentValue._id) {
                 await axios.put(`${API_BASE_URL}/api/dropdown/${currentValue._id}`, payload, { withCredentials: true });
@@ -104,22 +123,39 @@ function DropdownManagement() {
                 setSuccessMessage("Dropdown value added successfully.");
             }
             setOpenDialog(false);
-            fetchDropdownValues(1, itemsPerPage);
-            setCurrentPage(1);
+            fetchDropdownValues(currentPage, itemsPerPage);
         } catch (err) {
             console.error("Error saving dropdown value:", err);
             setError(`Error saving dropdown value: ${err.response?.data?.message || err.message}`);
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleToggleLock = async (item) => {
         setError(null);
         setSuccessMessage(null);
+        try {
+            const payload = { is_locked: !item.is_locked };
+            await axios.put(`${API_BASE_URL}/api/dropdown/${item._id}`, payload, { withCredentials: true });
+            setSuccessMessage(`Item ${!item.is_locked ? 'locked' : 'unlocked'} successfully.`);
+            fetchDropdownValues(currentPage, itemsPerPage);
+        } catch (err) {
+            console.error("Error toggling lock status:", err);
+            setError(`Error toggling lock status: ${err.response?.data?.message || err.message}`);
+        }
+    };
+
+
+    const handleDelete = async (id, is_locked) => {
+        setError(null);
+        setSuccessMessage(null);
+         if (is_locked) {
+            setError("Cannot delete a locked item. Please unlock it first.");
+            return;
+        }
         if (window.confirm("Are you sure you want to delete this item?")) {
             try {
                 await axios.delete(`${API_BASE_URL}/api/dropdown/${id}`, { withCredentials: true });
                 setSuccessMessage("Dropdown value deleted successfully.");
-                // If the deleted item was on the last page and was the only item, adjust current page
                 if (filteredValues.length === 1 && currentPage > 1) {
                     setCurrentPage(currentPage - 1);
                 } else {
@@ -178,21 +214,46 @@ function DropdownManagement() {
 
     const handleOpenDialog = (item = null) => {
         if (item) {
-            setCurrentValue({
-                _id: item._id,
-                type: item.type || "",
-                value: item.value || "",
-                label: item.label || "",
-            });
+             if (item.is_locked) {
+                setError("This item is locked. Unlock it to make changes.");
+                setCurrentValue({
+                    _id: item._id,
+                    type: item.type || "",
+                    sub_type: item.sub_type || "",
+                    value: item.value || "",
+                    label: item.label || "",
+                    pages_used: Array.isArray(item.pages_used) ? item.pages_used : [],
+                    is_locked: item.is_locked || false,
+                });
+                setOpenDialog(true); // Still open dialog to view details
+            } else {
+                 setCurrentValue({
+                    _id: item._id,
+                    type: item.type || "",
+                    sub_type: item.sub_type || "",
+                    value: item.value || "",
+                    label: item.label || "",
+                    pages_used: Array.isArray(item.pages_used) ? item.pages_used : [],
+                    is_locked: item.is_locked || false,
+                });
+                setError(null);
+                setOpenDialog(true);
+            }
         } else {
-            setCurrentValue({ _id: "", type: "", value: "", label: "" });
+            setCurrentValue({ _id: "", type: "", sub_type: "", value: "", label: "", pages_used: [], is_locked: false });
+            setError(null);
+            setOpenDialog(true);
         }
-        setError(null);
-        setOpenDialog(true);
     };
 
+    const handlePageChange = (event) => {
+        const value = Array.isArray(event.target.value) ? event.target.value : [];
+        setCurrentValue({ ...currentValue, pages_used: value });
+    };
+
+
     return (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 3, fontFamily: 'sans-serif' }}>
             <Typography variant="h4" gutterBottom>Manage Dropdown Values</Typography>
 
             {successMessage && <Alert severity="success" onClose={() => setSuccessMessage(null)} sx={{ mb: 2 }}>{successMessage}</Alert>}
@@ -223,7 +284,7 @@ function DropdownManagement() {
 
             <TextField
                 fullWidth
-                label="Filter by Type, Value, or Label"
+                label="Filter by Type, Sub-Type, Value, or Label"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 sx={{ mb: 3 }}
@@ -264,35 +325,52 @@ function DropdownManagement() {
                     <TableHead>
                         <TableRow sx={{ backgroundColor: 'grey.200' }}>
                             <TableCell sx={{fontWeight: 'bold'}}>Type</TableCell>
+                            <TableCell sx={{fontWeight: 'bold'}}>Sub Type</TableCell>
                             <TableCell sx={{fontWeight: 'bold'}}>Value</TableCell>
                             <TableCell sx={{fontWeight: 'bold'}}>Label</TableCell>
+                            <TableCell sx={{fontWeight: 'bold'}}>Pages Used</TableCell>
+                            <TableCell sx={{fontWeight: 'bold'}}>Status</TableCell>
                             <TableCell sx={{fontWeight: 'bold'}}>Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={4} align="center"><CircularProgress /></TableCell>
+                                <TableCell colSpan={7} align="center"><CircularProgress /></TableCell>
                             </TableRow>
                         ) : filteredValues && filteredValues.length > 0 ? (
                             filteredValues.map((item) => (
-                                <TableRow key={item._id} hover>
+                                <TableRow key={item._id} hover sx={{ backgroundColor: item.is_locked ? '#f5f5f5' : 'inherit' }}>
                                     <TableCell>{item.type}</TableCell>
+                                    <TableCell>{item.sub_type}</TableCell>
                                     <TableCell>{item.value}</TableCell>
                                     <TableCell>{item.label}</TableCell>
                                     <TableCell>
-                                        <IconButton onClick={() => handleOpenDialog(item)} size="small" color="primary" aria-label="edit">
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {item.pages_used?.map((page) => (
+                                                <Chip key={page} label={page} size="small" />
+                                            ))}
+                                        </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.is_locked ? <Lock color="action" /> : <LockOpen color="action" />}
+                                    </TableCell>
+                                    <TableCell>
+                                        <IconButton onClick={() => handleOpenDialog(item)} size="small" color="primary" aria-label="edit" disabled={item.is_locked}>
                                             <Edit />
                                         </IconButton>
-                                        <IconButton onClick={() => handleDelete(item._id)} size="small" color="error" aria-label="delete">
+                                        <IconButton onClick={() => handleDelete(item._id, item.is_locked)} size="small" color="error" aria-label="delete" disabled={item.is_locked}>
                                             <Delete />
+                                        </IconButton>
+                                        <IconButton onClick={() => handleToggleLock(item)} size="small" color="default" aria-label="toggle lock">
+                                            {item.is_locked ? <LockOpen /> : <Lock />}
                                         </IconButton>
                                     </TableCell>
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={4} align="center">
+                                <TableCell colSpan={7} align="center">
                                     No data available
                                 </TableCell>
                             </TableRow>
@@ -305,17 +383,45 @@ function DropdownManagement() {
                 <DialogTitle>{currentValue._id ? "Edit Dropdown Value" : "Add Dropdown Value"}</DialogTitle>
                 <DialogContent>
                     {error && <Alert severity="error" sx={{mb:2}} onClose={() => setError(null)}>{error}</Alert>}
-                    <TextField
-                        autoFocus
+                    <FormControlLabel
+                        control={<Switch checked={currentValue.is_locked} onChange={(e) => setCurrentValue({ ...currentValue, is_locked: e.target.checked })} />}
+                        label="Lock for Editing"
+                        sx={{ mb: 1, display: 'block' }}
+                    />
+                    <Autocomplete
+                        freeSolo
+                        options={uniqueTypes}
+                        getOptionLabel={(option) => option || ""}
+                        value={currentValue.type}
+                        onChange={(event, newValue) => {
+                            setCurrentValue({ ...currentValue, type: newValue || "" });
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                           if(event?.type === 'change') {
+                             setCurrentValue({ ...currentValue, type: newInputValue });
+                           }
+                        }}
+                        disabled={currentValue.is_locked}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                autoFocus
+                                margin="dense"
+                                label="Type *"
+                                variant="outlined"
+                            />
+                        )}
+                    />
+                     <TextField
                         margin="dense"
-                        name="type"
-                        label="Type *"
+                        name="sub_type"
+                        label="Sub Type"
                         type="text"
                         fullWidth
                         variant="outlined"
-                        value={currentValue.type}
-                        onChange={(e) => setCurrentValue({ ...currentValue, type: e.target.value })}
-                        // error={!!(error && !currentValue.type)} // Error prop on textfield can be complex
+                        value={currentValue.sub_type}
+                        onChange={(e) => setCurrentValue({ ...currentValue, sub_type: e.target.value })}
+                        disabled={currentValue.is_locked}
                     />
                     <TextField
                         margin="dense"
@@ -326,7 +432,7 @@ function DropdownManagement() {
                         variant="outlined"
                         value={currentValue.value}
                         onChange={(e) => setCurrentValue({ ...currentValue, value: e.target.value })}
-                        // error={!!(error && !currentValue.value)}
+                        disabled={currentValue.is_locked}
                     />
                     <TextField
                         margin="dense"
@@ -337,12 +443,35 @@ function DropdownManagement() {
                         variant="outlined"
                         value={currentValue.label}
                         onChange={(e) => setCurrentValue({ ...currentValue, label: e.target.value })}
-                        // error={!!(error && !currentValue.label)}
+                        disabled={currentValue.is_locked}
                     />
+                    <FormControl fullWidth margin="dense" disabled={currentValue.is_locked}>
+                        <InputLabel id="pages-used-label">Pages Used</InputLabel>
+                        <Select
+                            labelId="pages-used-label"
+                            multiple
+                            value={currentValue.pages_used}
+                            onChange={handlePageChange}
+                            input={<OutlinedInput label="Pages Used" />}
+                            renderValue={(selected) => (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                    {selected.map((value) => (
+                                        <Chip key={value} label={value} />
+                                    ))}
+                                </Box>
+                            )}
+                        >
+                            {availablePages.map((page) => (
+                                <MenuItem key={page} value={page}>
+                                    {page}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 </DialogContent>
                 <DialogActions sx={{p: '16px 24px'}}>
                     <Button onClick={() => setOpenDialog(false)} color="secondary">Cancel</Button>
-                    <Button onClick={handleSave} variant="contained">Save</Button>
+                    <Button onClick={handleSave} variant="contained" disabled={currentValue.is_locked}>Save</Button>
                 </DialogActions>
             </Dialog>
         </Box>
