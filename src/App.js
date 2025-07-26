@@ -27,7 +27,6 @@ import COAClassifications from "./pages/settings/finance/coaclassification";
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
-import CustomerDashboard from "./pages/accounttransaction/CustomerListPage";
 import CustomerForm from "./pages/accounttransaction/customerform";
 import VendorListPage from "./pages/accounttransaction/vendorlist";
 import VendorForm from "./pages/accounttransaction/vendorform";
@@ -170,7 +169,6 @@ function App() {
             <Route path="OfficaldocumentSettings" element={<OfficialDocumentSettings />} />
 
             {/* Account Transaction Routes */}
-            <Route path="account-transaction/customer" element={<CustomerDashboard />} />
             <Route path="account-transaction/customer/new" element={<CustomerForm />} />
             <Route path="account-transaction/customer/edit/:customerId" element={<CustomerForm />} />
 
