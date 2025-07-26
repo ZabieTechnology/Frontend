@@ -45,14 +45,14 @@ import FixedAsset from "./pages/expenses/FixedAsset";
 
 // Sales Page (Invoice was the old folder name based on comments)
 import OverviewSales from "./pages/sales/overviewsales";
-import SalesPage from "./pages/sales/invoicelist";
+import SalesPage from "./pages/Sales/invoicelist";
 import SalesInvoiceCreate from "./pages/sales/invoicecreate";
 import Creditnotepagedash from "./pages/sales/creditnotelist";
 import Creditnotecreate from "./pages/sales/creditnotecreate";
 import Quotationdash from "./pages/sales/estimatelist";
 import Quotecreate from "./pages/sales/estimatecreate";
 import OtherPlatform from "./pages/sales/Otherplatforms"
-import InvoiceDetails from "./pages/sales/invoicesummary"
+import InvoiceDetails from "./pages/Sales/invoicesummary"
 
 // Payment Page
 import RecordPaymentPage from "./pages/payments/paymentvoucher";
