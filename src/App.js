@@ -27,7 +27,7 @@ import COAClassifications from "./pages/settings/finance/coaclassification";
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
-import CustomerDashboard from "./pages/accounttransaction/customerlist";
+import CustomerDashboard from "./pages/accounttransaction/CustomerListPage";
 import CustomerForm from "./pages/accounttransaction/customerform";
 import VendorListPage from "./pages/accounttransaction/vendorlist";
 import VendorForm from "./pages/accounttransaction/vendorform";
