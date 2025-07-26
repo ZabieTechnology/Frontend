@@ -235,9 +235,9 @@ const OverdueSettingsDialog = ({ open, onClose, onSave, value, onChange }) => (
 );
 
 
-// --- Main Customer Dashboard Component ---
+// --- Main Customer List Page Component ---
 
-function CustomerDashboard() {
+function CustomerListPage() { // <-- RENAMED THIS FUNCTION
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({});
   const [anchorEl, setAnchorEl] = useState({});
@@ -547,4 +547,4 @@ function CustomerDashboard() {
   );
 }
 
-export default CustomerDashboard;
+export default CustomerListPage; // <-- RENAMED THIS EXPORT
