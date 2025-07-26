@@ -31,8 +31,8 @@ import CustomerListPage from "./pages/AccountTransaction/customerlist";
 import CustomerForm from "./pages/accountTransaction/customercreate";
 import VendorListPage from "./pages/AccountTransaction/vendorlist";
 import VendorForm from "./pages/accountTransaction/vendorcreate";
-import ChartOfAccountsListPage from "./pages/AccountTransaction/coalist";
-import ChartOfAccountsForm from "./pages/AccountTransaction/coacreate";
+import ChartOfAccountsListPage from "./pages/accountTransaction/coalist";
+import ChartOfAccountsForm from "./pages/accountTransaction/coacreate";
 import StaffListPage from "./pages/AccountTransaction/stafflist";
 import StaffForm from "./pages/AccountTransaction/staffcreate";
 
