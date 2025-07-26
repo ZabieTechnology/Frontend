@@ -27,14 +27,14 @@ import COAClassifications from "./pages/settings/finance/coaclassification";
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
-import CustomerListPage from "./pages/AccountTransaction/customerlist";
-import CustomerForm from "./pages/AccountTransaction/customercreate";
-import VendorListPage from "./pages/AccountTransaction/vendorlist";
-import VendorForm from "./pages/accountTransaction/vendorcreate";
-import ChartOfAccountsListPage from "./pages/accountTransaction/coalist";
-import ChartOfAccountsForm from "./pages/accountTransaction/coacreate";
-import StaffListPage from "./pages/AccountTransaction/stafflist";
-import StaffForm from "./pages/accountTransaction/staffcreate";
+import CustomerListPage from "./pages/accounttransaction/customerlist";
+import CustomerForm from "./pages/accounttransaction/customerform";
+import VendorListPage from "./pages/accounttransaction/vendorlist";
+import VendorForm from "./pages/accounttransaction/vendorform";
+import ChartOfAccountsListPage from "./pages/accounttransaction/coalist";
+import ChartOfAccountsForm from "./pages/accounttransaction/coaform";
+import StaffListPage from "./pages/accounttransaction/stafflist";
+import StaffForm from "./pages/accounttransaction/staffform";
 
 // Expenses Page
 import ExpenseListPage from "./pages/expenses/ExpenseListPage";
@@ -43,14 +43,14 @@ import FixedAsset from "./pages/expenses/FixedAsset";
 
 // Sales Page (Invoice was the old folder name based on comments)
 import OverviewSales from "./pages/sales/overviewsales";
-import SalesPage from "./pages/Sales/invoicelist";
+import SalesPage from "./pages/sales/invoicelist";
 import SalesInvoiceCreate from "./pages/sales/invoicecreate";
 import Creditnotepagedash from "./pages/sales/creditnotelist";
 import Creditnotecreate from "./pages/sales/creditnotecreate";
 import Quotationdash from "./pages/sales/estimatelist";
 import Quotecreate from "./pages/sales/estimatecreate";
 import OtherPlatform from "./pages/sales/Otherplatforms"
-import InvoiceDetails from "./pages/Sales/invoicesummary"
+import InvoiceDetails from "./pages/sales/invoicesummary"
 
 // Payment Page
 import RecordPaymentPage from "./pages/payments/paymentvoucher";
