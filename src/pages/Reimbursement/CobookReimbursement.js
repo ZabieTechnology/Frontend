@@ -1,36 +1,33 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Tabs,
-  Tab,
-  Avatar,
-  Table,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Checkbox,
-  Button,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TableSortLabel,
-  DialogContentText,
-  ThemeProvider,
-  createTheme,
-  CssBaseline
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Avatar from '@mui/material/Avatar';
+import Table from '@mui/material/Table';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableBody from '@mui/material/TableBody';
+import Checkbox from '@mui/material/Checkbox';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import DialogContentText from '@mui/material/DialogContentText';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -165,7 +162,7 @@ const StatusChip = ({ status }) => {
     return <Box component="span" sx={style}>{status}</Box>;
 };
 
-const UserTransactions = ({ userData, onEdit, onDelete }) => {
+const UserTransactions = ({ userData, onEdit, onDelete, context }) => {
     const totalAmount = userData.expenses.reduce((sum, exp) => sum + exp.total, 0);
 
     return (
@@ -175,9 +172,22 @@ const UserTransactions = ({ userData, onEdit, onDelete }) => {
             <Avatar sx={{ mr: 2, bgcolor: 'secondary.main' }}>{userData.user.charAt(0)}</Avatar>
             <Typography variant="h6">{userData.user}</Typography>
           </Box>
-          <Button variant="contained">
-            Approve All : ${totalAmount.toLocaleString()}
-          </Button>
+          {/* -- MODIFICATION START -- */}
+          {context === 'pay' ? (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button variant="contained" onClick={() => console.log('Paid with cash')}>
+                    Pay with Cash
+                </Button>
+                <Button variant="outlined" onClick={() => console.log('Added to payroll')}>
+                    Add to Payroll
+                </Button>
+            </Box>
+          ) : (
+            <Button variant="contained">
+                Approve All : ${totalAmount.toLocaleString()}
+            </Button>
+          )}
+          {/* -- MODIFICATION END -- */}
         </Box>
         <TableContainer>
           <Table size="small">
@@ -427,12 +437,14 @@ const TransactionsPage = () => {
         <Tab label="All" />
       </Tabs>
 
+      {/* -- MODIFICATION START -- */}
       {selectedTab === 0 && transactionsData.toReview.map(data =>
-          <UserTransactions key={data.user} userData={data} onEdit={handleOpenDialog} onDelete={handleOpenDeleteDialog} />
+          <UserTransactions key={data.user} userData={data} onEdit={handleOpenDialog} onDelete={handleOpenDeleteDialog} context="review" />
       )}
       {selectedTab === 1 && transactionsData.toPay.map(data =>
-          <UserTransactions key={data.user} userData={data} onEdit={handleOpenDialog} onDelete={handleOpenDeleteDialog} />
+          <UserTransactions key={data.user} userData={data} onEdit={handleOpenDialog} onDelete={handleOpenDeleteDialog} context="pay" />
       )}
+      {/* -- MODIFICATION END -- */}
       {selectedTab === 2 &&
           <AllTransactionsTable transactions={transactionsData.all} onEdit={handleOpenDialog} onDelete={handleOpenDeleteDialog} />
       }

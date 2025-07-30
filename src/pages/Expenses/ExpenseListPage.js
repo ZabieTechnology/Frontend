@@ -1,23 +1,38 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import {
-    Box, Typography, Button, Tabs, Tab, TextField, IconButton,
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Paper, Checkbox, TablePagination, Link, TableSortLabel,
-    Menu, MenuItem, Popover, Grid, Select, FormControl, Divider,
-    CircularProgress, Alert, InputLabel,
-    InputAdornment,
-    Tooltip,
-    ListItemText
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SettingsIcon from '@mui/icons-material/Settings'; // For column options icon
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
+import FormControl from '@mui/material/FormControl';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import InputLabel from '@mui/material/InputLabel';
+import Link from '@mui/material/Link';
+import ListItemText from '@mui/material/ListItemText';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Popover from '@mui/material/Popover';
+import Select from '@mui/material/Select';
+import Tab from '@mui/material/Tab';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import Tabs from '@mui/material/Tabs';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import { visuallyHidden } from '@mui/utils';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -25,6 +40,76 @@ import { parse as parseDateFns, isValid as isValidDateFns, startOfDay, endOfDay,
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useConfirmationDialog from '../../hooks/useConfirmationDialog'; // Adjust path if needed
+
+// --- INLINE SVG ICONS ---
+const SearchIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+);
+const AddIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+);
+const MoreVertIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+);
+const FilterListIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+);
+const VisibilityIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+);
+const EditIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+);
+const DeleteIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+);
+const SettingsIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H15a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+);
+
+// --- THEME DEFINITION ---
+const modernTheme = createTheme({
+    palette: {
+        primary: { main: '#007aff' },
+        secondary: { main: '#6c757d' },
+        background: { default: '#f4f6f8', paper: '#ffffff' },
+        text: { primary: '#1c1c1e', secondary: '#6c757d' },
+        success: { main: '#4caf50' },
+        error: { main: '#d32f2f' },
+        info: { main: '#2196f3' },
+        warning: { main: '#ff9800' }
+    },
+    typography: {
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        h5: { fontWeight: 600, },
+        h6: { fontWeight: 600, },
+        button: { textTransform: 'none', fontWeight: 600, }
+    },
+    components: {
+        MuiButton: {
+            styleOverrides: {
+                root: { borderRadius: 8, padding: '10px 20px', },
+            }
+        },
+        MuiPaper: {
+            styleOverrides: {
+                root: { borderRadius: 12, }
+            }
+        },
+        MuiCard: {
+            styleOverrides: {
+                root: { borderRadius: 12, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)', }
+            }
+        },
+        MuiTableCell: {
+            styleOverrides: {
+                head: { color: '#6b778c', fontWeight: '600', padding: '12px 16px', },
+                body: { color: '#172b4d', }
+            }
+        }
+    }
+});
+
 
 // --- Helper: Robust Date Parser ---
 const parseRobustDate = (dateStringOrDate) => {
@@ -228,107 +313,109 @@ function ExpenseListPage() {
 
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Box sx={{ padding: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
-                <ConfirmationDialog />
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs value={mainTabValue} onChange={handleMainTabChange} aria-label="main accounting sections tabs">
-                         <Tab label="Expenses" id="simple-tab-0" aria-controls="simple-tabpanel-0" />
-                         <Tab label="Fixed Assets" id="simple-tab-1" aria-controls="simple-tabpanel-1" /> {/* Changed label */}
-                     </Tabs>
-                 </Box>
+        <ThemeProvider theme={modernTheme}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <Box sx={{ padding: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
+                    <ConfirmationDialog />
+                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                        <Tabs value={mainTabValue} onChange={handleMainTabChange} aria-label="main accounting sections tabs">
+                             <Tab label="Expenses" id="simple-tab-0" aria-controls="simple-tabpanel-0" />
+                             <Tab label="Fixed Assets" id="simple-tab-1" aria-controls="simple-tabpanel-1" /> {/* Changed label */}
+                         </Tabs>
+                     </Box>
 
-                <TabPanel value={mainTabValue} index={0}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                         <Typography variant="h5">Expenses</Typography>
-                         <Box> <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNewExpense}> Add New </Button> </Box>
-                    </Box>
-                    {expenseError && <Alert severity="error" onClose={() => setExpenseError(null)} sx={{ mb: 2 }}>{expenseError}</Alert>}
-                    {expenseSuccess && <Alert severity="success" onClose={() => setExpenseSuccess(null)} sx={{ mb: 2 }}>{expenseSuccess}</Alert>}
-
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                         <Tabs value={expenseStatusTabValue} onChange={handleExpenseStatusTabChange} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="expense status tabs">
-                             {statusTabs.map((status, index) => <Tab key={status} label={status} />)}
-                        </Tabs>
-                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                             <TextField size="small" variant="outlined" placeholder="Search Expenses..." value={expenseSearchTerm} onChange={handleExpenseSearchChange} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon /></InputAdornment>), endAdornment: ( <InputAdornment position="end"> <IconButton aria-label="Advanced Filters" aria-describedby={advancedSearchPopoverId} onClick={handleOpenAdvancedSearchPopover} edge="end" title="Advanced Filters" color={advancedSearchCriteria ? 'primary' : 'default'} > <FilterListIcon /> </IconButton> </InputAdornment> )}} sx={{ width: { xs: '150px', sm: '200px', md: '300px' }, mr: 1 }}/>
-                             <Tooltip title="Column Options">
-                                <IconButton onClick={handleOpenColumnMenu}><SettingsIcon /></IconButton>
-                             </Tooltip>
+                    <TabPanel value={mainTabValue} index={0}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                             <Typography variant="h5">Expenses</Typography>
+                             <Box> <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNewExpense}> Add New </Button> </Box>
                         </Box>
-                    </Box>
+                        {expenseError && <Alert severity="error" onClose={() => setExpenseError(null)} sx={{ mb: 2 }}>{expenseError}</Alert>}
+                        {expenseSuccess && <Alert severity="success" onClose={() => setExpenseSuccess(null)} sx={{ mb: 2 }}>{expenseSuccess}</Alert>}
 
-                    <Popover id={advancedSearchPopoverId} open={openAdvancedSearchPopover} anchorEl={advancedSearchAnchorEl} onClose={handleCloseAdvancedSearchPopover} anchorOrigin={{ vertical: 'bottom', horizontal: 'right', }} transformOrigin={{ vertical: 'top', horizontal: 'right', }} PaperProps={{ sx: { width: { xs: '90%', sm: 350, md: 400 }, p: 2 } }}>
-                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}> ADVANCED SEARCH </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}> <FormControl fullWidth size="small"> <InputLabel shrink>Supplier</InputLabel> <Select value={advSearchSupplier} onChange={(e) => setAdvSearchSupplier(e.target.value)} displayEmpty label="Supplier"> <MenuItem value=""><em>Any Supplier</em></MenuItem> {uniqueSuppliers.map(supplierName => ( <MenuItem key={supplierName} value={supplierName}>{supplierName}</MenuItem> ))} </Select> </FormControl> </Grid>
-                            <Grid item xs={12}> <Typography variant="caption" sx={{ mb: 0.5, fontWeight: 'medium' }}>Date Range</Typography> <Grid container spacing={1} alignItems="center"> <Grid item xs={12} sm={6}> <DatePicker label="From" value={advSearchDateFrom} onChange={(newValue) => setAdvSearchDateFrom(newValue)} slotProps={{ textField: { size: 'small', fullWidth: true } }} format="dd/MM/yyyy" maxDate={advSearchDateTo || undefined}/> </Grid> <Grid item xs={12} sm={6}> <DatePicker label="To" value={advSearchDateTo} onChange={(newValue) => setAdvSearchDateTo(newValue)} slotProps={{ textField: { size: 'small', fullWidth: true } }} format="dd/MM/yyyy" minDate={advSearchDateFrom || undefined}/> </Grid> </Grid> </Grid>
-                            <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
-                            <Grid item xs={12}> <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}> <Button size="small" variant="text" onClick={handleResetAdvancedSearch} sx={{ color: 'grey.700' }}>Reset</Button> <Button size="small" variant="contained" onClick={handleApplyAdvancedSearch} >Apply</Button> </Box> </Grid>
-                        </Grid>
-                    </Popover>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                             <Tabs value={expenseStatusTabValue} onChange={handleExpenseStatusTabChange} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="expense status tabs">
+                                 {statusTabs.map((status, index) => <Tab key={status} label={status} />)}
+                            </Tabs>
+                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                 <TextField size="small" variant="outlined" placeholder="Search Expenses..." value={expenseSearchTerm} onChange={handleExpenseSearchChange} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon /></InputAdornment>), endAdornment: ( <InputAdornment position="end"> <IconButton aria-label="Advanced Filters" aria-describedby={advancedSearchPopoverId} onClick={handleOpenAdvancedSearchPopover} edge="end" title="Advanced Filters" color={advancedSearchCriteria ? 'primary' : 'default'} > <FilterListIcon /> </IconButton> </InputAdornment> )}} sx={{ width: { xs: '150px', sm: '200px', md: '300px' }, mr: 1 }}/>
+                                 <Tooltip title="Column Options">
+                                    <IconButton onClick={handleOpenColumnMenu}><SettingsIcon /></IconButton>
+                                 </Tooltip>
+                            </Box>
+                        </Box>
 
-                    <Menu anchorEl={columnMenuAnchorEl} open={openColumnMenu} onClose={handleCloseColumnMenu} >
-                        <Typography sx={{px:2, py:1, fontWeight:'bold'}}>Show Columns</Typography>
-                        <Divider/>
-                        {allPossibleColumns.map(col => (
-                            <MenuItem key={col.id} onClick={() => handleColumnVisibilityChange(col.id)}>
-                                <Checkbox checked={visibleColumns.includes(col.id)} size="small" />
-                                <ListItemText primary={col.label} />
-                            </MenuItem>
-                        ))}
-                    </Menu>
+                        <Popover id={advancedSearchPopoverId} open={openAdvancedSearchPopover} anchorEl={advancedSearchAnchorEl} onClose={handleCloseAdvancedSearchPopover} anchorOrigin={{ vertical: 'bottom', horizontal: 'right', }} transformOrigin={{ vertical: 'top', horizontal: 'right', }} PaperProps={{ sx: { width: { xs: '90%', sm: 350, md: 400 }, p: 2 } }}>
+                            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}> ADVANCED SEARCH </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}> <FormControl fullWidth size="small"> <InputLabel shrink>Supplier</InputLabel> <Select value={advSearchSupplier} onChange={(e) => setAdvSearchSupplier(e.target.value)} displayEmpty label="Supplier"> <MenuItem value=""><em>Any Supplier</em></MenuItem> {uniqueSuppliers.map(supplierName => ( <MenuItem key={supplierName} value={supplierName}>{supplierName}</MenuItem> ))} </Select> </FormControl> </Grid>
+                                <Grid item xs={12}> <Typography variant="caption" sx={{ mb: 0.5, fontWeight: 'medium' }}>Date Range</Typography> <Grid container spacing={1} alignItems="center"> <Grid item xs={12} sm={6}> <DatePicker label="From" value={advSearchDateFrom} onChange={(newValue) => setAdvSearchDateFrom(newValue)} slotProps={{ textField: { size: 'small', fullWidth: true } }} format="dd/MM/yyyy" maxDate={advSearchDateTo || undefined}/> </Grid> <Grid item xs={12} sm={6}> <DatePicker label="To" value={advSearchDateTo} onChange={(newValue) => setAdvSearchDateTo(newValue)} slotProps={{ textField: { size: 'small', fullWidth: true } }} format="dd/MM/yyyy" minDate={advSearchDateFrom || undefined}/> </Grid> </Grid> </Grid>
+                                <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
+                                <Grid item xs={12}> <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}> <Button size="small" variant="text" onClick={handleResetAdvancedSearch} sx={{ color: 'grey.700' }}>Reset</Button> <Button size="small" variant="contained" onClick={handleApplyAdvancedSearch} >Apply</Button> </Box> </Grid>
+                            </Grid>
+                        </Popover>
 
-                    {loadingExpenses ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>
-                    ) : (
-                        <Paper sx={{ width: '100%', mb: 2, overflow: 'hidden' }}>
-                            <TableContainer sx={{ maxHeight: { xs: '60vh', md: 'calc(100vh - 400px)' } }}>
-                                <Table stickyHeader sx={{ minWidth: 750 }} aria-labelledby="tableTitle" size='medium'>
-                                    <EnhancedExpensesTableHead numSelected={expenseSelected.length} order={expenseOrder} orderBy={expenseOrderBy} onSelectAllClick={handleExpenseSelectAllClick} onRequestSort={handleExpenseRequestSort} rowCount={sortedAndFilteredExpenseRows.length} headCellsToRender={headCellsToRender} />
-                                    <TableBody>
-                                        {sortedAndFilteredExpenseRows.length > 0 ? (
-                                            sortedAndFilteredExpenseRows.map((row, index) => {
-                                                const isItemSelected = isExpenseSelected(row._id);
-                                                const labelId = `enhanced-table-checkbox-${index}`;
-                                                return (
-                                                    <TableRow hover role="checkbox" aria-checked={isItemSelected} tabIndex={-1} key={row._id} selected={isItemSelected}>
-                                                        <TableCell padding="checkbox"><Checkbox color="primary" checked={isItemSelected} onChange={(event) => handleExpenseClick(event, row._id)} inputProps={{ 'aria-labelledby': labelId }} /></TableCell>
-                                                        {headCellsToRender.map(headCell => (
-                                                            <TableCell key={headCell.id} align={headCell.numeric ? 'right' : (headCell.align ||'left')}>
-                                                                {headCell.id === 'actions' ? (
-                                                                    <IconButton aria-label="Actions" id={`actions-button-${row._id}`} onClick={(event) => handleOpenActionMenu(event, row._id)} size="small"> <MoreVertIcon /> </IconButton>
-                                                                ) : headCell.id === 'billDate' || headCell.id === 'dueDate' ? (
-                                                                    formatDisplayDate(row[headCell.id])
-                                                                ) : headCell.id === 'supplierName' ? (
-                                                                    <Link component="button" variant="body2" onClick={() => handleViewExpenseAction(row._id)} sx={{ textAlign: 'left'}}>
-                                                                        {row.supplierName || row.supplierId || 'N/A'}
-                                                                    </Link>
-                                                                ): headCell.id === 'expenseHeadName' ? (
-                                                                     row.expenseHeadName || row.expenseHeadId || 'N/A'
-                                                                ) : (
-                                                                    row[headCell.id] !== undefined && row[headCell.id] !== null ? String(row[headCell.id]) : 'N/A'
-                                                                )}
-                                                            </TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                );
-                                            })
-                                        ) : (
-                                            <TableRow> <TableCell colSpan={headCellsToRender.length + 1} align="center"> No expenses found matching your criteria. </TableCell> </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                            <TablePagination rowsPerPageOptions={[5, 10, 25, 50, 100]} component="div" count={totalExpenseItems} rowsPerPage={expenseRowsPerPage} page={expensePage} onPageChange={handleExpenseChangePage} onRowsPerPageChange={handleExpenseChangeRowsPerPage} />
-                        </Paper>
-                    )}
-                     {selectedExpenseIdForAction && ( <Menu id={`actions-menu-${selectedExpenseIdForAction}`} MenuListProps={{ 'aria-labelledby': `actions-button-${selectedExpenseIdForAction}`, }} anchorEl={anchorEl} open={openActionMenu} onClose={handleCloseActionMenu} > <MenuItem onClick={handleViewAction}><VisibilityIcon fontSize="small" sx={{ mr: 1 }} /> View</MenuItem> <MenuItem onClick={handleEditAction}><EditIcon fontSize="small" sx={{ mr: 1 }}/> Edit</MenuItem> <MenuItem onClick={handleDeleteAction} sx={{ color: 'error.main' }}><DeleteIcon fontSize="small" sx={{ mr: 1 }}/> Delete</MenuItem> </Menu> )}
-                </TabPanel>
+                        <Menu anchorEl={columnMenuAnchorEl} open={openColumnMenu} onClose={handleCloseColumnMenu} >
+                            <Typography sx={{px:2, py:1, fontWeight:'bold'}}>Show Columns</Typography>
+                            <Divider/>
+                            {allPossibleColumns.map(col => (
+                                <MenuItem key={col.id} onClick={() => handleColumnVisibilityChange(col.id)}>
+                                    <Checkbox checked={visibleColumns.includes(col.id)} size="small" />
+                                    <ListItemText primary={col.label} />
+                                </MenuItem>
+                            ))}
+                        </Menu>
 
-                <TabPanel value={mainTabValue} index={1}> <Typography variant="h6">Fixed Assets</Typography> <Typography variant="body1" color="text.secondary"> (Content for Fixed Assets Table and functionality to be implemented here)</Typography> </TabPanel>
-            </Box>
-        </LocalizationProvider>
+                        {loadingExpenses ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>
+                        ) : (
+                            <Paper sx={{ width: '100%', mb: 2, overflow: 'hidden' }}>
+                                <TableContainer sx={{ maxHeight: { xs: '60vh', md: 'calc(100vh - 400px)' } }}>
+                                    <Table stickyHeader sx={{ minWidth: 750 }} aria-labelledby="tableTitle" size='medium'>
+                                        <EnhancedExpensesTableHead numSelected={expenseSelected.length} order={expenseOrder} orderBy={expenseOrderBy} onSelectAllClick={handleExpenseSelectAllClick} onRequestSort={handleExpenseRequestSort} rowCount={sortedAndFilteredExpenseRows.length} headCellsToRender={headCellsToRender} />
+                                        <TableBody>
+                                            {sortedAndFilteredExpenseRows.length > 0 ? (
+                                                sortedAndFilteredExpenseRows.map((row, index) => {
+                                                    const isItemSelected = isExpenseSelected(row._id);
+                                                    const labelId = `enhanced-table-checkbox-${index}`;
+                                                    return (
+                                                        <TableRow hover role="checkbox" aria-checked={isItemSelected} tabIndex={-1} key={row._id} selected={isItemSelected}>
+                                                            <TableCell padding="checkbox"><Checkbox color="primary" checked={isItemSelected} onChange={(event) => handleExpenseClick(event, row._id)} inputProps={{ 'aria-labelledby': labelId }} /></TableCell>
+                                                            {headCellsToRender.map(headCell => (
+                                                                <TableCell key={headCell.id} align={headCell.numeric ? 'right' : (headCell.align ||'left')}>
+                                                                    {headCell.id === 'actions' ? (
+                                                                        <IconButton aria-label="Actions" id={`actions-button-${row._id}`} onClick={(event) => handleOpenActionMenu(event, row._id)} size="small"> <MoreVertIcon /> </IconButton>
+                                                                    ) : headCell.id === 'billDate' || headCell.id === 'dueDate' ? (
+                                                                        formatDisplayDate(row[headCell.id])
+                                                                    ) : headCell.id === 'supplierName' ? (
+                                                                        <Link component="button" variant="body2" onClick={() => handleViewExpenseAction(row._id)} sx={{ textAlign: 'left'}}>
+                                                                            {row.supplierName || row.supplierId || 'N/A'}
+                                                                        </Link>
+                                                                    ): headCell.id === 'expenseHeadName' ? (
+                                                                         row.expenseHeadName || row.expenseHeadId || 'N/A'
+                                                                    ) : (
+                                                                        row[headCell.id] !== undefined && row[headCell.id] !== null ? String(row[headCell.id]) : 'N/A'
+                                                                    )}
+                                                                </TableCell>
+                                                            ))}
+                                                        </TableRow>
+                                                    );
+                                                })
+                                            ) : (
+                                                <TableRow> <TableCell colSpan={headCellsToRender.length + 1} align="center"> No expenses found matching your criteria. </TableCell> </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                                <TablePagination rowsPerPageOptions={[5, 10, 25, 50, 100]} component="div" count={totalExpenseItems} rowsPerPage={expenseRowsPerPage} page={expensePage} onPageChange={handleExpenseChangePage} onRowsPerPageChange={handleExpenseChangeRowsPerPage} />
+                            </Paper>
+                        )}
+                         {selectedExpenseIdForAction && ( <Menu id={`actions-menu-${selectedExpenseIdForAction}`} MenuListProps={{ 'aria-labelledby': `actions-button-${selectedExpenseIdForAction}`, }} anchorEl={anchorEl} open={openActionMenu} onClose={handleCloseActionMenu} > <MenuItem onClick={handleViewAction}><VisibilityIcon fontSize="small" sx={{ mr: 1 }} /> View</MenuItem> <MenuItem onClick={handleEditAction}><EditIcon fontSize="small" sx={{ mr: 1 }}/> Edit</MenuItem> <MenuItem onClick={handleDeleteAction} sx={{ color: 'error.main' }}><DeleteIcon fontSize="small" sx={{ mr: 1 }}/> Delete</MenuItem> </Menu> )}
+                    </TabPanel>
+
+                    <TabPanel value={mainTabValue} index={1}> <Typography variant="h6">Fixed Assets</Typography> <Typography variant="body1" color="text.secondary"> (Content for Fixed Assets Table and functionality to be implemented here)</Typography> </TabPanel>
+                </Box>
+            </LocalizationProvider>
+        </ThemeProvider>
     );
 }
 

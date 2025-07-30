@@ -1,29 +1,111 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-    Box, Grid, Paper, Typography, TextField, Button, Select, MenuItem,
-    FormControl, InputLabel, IconButton,
-    InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Switch, Dialog, DialogActions, DialogContent, DialogTitle,
-    Checkbox,
-    Pagination,
-    FormControlLabel
-} from '@mui/material';
-import {
-    Add as AddIcon, Delete as DeleteIcon,
-    History as HistoryIcon, Close as CloseIcon,
-    Search as SearchIcon,
-    FilterList as FilterListIcon,
-    MoreVert as MoreVertIcon,
-    Visibility,
-    Edit
-} from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Pagination from '@mui/material/Pagination';
+import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import axios from 'axios';
+
+// --- INLINE SVG ICONS ---
+const Add = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+);
+const Delete = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+);
+const History = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path></svg>
+);
+const Close = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+);
+const Search = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+);
+const FilterList = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+);
+const MoreVert = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+);
+const Visibility = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+);
+const Edit = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+);
 
 const ITEMS_PER_PAGE = 10;
 
 const createData = (id, name, code, category, qty, sellingPrice, fullItem) => {
     return { id, name, code, category, qty, sellingPrice, selected: false, fullItem };
 };
+
+// --- THEME DEFINITION ---
+const modernTheme = createTheme({
+  palette: {
+    primary: { main: '#007aff' },
+    secondary: { main: '#6c757d' },
+    background: { default: '#f4f6f8', paper: '#ffffff' },
+    text: { primary: '#1c1c1e', secondary: '#6c757d' },
+    success: { main: '#4caf50' },
+    error: { main: '#d32f2f' },
+    info: { main: '#2196f3' },
+    warning: { main: '#ff9800' }
+  },
+  typography: {
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+    h5: { fontWeight: 600, },
+    h6: { fontWeight: 600, },
+    button: { textTransform: 'none', fontWeight: 600, }
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { borderRadius: 8, padding: '10px 20px', },
+      }
+    },
+    MuiPaper: {
+        styleOverrides: {
+            root: { borderRadius: 12, }
+        }
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: { borderRadius: 12, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)', }
+      }
+    },
+    MuiTableCell: {
+        styleOverrides: {
+            head: { color: '#6b778c', fontWeight: '600', padding: '12px 16px', },
+            body: { color: '#172b4d', }
+        }
+    }
+  }
+});
+
 
 // ==========================================================================
 // ===               Confirmation Dialog Hook & Component                 ===
@@ -242,7 +324,7 @@ function CreateItemModal({ open, onClose, onSave, itemToEdit, isViewMode }) {
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
             <DialogTitle sx={{ m: 0, p: 2, fontWeight: 'bold', borderBottom: '1px solid #e0e0e0' }}>
                  {isViewMode ? 'View Item' : (itemToEdit ? 'Edit Item' : 'Create New Item')}
-                 <IconButton aria-label="close" onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}><CloseIcon /></IconButton>
+                 <IconButton aria-label="close" onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}><Close /></IconButton>
             </DialogTitle>
             <DialogContent dividers sx={{ p: 3, backgroundColor: '#f9fafb' }}>
                 <Grid container spacing={4}>
@@ -411,7 +493,7 @@ function StockTransactionModal({ open, onClose, transactions, itemName }) {
 }
 
 
-function TransactionPage() {
+function InventoryListPage() {
     const [tableRows, setTableRows] = useState([]);
     const [totalItems, setTotalItems] = useState(0);
     const [categoryFilter, setCategoryFilter] = useState('');
@@ -522,12 +604,12 @@ function TransactionPage() {
             <Box sx={{ mb: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>Inventory Items</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    <TextField placeholder="Search Item" variant="outlined" size="small" InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon/></InputAdornment>, sx: { borderRadius: '6px', backgroundColor: '#f8fafc'}}} sx={{ flexGrow: { xs: 1, sm: 0 }, minWidth: '200px' }} />
+                    <TextField placeholder="Search Item" variant="outlined" size="small" InputProps={{ startAdornment: <InputAdornment position="start"><Search/></InputAdornment>, sx: { borderRadius: '6px', backgroundColor: '#f8fafc'}}} sx={{ flexGrow: { xs: 1, sm: 0 }, minWidth: '200px' }} />
                     <FormControl size="small" sx={{ minWidth: 150, backgroundColor: '#f8fafc', borderRadius: '6px' }}><InputLabel>Item Category</InputLabel><Select value={categoryFilter} label="Item Category" onChange={handleCategoryChange} displayEmpty sx={{ borderRadius: '6px' }}><MenuItem value=""><em>All Categories</em></MenuItem>{filterCategories.map((cat) => ( <MenuItem key={cat._id || cat.value} value={cat.value}>{cat.label}</MenuItem> ))}</Select></FormControl>
                     <Button variant="outlined" size="small" sx={{ borderColor: '#e2e8f0', color: '#64748b', textTransform: 'none', borderRadius: '6px', backgroundColor: '#f8fafc' }}>Show Low Stock</Button>
                     <Box sx={{ flexGrow: 1 }} />
-                    <IconButton size="small" sx={{ color: '#64748b'}}><FilterListIcon /></IconButton><IconButton size="small" sx={{ color: '#64748b'}}><MoreVertIcon /></IconButton>
-                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleOpenCreateModal} sx={{ textTransform: 'none', padding: '8px 16px', borderRadius: '6px' }}>Create Item</Button>
+                    <IconButton size="small" sx={{ color: '#64748b'}}><FilterList /></IconButton><IconButton size="small" sx={{ color: '#64748b'}}><MoreVert /></IconButton>
+                    <Button variant="contained" color="primary" startIcon={<Add />} onClick={handleOpenCreateModal} sx={{ textTransform: 'none', padding: '8px 16px', borderRadius: '6px' }}>Create Item</Button>
                 </Box>
             </Box>
             <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: '8px'}}>
@@ -551,10 +633,10 @@ function TransactionPage() {
                                     <TableCell>{row.qty}</TableCell>
                                     <TableCell>{row.sellingPrice}</TableCell>
                                     <TableCell align="right">
-                                        <IconButton size="small" color="info" onClick={() => handleShowTransactions(row)}><HistoryIcon fontSize="small"/></IconButton>
+                                        <IconButton size="small" color="info" onClick={() => handleShowTransactions(row)}><History fontSize="small"/></IconButton>
                                         <IconButton size="small" color="default" onClick={() => handleViewItem(row)}><Visibility fontSize="small"/></IconButton>
                                         <IconButton size="small" color="primary" onClick={() => handleEditItem(row)}><Edit fontSize="small"/></IconButton>
-                                        <IconButton size="small" color="error" onClick={() => confirmDelete(row.id, row.name)}><DeleteIcon fontSize="small"/></IconButton>
+                                        <IconButton size="small" color="error" onClick={() => confirmDelete(row.id, row.name)}><Delete fontSize="small"/></IconButton>
                                     </TableCell>
                                 </TableRow>
                             )) : (
@@ -573,4 +655,10 @@ function TransactionPage() {
     );
 }
 
-export default TransactionPage;
+export default function App() {
+    return (
+        <ThemeProvider theme={modernTheme}>
+            <InventoryListPage />
+        </ThemeProvider>
+    )
+}

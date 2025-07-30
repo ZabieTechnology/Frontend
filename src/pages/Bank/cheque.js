@@ -1,79 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import {
-    createTheme,
-    ThemeProvider,
-    CssBaseline,
-    Container,
-    Box,
-    Grid,
-    Card,
-    CardContent,
-    CardActions,
-    Button,
-    Typography,
-    Tabs,
-    Tab,
-    Paper,
-    TextField,
-    InputAdornment,
-    TableContainer,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    Checkbox,
-    IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Divider,
-    Drawer,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    Chip,
-} from '@mui/material';
-import {
-    ArrowBack as ArrowBackIcon,
-    Search as SearchIcon,
-    Edit as EditIcon,
-    Visibility as VisibilityIcon,
-    Delete as DeleteIcon,
-    Close as CloseIcon,
-    CloudUpload as CloudUploadIcon,
-    Cancel as CancelIcon,
-    Warning as WarningIcon,
-    CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import Checkbox from '@mui/material/Checkbox';
+import Chip from '@mui/material/Chip';
+import Container from '@mui/material/Container';
+import CssBaseline from '@mui/material/CssBaseline';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Divider from '@mui/material/Divider';
+import Drawer from '@mui/material/Drawer';
+import FormControl from '@mui/material/FormControl';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Select from '@mui/material/Select';
+import Tab from '@mui/material/Tab';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Tabs from '@mui/material/Tabs';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
+
+// --- INLINE SVG ICONS ---
+const ArrowBackIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+);
+const EditIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+);
+const VisibilityIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+);
+const DeleteIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+);
+const CloseIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+);
+const CloudUploadIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21.2 15.2-12.8 3.8a2 2 0 0 0-2.8 0L3.8 15.2c-.8.8-.8 2 0 2.8.8.8 2 .8 2.8 0L12 12.5l5.4 5.5c.8.8 2 .8 2.8 0 .8-.8.8-2 0-2.8Z"/><path d="M12 2v10.5"/><path d="M5 18h14"/></svg>
+);
+const CancelIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+);
+const WarningIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+);
+const CheckCircleIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+);
+const SearchIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+);
+
 
 // --- THEME & STYLES ---
 
-const theme = createTheme({
+const modernTheme = createTheme({
     palette: {
-        primary: {
-            main: '#84cc16', // lime-500
-            light: '#a3e635', // lime-400
-            dark: '#65a30d', // lime-600
-            contrastText: '#1a2e05', // dark lime text
-        },
-        secondary: {
-            main: '#f1f5f9', // slate-100
-            contrastText: '#475569', // slate-600
-        },
-        background: {
-            default: '#f8fafc', // slate-50
-            paper: '#ffffff',
-        },
-        success: {
-            main: '#22c55e', // green-500
-            dark: '#16a34a', // green-600
-        },
-        warning: {
-            main: '#f97316',
-        }
+        primary: { main: '#007aff' },
+        secondary: { main: '#6c757d' },
+        background: { default: '#f4f6f8', paper: '#ffffff' },
+        text: { primary: '#1c1c1e', secondary: '#6c757d' },
+        success: { main: '#22c55e', dark: '#16a34a' },
+        warning: { main: '#f97316' },
+        error: { main: '#d32f2f' },
     },
     typography: {
         fontFamily: 'sans-serif',
@@ -169,7 +174,7 @@ const ChequeDetailsPage = ({ onNavigate, initialTab }) => {
     const handleTabChange = (event, newValue) => setActiveTab(newValue);
 
     const handleClearanceUpdate = (e, rowToUpdate) => {
-        const { value } = e.target; // <x_bin_342>-MM-DD format
+        const { value } = e.target; //  लक्ष्मीबाई-MM-DD format
         const currentTabName = activeTab === 0 ? 'Issued' : 'Received';
         const chequeDateYYYYMMDD = rowToUpdate.date.split('/').reverse().join('-');
         if (value && value < chequeDateYYYYMMDD) return;
@@ -648,7 +653,7 @@ export default function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={modernTheme}>
       <CssBaseline />
       <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
         {renderView()}

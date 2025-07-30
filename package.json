@@ -13,18 +13,22 @@
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.13",
     "jwt-decode": "^4.0.0",
+    "papaparse": "^5.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router": "^6.20.0",
     "react-router-dom": "^7.1.1",
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "recharts": "^3.1.0"
   },
   "scripts": {
     "start": "react-app-rewired start",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+     "analyze": "npm run build && npx cra-bundle-analyzer"
   },
+  "proxy": "http://localhost:5000",
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -44,6 +48,7 @@
     ]
   },
   "devDependencies": {
+    "cra-bundle-analyzer": "^0.1.1",
     "customize-cra": "^1.0.0",
     "react-app-rewired": "^2.2.1",
     "web-vitals": "^4.2.4"
@@ -52,4 +57,3 @@
     "node": ">=20.0.0"
   }
 }
-

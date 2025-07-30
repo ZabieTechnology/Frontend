@@ -1,39 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import {
-  Box,
-  Grid,
-  Paper,
-  Typography,
-  Button,
-  IconButton,
-  Chip,
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  CircularProgress,
-  Alert,
-  Avatar,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  List,
-  ListItem,
-  Tabs,
-  Tab,
-  TextField,
-  Checkbox,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  TableFooter,
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Avatar from '@mui/material/Avatar';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import TextField from '@mui/material/TextField';
+import Checkbox from '@mui/material/Checkbox';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import TableFooter from '@mui/material/TableFooter';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import {
   Share,
@@ -319,7 +317,7 @@ const InvoicePreview = ({ settings, companyDetails, invoiceData }) => {
                 </Grid>
                 <Grid item xs={12}><Divider sx={{ my: 2 }} /></Grid>
                 {showBillToSection && <Grid item xs={showShipToSection ? 6:12}><Typography variant="subtitle1" sx={{fontWeight:'bold'}}>BILL TO:</Typography><Typography variant="body1">{invoiceData.customer?.name}</Typography><Typography variant="body2">{invoiceData.customerAddress}</Typography></Grid>}
-                {showShipToSection && <Grid item xs={showBillToSection ? 6:12}><Typography variant="subtitle1" sx={{fontWeight:'bold'}}>SHIP TO:</Typography><Typography variant="body2">{invoiceData.shipToAddress}</Typography></Grid>}
+                {showShipToSection && <Grid item xs={showShipToSection ? 6:12}><Typography variant="subtitle1" sx={{fontWeight:'bold'}}>SHIP TO:</Typography><Typography variant="body2">{invoiceData.shipToAddress}</Typography></Grid>}
 
                 <Grid item xs={12} sx={{ mt: 2 }}>
                     <TableContainer>

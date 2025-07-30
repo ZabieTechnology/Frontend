@@ -1,134 +1,99 @@
 import React from 'react';
-import {
-  Box,
-  Button,
-  Grid,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-  Paper,
-  Chip,
-  IconButton,
-  TableSortLabel,
-  Popover,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Divider,
-  TablePagination,
-  Menu,
-  MenuItem
-} from '@mui/material';
-import {
-    Add as AddIcon,
-    Search as SearchIcon,
-    ArrowDropDown as ArrowDropDownIcon,
-    Edit as EditIcon,
-    Visibility as VisibilityIcon,
-    Cancel as CancelIcon,
-    FilterList as FilterListIcon,
-    Download as DownloadIcon,
-    Share as ShareIcon
-} from '@mui/icons-material';
-import { visuallyHidden } from '@mui/utils';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormGroup from '@mui/material/FormGroup';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Popover from '@mui/material/Popover';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { visuallyHidden } from '@mui/utils';
 
-// A light theme for the dashboard
-const lightTheme = createTheme({
+// --- INLINE SVG ICONS ---
+const Add = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+);
+const Search = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+);
+const ArrowDropDown = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m6 9 6 6 6-6"/></svg>
+);
+const Edit = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+);
+const Eye = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+);
+const Cancel = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+);
+const FilterList = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+);
+const Download = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+);
+const Share = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+);
+
+
+// --- THEME AND STYLING ---
+const modernTheme = createTheme({
   palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#673ab7',
-    },
-    background: {
-      default: '#f4f6f8',
-      paper: '#ffffff',
-    },
-    text: {
-      primary: '#172b4d',
-      secondary: '#6b778c',
-    },
-    success: {
-        main: '#4caf50',
-    },
-    error: {
-        main: '#f44336'
-    },
-    info: {
-        main: '#2196f3'
-    },
-    warning: {
-        main: '#ff9800'
-    }
+    primary: { main: '#007aff' },
+    secondary: { main: '#6c757d' },
+    background: { default: '#f4f6f8', paper: '#ffffff' },
+    text: { primary: '#1c1c1e', secondary: '#6c757d' },
+    success: { main: '#4caf50' },
+    error: { main: '#d32f2f' },
+    info: { main: '#2196f3' },
+    warning: { main: '#ff9800' }
   },
   typography: {
     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
-    h5: {
-      fontWeight: 600,
-    },
-    h6: {
-        fontWeight: 600,
-    },
-    button: {
-      textTransform: 'none',
-      fontWeight: 600,
-    }
+    h5: { fontWeight: 600, },
+    h6: { fontWeight: 600, },
+    button: { textTransform: 'none', fontWeight: 600, }
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: {
-          borderRadius: 8,
-          padding: '10px 20px',
-        },
-        containedPrimary: {
-            backgroundColor: '#2962ff',
-            '&:hover': {
-                backgroundColor: '#0039cb',
-            }
-        },
-        containedSecondary: {
-            backgroundColor: '#7e57c2',
-            '&:hover': {
-                backgroundColor: '#4d2c91',
-            }
-        }
+        root: { borderRadius: 8, padding: '10px 20px', },
       }
     },
     MuiPaper: {
         styleOverrides: {
-            root: {
-                borderRadius: 12,
-            }
+            root: { borderRadius: 12, }
         }
     },
     MuiCard: {
       styleOverrides: {
-        root: {
-          borderRadius: 12,
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
-        }
+        root: { borderRadius: 12, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)', }
       }
     },
     MuiTableCell: {
         styleOverrides: {
-            head: {
-                color: '#6b778c',
-                fontWeight: '600',
-                padding: '12px 16px',
-            },
-            body: {
-                color: '#172b4d',
-            }
+            head: { color: '#6b778c', fontWeight: '600', padding: '12px 16px', },
+            body: { color: '#172b4d', }
         }
     }
   }
@@ -209,7 +174,7 @@ function EnhancedTableHead(props) {
                )}
                {headCell.filterable !== false && (
                    <IconButton size="small" onClick={(e) => onFilterClick(e, headCell.id)}>
-                       <FilterListIcon fontSize="small" color={filters && filters[headCell.id]?.length > 0 ? 'primary' : 'inherit'} />
+                       <FilterList fontSize="small" color={filters && filters[headCell.id]?.length > 0 ? 'primary' : 'inherit'} />
                    </IconButton>
                )}
             </Box>
@@ -388,12 +353,12 @@ const DeliveryChallanPage = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
                         <Typography variant="h6">Delivery Challan</Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                            <TextField size="small" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{startAdornment: (<InputAdornment position="start"><SearchIcon/></InputAdornment>)}}/>
-                            <Button variant="outlined" endIcon={<ArrowDropDownIcon />} onClick={handleSortMenuClick}>Sort by: {sortBy}</Button>
+                            <TextField size="small" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{startAdornment: (<InputAdornment position="start"><Search/></InputAdornment>)}}/>
+                            <Button variant="outlined" endIcon={<ArrowDropDown />} onClick={handleSortMenuClick}>Sort by: {sortBy}</Button>
                             <Menu anchorEl={sortAnchorEl} open={Boolean(sortAnchorEl)} onClose={handleSortMenuClose}>
                                 {sortOptions.map(option => <MenuItem key={option} onClick={() => handleSortMenuItemClick(option)}>{option}</MenuItem>)}
                             </Menu>
-                           <Button variant="contained" startIcon={<AddIcon />}>New Delivery Challan</Button>
+                           <Button variant="contained" startIcon={<Add />}>New Delivery Challan</Button>
                         </Box>
                     </Box>
                     <TableContainer>
@@ -444,15 +409,15 @@ const DeliveryChallanPage = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <Box sx={{display: 'flex'}}>
-                                                    <IconButton size="small" aria-label="download" color="primary"><DownloadIcon fontSize="small" /></IconButton>
-                                                    <IconButton size="small" aria-label="share" color="secondary"><ShareIcon fontSize="small" /></IconButton>
+                                                    <IconButton size="small" aria-label="download" color="primary"><Download fontSize="small" /></IconButton>
+                                                    <IconButton size="small" aria-label="share" color="secondary"><Share fontSize="small" /></IconButton>
                                                 </Box>
                                             </TableCell>
                                             <TableCell>
                                                 <Box sx={{display: 'flex'}}>
-                                                    <IconButton size="small" aria-label="view" color="info"><VisibilityIcon fontSize="small" /></IconButton>
-                                                    <IconButton size="small" aria-label="edit" color="warning"><EditIcon fontSize="small" /></IconButton>
-                                                    <IconButton size="small" aria-label="cancel" color="error"><CancelIcon fontSize="small" /></IconButton>
+                                                    <IconButton size="small" aria-label="view" color="info"><Eye fontSize="small" /></IconButton>
+                                                    <IconButton size="small" aria-label="edit" color="warning"><Edit fontSize="small" /></IconButton>
+                                                    <IconButton size="small" aria-label="cancel" color="error"><Cancel fontSize="small" /></IconButton>
                                                 </Box>
                                             </TableCell>
                                         </TableRow>
@@ -468,7 +433,7 @@ const DeliveryChallanPage = () => {
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                     >
                         <Box sx={{ p: 2, pt: 1, width: 280 }}>
-                             <TextField fullWidth size="small" variant="outlined" placeholder="Search..." value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} InputProps={{startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small"/></InputAdornment>)}} sx={{mb: 1}}/>
+                             <TextField fullWidth size="small" variant="outlined" placeholder="Search..." value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} InputProps={{startAdornment: (<InputAdornment position="start"><Search fontSize="small"/></InputAdornment>)}} sx={{mb: 1}}/>
                             <FormControlLabel
                                 label="Select All"
                                  control={
@@ -517,7 +482,7 @@ const DeliveryChallanPage = () => {
 // --- Main App Component ---
 export default function App() {
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={modernTheme}>
       <Box sx={{ bgcolor: 'background.default', p: { xs: 2, md: 3 }, minHeight: '100vh' }}>
         <DeliveryChallanPage />
       </Box>

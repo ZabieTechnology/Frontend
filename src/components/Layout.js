@@ -53,13 +53,9 @@ import {
     LocalShipping as DeliveryChallanIcon,
     CompareArrows as StockAdjustmentIcon,
 } from "@mui/icons-material";
-// FIX: Replaced the package import with a CDN URL to resolve the module error.
-import { jwtDecode } from "https://unpkg.com/jwt-decode@4.0.0/build/esm/index.js";
-
+import axios from "axios"; // Import axios for API calls
 
 // --- Data-driven menu structure ---
-// Centralized configuration for all sidebar items.
-// To add, remove, or re-order items, you only need to modify this array.
 const menuItems = [
     { id: 'dashboard', text: 'Dashboard', icon: <Home />, path: '/home' },
     {
@@ -105,7 +101,6 @@ const menuItems = [
             { id: 'stock-adjustment', text: 'Stock Adjustment', icon: <StockAdjustmentIcon />, path: 'StockManagement' },
         ],
     },
-    // --- MODIFIED: Converted Bank to a collapsible menu and added Payment ---
     {
         id: 'bank',
         text: 'Bank',
@@ -147,7 +142,6 @@ const menuItems = [
                 children: [
                     { id: 'company-info', text: 'Business Profile', icon: <Info />, path: '/settings/organizationsetting/companyinformation' },
                     { id: 'contact-details', text: 'Contact', icon: <PeopleIcon />, path: '/settings/organizationsettings/contactdetails' },
-                    { id: 'nature-of-business', text: 'Business Nature', icon: <Work />, path: '/settings/organizationsettings/natureofbusiness' },
                     { id: 'financial-details', text: 'Financial Settings', icon: <AttachMoneyIcon />, path: '/settings/organizationsettings/financialdetails' },
 
                 ]
@@ -176,14 +170,14 @@ const menuItems = [
             { id: 'dropdown-management', text: 'Dropdown Management', icon: <ListAlt />, path: '/settings/global-settings/dropdown' },
             { id: 'OfficalDocument', text: 'Document Rules', icon: <ListAlt />, path: 'OfficaldocumentSettings' },
             { id: 'trail', text: 'Sample', icon: <ListAlt />, path: 'SamplePage' },
+            { id: 'RegionalSettings', text: 'Regional Settings', icon: <ListAlt />, path: 'RegionalSettings' },
+            { id: 'IndustryClassification', text: 'Industry Class', icon: <ListAlt />, path: 'IndustryClassification' },
             ]
         }
         ]
     }
 ];
 
-// --- Recursive component to render sidebar items ---
-// This component handles rendering of a single item and its children, if any.
 const RecursiveSidebarItem = ({ item, sidebarOpen, openMenus, handleMenuClick, level = 1, onPopoverOpen }) => {
     const theme = useTheme();
     const location = useLocation();
@@ -191,7 +185,6 @@ const RecursiveSidebarItem = ({ item, sidebarOpen, openMenus, handleMenuClick, l
     const isMenuOpen = openMenus[item.id] || false;
     const isNested = level > 1;
 
-    // Determine if the current item or any of its children are active
     const isActive = (item) => {
         if (item.path && item.path !== '/info' && location.pathname.startsWith(item.path)) {
             return true;
@@ -203,9 +196,7 @@ const RecursiveSidebarItem = ({ item, sidebarOpen, openMenus, handleMenuClick, l
     };
 
     const active = isActive(item);
-
     const hasChildren = item.children && item.children.length > 0;
-
     const handleClick = (e) => {
         if (hasChildren) {
             handleMenuClick(item.id);
@@ -279,37 +270,46 @@ const RecursiveSidebarItem = ({ item, sidebarOpen, openMenus, handleMenuClick, l
     );
 };
 
-// --- Main Layout Component ---
 const Layout = ({ setToken }) => {
     const theme = useTheme();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [username, setUsername] = useState("");
-    const [userEmail, setUserEmail] = useState("");
+    const [username, setUsername] = useState("Guest"); // Default to Guest
     const [openMenus, setOpenMenus] = useState({});
     const [anchorEl, setAnchorEl] = useState(null);
+    const apiUrl = process.env.REACT_APP_API_URL || '';
 
     const handleLogout = useCallback(() => {
         localStorage.removeItem("token");
         setToken(null);
+        setUsername("Guest"); // Reset username on logout
     }, [setToken]);
 
-    // Effect to set user info from JWT token
+    // --- THIS IS THE UPDATED USEEFFECT HOOK ---
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                const decodedToken = jwtDecode(token);
-                setUsername(decodedToken.sub || "User");
-                setUserEmail(decodedToken.email || '');
-            } catch (err) {
-                console.error("Error decoding token:", err);
-                handleLogout();
+        const fetchUserProfile = async () => {
+            const token = localStorage.getItem("token");
+            if (token) {
+                try {
+                    // Fetch user profile from the backend
+                    const response = await axios.get(`${apiUrl}/api/auth/profile`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    // Set the username from the response
+                    setUsername(response.data.username || "User");
+                } catch (err) {
+                    console.error("Failed to fetch user profile:", err);
+                    // If token is invalid or expired, log the user out
+                    handleLogout();
+                }
             }
-        }
-    }, [handleLogout]);
+        };
 
-    // Effect to open parent menus of the active route on page load
+        fetchUserProfile();
+    }, [handleLogout, apiUrl]);
+
     useEffect(() => {
         const findPath = (items, currentPath) => {
             for (const item of items) {
@@ -334,8 +334,6 @@ const Layout = ({ setToken }) => {
 
 
     const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-
-    // Unified handler for all collapsible menus
     const handleMenuClick = (id) => {
         setOpenMenus((prev) => ({ ...prev, [id]: !prev[id] }));
     };
@@ -344,15 +342,8 @@ const Layout = ({ setToken }) => {
     const handlePopoverClose = () => setAnchorEl(null);
     const popoverOpen = Boolean(anchorEl);
 
-    const user = {
-        name: username || "Guest",
-        avatarInitial: (username || "G")[0].toUpperCase(),
-        email: userEmail || "guest@example.com"
-    };
-
     return (
         <Box sx={{ display: "flex", height: "100vh" }}>
-            {/* --- Sidebar / Drawer --- */}
             <Drawer
                 variant="permanent"
                 anchor="left"
@@ -422,7 +413,6 @@ const Layout = ({ setToken }) => {
                 </Box>
             </Drawer>
 
-            {/* --- Main Content Area --- */}
             <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
                 <Box
                     component="header"
@@ -455,10 +445,11 @@ const Layout = ({ setToken }) => {
                     <Box sx={{ flexGrow: { xs: 0, md: 1 } }} />
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                         <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
-                            {user.avatarInitial}
+                            {username[0].toUpperCase()}
                         </Avatar>
+                        {/* --- THIS IS THE UPDATED TYPOGRAPHY --- */}
                         <Typography variant="body1" sx={{ fontWeight: 500, display: { xs: 'none', sm: 'block' } }}>
-                            {user.email}
+                            {username}
                         </Typography>
                     </Box>
                 </Box>
@@ -475,7 +466,6 @@ const Layout = ({ setToken }) => {
                 </Box>
             </Box>
 
-            {/* --- Popover for "Coming Soon" features --- */}
             <Popover
                 open={popoverOpen}
                 anchorEl={anchorEl}

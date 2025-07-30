@@ -1,182 +1,347 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-    Box,
-    Typography,
-    Button,
-    ThemeProvider,
-    createTheme,
-    Grid,
-    Paper,
-    TextField,
-    CircularProgress,
-    Alert,
-    CssBaseline,
-    IconButton,
-} from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
+import axios from 'axios';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Grid from '@mui/material/Grid';
+import Avatar from '@mui/material/Avatar';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Star as DefaultIcon, StarBorder as NotDefaultIcon, Person as PersonIcon } from '@mui/icons-material';
 
-// Note: To run this code, you'll need to install axios.
-// You can do this by running: npm install axios
-// For now, API calls are mocked.
-// import axios from "axios";
+// --- Axios Instance with Auth ---
+const getAuthToken = () => localStorage.getItem('token');
 
-// Modern theme for the application
-const modernTheme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: { main: '#2c3e50' },
-    secondary: { main: '#1abc9c' },
-    background: { default: '#ecf0f1', paper: '#ffffff' },
-    text: { primary: '#34495e', secondary: '#7f8c8d' }
-  },
-  typography: {
-    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
-    h4: { fontWeight: 600, color: '#2c3e50' },
-    h6: { fontWeight: 600, color: '#34495e' },
-  },
-  components: {
-    MuiPaper: { styleOverrides: { root: { borderRadius: 16, boxShadow: 'rgba(149, 157, 165, 0.1) 0px 8px 24px', padding: '32px' } } },
-    MuiButton: { styleOverrides: { root: { borderRadius: 8, textTransform: 'none', fontWeight: 600, padding: '10px 20px' } } },
-    MuiTextField: { defaultProps: { variant: 'outlined' } },
-  }
+const axiosInstance = axios.create({
+    baseURL: '/api'
 });
 
-const initialContactState = { designation: "", name: "", panNumber: "", dinNumber: "", aadhaar: "", mobile: "", email: "" };
+axiosInstance.interceptors.request.use((config) => {
+    const token = getAuthToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
-// --- FIX ---
-// Moved mockApi and axios outside the component to prevent re-creation on every render.
-// This stops the infinite re-render loop.
-const mockApi = {
-    get: async (url) => { console.log(`Mock GET: ${url}`); await new Promise(r => setTimeout(r, 500)); return { data: [] }; },
-    put: async (url, data) => { console.log(`Mock PUT: ${url}`, data); await new Promise(r => setTimeout(r, 1000)); return { data: { message: "Saved!", data: data } }; }
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+// --- End Axios Instance ---
+
+const API_URL = '/contact-details';
+const GLOBAL_COUNTRIES_API_URL = '/global/countries';
+
+const initialContactState = {
+    designation: "",
+    name: "",
+    panNumber: "",
+    dinNumber: "",
+    aadhaar: "",
+    countryCode: "",
+    mobile: "",
+    email: "",
+    isDefault: false,
+    photo: null,
+    photoPreview: null,
 };
-const axios = mockApi;
-const API_BASE_URL = '';
-
 
 function ContactDetails() {
-  const [contacts, setContacts] = useState([initialContactState]);
-  const [loading, setLoading] = useState(true); // Start with loading true
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+    const [contacts, setContacts] = useState([]);
+    const [countryCodes, setCountryCodes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
-  const fetchContacts = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/contacts`);
-      if (response.data?.length > 0) setContacts(response.data);
-      else setContacts([initialContactState]);
-    } catch (err) {
-      console.error("Fetch Error:", err);
-      setError(`Failed to load contacts: ${err.message || 'Unknown'}`);
-      setContacts([initialContactState]);
-    } finally {
-      setLoading(false);
-    }
-  }, []); // Dependencies removed as axios is now stable
+    const [openDialog, setOpenDialog] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentContact, setCurrentContact] = useState(initialContactState);
 
-  useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
+    const fetchData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const [contactsResponse, countriesResponse] = await Promise.all([
+                axiosInstance.get(API_URL),
+                axiosInstance.get(GLOBAL_COUNTRIES_API_URL)
+            ]);
 
-  const handleAddContact = () => setContacts([...contacts, { ...initialContactState }]);
-  const handleRemoveContact = (index) => {
-    if (contacts.length > 1) {
-      setContacts(contacts.filter((_, i) => i !== index));
-    } else {
-      setError("At least one contact is required.");
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-  const handleChange = (index, field, value) => {
-    const newContacts = [...contacts];
-    newContacts[index][field] = value;
-    setContacts(newContacts);
-  };
+            if (contactsResponse.data && contactsResponse.data.length > 0) {
+                setContacts(contactsResponse.data);
+            } else {
+                setContacts([]);
+            }
 
-  const handleSaveContacts = async () => {
-    setLoading(true); setError(null); setSuccess(null);
-    const isValid = contacts.every(c => c.designation && c.name && c.panNumber && c.mobile && c.email);
-    if (!isValid) {
-      setError("Please fill all required (*) fields for every contact.");
-      setLoading(false);
-      return;
-    }
-    try {
-      await axios.put(`${API_BASE_URL}/api/contacts`, contacts);
-      setSuccess("Contact details saved successfully!");
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err)      {
-      console.error("Save Error:", err);
-      setError(`Failed to save contacts: ${err.message || 'Unknown'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+            if (countriesResponse.data) {
+                const codeOptions = countriesResponse.data.map(c => ({ value: c.countryCode, flag: c.flag }));
+                const uniqueCodeOptions = Array.from(new Set(codeOptions.map(c => c.value)))
+                  .map(value => codeOptions.find(c => c.value === value)).filter(Boolean);
+                setCountryCodes(uniqueCodeOptions);
+            }
 
-  const handleNext = () => {
-      // Navigate to the next page
-      window.location.href = 'http://localhost:3000/settings/organizationsettings/natureofbusiness';
-  };
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to fetch initial data.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
-  return (
-    <Box>
-      <Typography variant="h4" gutterBottom>Primary Contact Details</Typography>
-      {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>{success}</Alert>}
+    const handleOpenDialog = (contact = null) => {
+        if (contact) {
+            setCurrentContact({ ...contact, photoPreview: contact.photoUrl || null });
+            setIsEditing(true);
+        } else {
+            // Set default country code for new contacts if available
+            const defaultCode = countryCodes.find(c => c.flag === '🇮🇳')?.value || (countryCodes.length > 0 ? countryCodes[0].value : '');
+            setCurrentContact({...initialContactState, countryCode: defaultCode});
+            setIsEditing(false);
+        }
+        setError('');
+        setOpenDialog(true);
+    };
 
-      {loading ? (
-        <Box sx={{display: 'flex', justifyContent: 'center', my: 4}}><CircularProgress /></Box>
-      ) : (
-        <>
-          {contacts.map((contact, index) => (
-            <Paper key={index} elevation={0} sx={{ mb: 3, p: 3, position: 'relative', border: '1px solid #ecf0f1', borderRadius: '16px' }}>
-               {contacts.length > 1 && (
-                 <IconButton color="error" onClick={() => handleRemoveContact(index)} sx={{ position: 'absolute', top: 8, right: 8 }}>
-                    <DeleteIcon />
-                 </IconButton>
-               )}
-              <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>Contact {index + 1}</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}><TextField fullWidth required label="Designation" value={contact.designation} onChange={(e) => handleChange(index, "designation", e.target.value)} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth required label="Name" value={contact.name} onChange={(e) => handleChange(index, "name", e.target.value)} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth required label="PAN Number" value={contact.panNumber} onChange={(e) => handleChange(index, "panNumber", e.target.value)} inputProps={{ maxLength: 10, style: { textTransform: 'uppercase' } }} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="DIN Number" value={contact.dinNumber} onChange={(e) => handleChange(index, "dinNumber", e.target.value)} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Aadhaar" value={contact.aadhaar} onChange={(e) => handleChange(index, "aadhaar", e.target.value)} inputProps={{ maxLength: 12 }} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth required label="Mobile" value={contact.mobile} onChange={(e) => handleChange(index, "mobile", e.target.value)} type="tel" /></Grid>
-                <Grid item xs={12}><TextField fullWidth required label="E-mail id" value={contact.email} onChange={(e) => handleChange(index, "email", e.target.value)} type="email" /></Grid>
-              </Grid>
+    const handleCloseDialog = () => {
+        setOpenDialog(false);
+    };
+
+    const handlePhotoChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                setError("Photo file size should not exceed 2MB.");
+                return;
+            }
+            setCurrentContact(prev => ({
+                ...prev,
+                photo: file,
+                photoPreview: URL.createObjectURL(file)
+            }));
+            setError('');
+        }
+    };
+
+    const handleSaveContact = async () => {
+        if (!currentContact.name || !currentContact.mobile) {
+            setError("Name and Mobile are required fields.");
+            return;
+        }
+
+        const formData = new FormData();
+        for (const key in currentContact) {
+            if (key === 'photo' && currentContact[key]) {
+                formData.append('photo', currentContact.photo, currentContact.photo.name);
+            } else if (currentContact[key] !== null && key !== 'photoPreview' && key !== 'photoUrl') {
+                formData.append(key, currentContact[key]);
+            }
+        }
+
+        const apiCall = isEditing
+            ? axiosInstance.put(`${API_URL}/${currentContact._id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' }})
+            : axiosInstance.post(API_URL, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+
+        try {
+            await apiCall;
+            setSuccess(`Contact ${isEditing ? 'updated' : 'added'} successfully!`);
+            handleCloseDialog();
+            fetchData();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to save contact.');
+        }
+    };
+
+    const handleDeleteContact = async (id) => {
+        try {
+            await axiosInstance.delete(`${API_URL}/${id}`);
+            setSuccess('Contact deleted successfully!');
+            fetchData();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to delete contact.');
+        }
+    };
+
+    const handleSetDefault = async (id) => {
+        try {
+            await axiosInstance.put(`${API_URL}/set-default/${id}`);
+            setSuccess('Default contact updated successfully!');
+            fetchData();
+        } catch(err) {
+            setError(err.response?.data?.message || 'Failed to set default contact.');
+        }
+    };
+
+    return (
+        <Box>
+            <Paper sx={{ p: 3, mb: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h5">Company Contact Details</Typography>
+                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
+                        Add Contact
+                    </Button>
+                </Box>
+
+                {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
+                <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                    <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>{success}</Alert>
+                </Snackbar>
+
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}><CircularProgress /></Box>
+                ) : (
+                    <TableContainer>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Photo</TableCell>
+                                    <TableCell>Default</TableCell>
+                                    <TableCell>Designation</TableCell>
+                                    <TableCell>Name</TableCell>
+                                    <TableCell>Mobile</TableCell>
+                                    <TableCell>Email</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {contacts.map((contact) => (
+                                    <TableRow key={contact._id || 'new'}>
+                                        <TableCell>
+                                            <Avatar src={contact.photoUrl || undefined} alt={contact.name}>
+                                                {!contact.photoUrl && <PersonIcon />}
+                                            </Avatar>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Tooltip title={contact.isDefault ? "Default Contact" : "Set as Default"}>
+                                                <IconButton onClick={() => !contact.isDefault && handleSetDefault(contact._id)} color="primary" disabled={contact.isDefault}>
+                                                    {contact.isDefault ? <DefaultIcon /> : <NotDefaultIcon />}
+                                                </IconButton>
+                                            </Tooltip>
+                                        </TableCell>
+                                        <TableCell>{contact.designation}</TableCell>
+                                        <TableCell>{contact.name}</TableCell>
+                                        <TableCell>{`${contact.countryCode || ''} ${contact.mobile || ''}`}</TableCell>
+                                        <TableCell>{contact.email}</TableCell>
+                                        <TableCell align="right">
+                                            <IconButton onClick={() => handleOpenDialog(contact)}><EditIcon /></IconButton>
+                                            <IconButton onClick={() => handleDeleteContact(contact._id)} disabled={contact.isDefault}><DeleteIcon /></IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
             </Paper>
-          ))}
-        </>
-      )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 4, pt: 3, borderTop: '1px solid #ecf0f1' }}>
-         <Button variant="outlined" color="primary" startIcon={<AddIcon />} onClick={handleAddContact} disabled={loading}>Add Contact</Button>
-         <Box sx={{ display: 'flex', gap: 2 }}>
-             <Button variant="contained" color="secondary" size="large" onClick={handleSaveContacts} disabled={loading || contacts.length === 0}>
-                {loading ? <CircularProgress size={24} color="inherit" /> : "Save Contacts"}
-             </Button>
-             <Button variant="contained" color="primary" size="large" onClick={handleNext} disabled={loading} endIcon={<ArrowForwardIcon />}>
-                Next
-             </Button>
-         </Box>
-      </Box>
-    </Box>
-  );
-}
-
-// Main App component to render the form
-export default function App() {
-  return (
-    <ThemeProvider theme={modernTheme}>
-      <CssBaseline />
-        <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', p: { xs: 2, sm: 3, md: 4 } }}>
-            <Box sx={{ maxWidth: '1200px', margin: 'auto' }}>
-                <ContactDetails />
-            </Box>
+            <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+                <DialogTitle>{isEditing ? 'Edit Contact' : 'Add New Contact'}</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, my: 2 }}>
+                        <Avatar src={currentContact.photoPreview || undefined} sx={{ width: 80, height: 80 }}>
+                            {!currentContact.photoPreview && <PersonIcon sx={{ fontSize: 40 }} />}
+                        </Avatar>
+                        <Button variant="outlined" component="label">
+                            Upload Photo
+                            <input type="file" hidden accept="image/*" onChange={handlePhotoChange} />
+                        </Button>
+                    </Box>
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Grid item xs={12} sm={6}>
+                            <TextField label="Designation" fullWidth value={currentContact.designation} onChange={(e) => setCurrentContact({ ...currentContact, designation: e.target.value })}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField label="Name" required fullWidth value={currentContact.name} onChange={(e) => setCurrentContact({ ...currentContact, name: e.target.value })}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField label="PAN Number" fullWidth value={currentContact.panNumber} onChange={(e) => setCurrentContact({ ...currentContact, panNumber: e.target.value })}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField label="DIN Number" fullWidth value={currentContact.dinNumber} onChange={(e) => setCurrentContact({ ...currentContact, dinNumber: e.target.value })}/>
+                        </Grid>
+                         <Grid item xs={12} sm={6}>
+                            <TextField label="Aadhaar" fullWidth value={currentContact.aadhaar} onChange={(e) => setCurrentContact({ ...currentContact, aadhaar: e.target.value })}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6} sx={{ display: 'flex', gap: 2 }}>
+                             <FormControl sx={{ minWidth: 120 }}>
+                                <InputLabel>Code</InputLabel>
+                                <Select
+                                    label="Code"
+                                    name="countryCode"
+                                    value={currentContact.countryCode}
+                                    onChange={(e) => setCurrentContact({...currentContact, countryCode: e.target.value})}
+                                >
+                                    {countryCodes.map((c) => (
+                                        <MenuItem key={c.value} value={c.value}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                <Box component="span" sx={{ mr: 1.5 }}>{c.flag}</Box>
+                                                {c.value}
+                                            </Box>
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <TextField
+                                label="Mobile"
+                                required
+                                fullWidth
+                                value={currentContact.mobile}
+                                onChange={(e) => setCurrentContact({ ...currentContact, mobile: e.target.value })}
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField label="E-mail" type="email" fullWidth value={currentContact.email} onChange={(e) => setCurrentContact({ ...currentContact, email: e.target.value })}/>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={!!currentContact.isDefault}
+                                        onChange={(e) => setCurrentContact({ ...currentContact, isDefault: e.target.checked })}
+                                        name="isDefault"
+                                        color="primary"
+                                    />
+                                }
+                                label="Set as default contact"
+                            />
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseDialog}>Cancel</Button>
+                    <Button onClick={handleSaveContact} variant="contained">Save</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
-    </ThemeProvider>
-  );
+    );
 }
+
+export default ContactDetails;

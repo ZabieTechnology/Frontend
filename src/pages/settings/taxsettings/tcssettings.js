@@ -1,44 +1,41 @@
 import React from 'react';
-import {
-  Box,
-  CssBaseline,
-  Typography,
-  Tabs,
-  Tab,
-  TextField,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Grid,
-  createTheme,
-  ThemeProvider,
-  IconButton,
-  Tooltip,
-  InputAdornment,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Checkbox,
-  Select,
-  MenuItem,
-  Switch,
-  Button,
-  Collapse,
-  TableSortLabel,
-  FormControl,
-  InputLabel,
-  Menu,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  TablePagination,
-  FormGroup
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import CssBaseline from '@mui/material/CssBaseline';
+import Typography from '@mui/material/Typography';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import TextField from '@mui/material/TextField';
+import Paper from '@mui/material/Paper';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Grid from '@mui/material/Grid';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import InputAdornment from '@mui/material/InputAdornment';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import Checkbox from '@mui/material/Checkbox';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Switch from '@mui/material/Switch';
+import Button from '@mui/material/Button';
+import Collapse from '@mui/material/Collapse';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Menu from '@mui/material/Menu';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import Divider from '@mui/material/Divider';
+import TablePagination from '@mui/material/TablePagination';
+import FormGroup from '@mui/material/FormGroup';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';

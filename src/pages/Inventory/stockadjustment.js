@@ -1,52 +1,50 @@
 import React, { useState } from 'react';
-import {
-    Box,
-    Container,
-    Typography,
-    TextField,
-    Button,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
-    Grid,
-    Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    IconButton,
-    Alert,
-    Divider,
-    Autocomplete
-} from '@mui/material';
-import { AddCircleOutline, DeleteOutline } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Autocomplete from '@mui/material/Autocomplete';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
+import FormControl from '@mui/material/FormControl';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Select from '@mui/material/Select';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-// A more modern, clean theme
-const theme = createTheme({
+// --- INLINE SVG ICONS ---
+const AddCircleOutline = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+);
+const DeleteOutline = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+);
+
+
+// --- THEME DEFINITION ---
+const modernTheme = createTheme({
     palette: {
-        primary: {
-            main: '#1976d2',
-        },
-        secondary: {
-            main: '#dc004e',
-        },
-        success: {
-            main: '#2e7d32',
-        },
-        error: {
-            main: '#d32f2f',
-        },
-        background: {
-            default: '#f4f6f8',
-            paper: '#ffffff',
-        },
+        primary: { main: '#007aff' },
+        secondary: { main: '#6c757d' },
+        background: { default: '#f4f6f8', paper: '#ffffff' },
+        text: { primary: '#1c1c1e', secondary: '#6c757d' },
+        success: { main: '#4caf50' },
+        error: { main: '#d32f2f' },
+        info: { main: '#2196f3' },
+        warning: { main: '#ff9800' }
     },
     typography: {
-        fontFamily: 'Roboto, sans-serif',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
         h4: {
             fontWeight: 700,
         },
@@ -233,7 +231,7 @@ const App = () => {
     ];
 
     return (
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={modernTheme}>
             <Box sx={{ backgroundColor: 'background.default', minHeight: '100vh', py: 5 }}>
                 <Container maxWidth="xl">
                     <Paper sx={{ p: 3 }}>

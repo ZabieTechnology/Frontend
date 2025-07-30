@@ -1,80 +1,90 @@
 import React from 'react';
-import {
-  Box,
-  CssBaseline,
-  Typography,
-  Tabs,
-  Tab,
-  TextField,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Grid,
-  createTheme,
-  ThemeProvider,
-  IconButton,
-  Tooltip,
-  InputAdornment,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Checkbox,
-  Select,
-  MenuItem,
-  Switch,
-  Button,
-  Collapse,
-  TableSortLabel,
-  FormControl,
-  InputLabel,
-  Menu,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  TablePagination,
-  FormGroup
-} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import DownloadIcon from '@mui/icons-material/Download';
-import SettingsIcon from '@mui/icons-material/Settings';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import SearchIcon from '@mui/icons-material/Search';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Collapse from '@mui/material/Collapse';
+import CssBaseline from '@mui/material/CssBaseline';
+import Divider from '@mui/material/Divider';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormGroup from '@mui/material/FormGroup';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import InputLabel from '@mui/material/InputLabel';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
+import Tab from '@mui/material/Tab';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import Tabs from '@mui/material/Tabs';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
+
+// --- INLINE SVG ICONS ---
+const Edit = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+);
+const Trash2 = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+);
+const Eye = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+);
+const CalendarToday = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+);
+const Add = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+);
+const Remove = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+);
+const InfoOutlined = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+);
+const Download = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+);
+const Settings = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H15a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+);
+const FilterList = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+);
+const Search = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+);
 
 
 // --- THEME AND STYLING ---
 const theme = createTheme({
   palette: {
-    background: {
-      default: '#f4f6f8',
-      paper: '#ffffff',
-    },
-    primary: {
-      main: '#4caf50', // Green color
-    },
-    secondary: {
-      main: '#333333',
-    },
-    text: {
-      primary: '#333333',
-      secondary: '#555555',
-    },
-    error: {
-      main: '#d32f2f',
-    },
+    primary: { main: '#007aff' },
+    secondary: { main: '#6c757d' },
+    background: { default: '#f4f6f8', paper: '#ffffff' },
+    text: { primary: '#1c1c1e', secondary: '#6c757d' },
+    error: { main: '#d32f2f' },
   },
   typography: {
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h5: {
       fontWeight: 700,
     },
@@ -237,7 +247,7 @@ const FilterMenu = ({ anchorEl, onClose, options, selected, onApply, columnLabel
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
                     InputProps={{
-                        startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+                        startAdornment: <InputAdornment position="start"><Search /></InputAdornment>,
                     }}
                 />
                 <Box display="flex" justifyContent="space-between" mt={1}>
@@ -376,7 +386,7 @@ const TransactionsView = () => {
                                         </TableSortLabel>
                                         {headCell.filterable && (
                                             <IconButton size="small" onClick={(e) => handleFilterClick(e, headCell.id, headCell.label)}>
-                                                <FilterListIcon fontSize="small" color={filters[headCell.id]?.length > 0 ? 'primary' : 'inherit'}/>
+                                                <FilterList fontSize="small" color={filters[headCell.id]?.length > 0 ? 'primary' : 'inherit'}/>
                                             </IconButton>
                                         )}
                                     </Box>
@@ -397,9 +407,9 @@ const TransactionsView = () => {
                                 <TableCell>{row.number}</TableCell>
                                 <TableCell>{row.amount.toLocaleString()}</TableCell>
                                 <TableCell align="center">
-                                    <Tooltip title="View Details"><IconButton size="small" sx={{color: 'text.secondary'}}><VisibilityIcon /></IconButton></Tooltip>
-                                    <Tooltip title="Edit"><IconButton size="small" sx={{color: 'primary.main'}}><EditIcon /></IconButton></Tooltip>
-                                    <Tooltip title="Delete"><IconButton size="small" sx={{color: 'error.main'}}><DeleteIcon /></IconButton></Tooltip>
+                                    <Tooltip title="View Details"><IconButton size="small" sx={{color: 'text.secondary'}}><Eye /></IconButton></Tooltip>
+                                    <Tooltip title="Edit"><IconButton size="small" sx={{color: 'primary.main'}}><Edit /></IconButton></Tooltip>
+                                    <Tooltip title="Delete"><IconButton size="small" sx={{color: 'error.main'}}><Trash2 /></IconButton></Tooltip>
                                 </TableCell>
                             </TableRow>
                         )})}
@@ -589,20 +599,20 @@ export default function App() {
                     <Grid container spacing={2} sx={{ mb: 3, alignItems: 'center' }} justifyContent="center">
                         <Grid item><Typography variant="body1" sx={{fontWeight: 'bold'}}>Period</Typography></Grid>
                         <Grid item>
-                            <TextField size="small" variant="outlined" placeholder="Select date" InputProps={{startAdornment: (<InputAdornment position="start"><CalendarTodayIcon fontSize="small" /></InputAdornment>),}}/>
+                            <TextField size="small" variant="outlined" placeholder="Select date" InputProps={{startAdornment: (<InputAdornment position="start"><CalendarToday fontSize="small" /></InputAdornment>),}}/>
                         </Grid>
-                        <Grid item><Button variant="contained" color="primary" startIcon={<DownloadIcon />}>Download PDF</Button></Grid>
+                        <Grid item><Button variant="contained" color="primary" startIcon={<Download />}>Download PDF</Button></Grid>
                     </Grid>
                 )}
                 {activeSubTab === 3 && ( /* Item Wise Report Filters */
                     <Grid container spacing={2} sx={{ mb: 3, alignItems: 'center' }} justifyContent="center">
                         <Grid item><Typography variant="body1" sx={{fontWeight: 'bold'}}>Period</Typography></Grid>
                         <Grid item>
-                            <TextField size="small" variant="outlined" placeholder="Select date" InputProps={{startAdornment: (<InputAdornment position="start"><CalendarTodayIcon fontSize="small" /></InputAdornment>),}}/>
+                            <TextField size="small" variant="outlined" placeholder="Select date" InputProps={{startAdornment: (<InputAdornment position="start"><CalendarToday fontSize="small" /></InputAdornment>),}}/>
                         </Grid>
                         <Grid item><Typography variant="body1" sx={{fontWeight: 'bold', ml: {xs: 0, md: 2}, mt: {xs: 2, md: 0}}}>Transaction type</Typography></Grid>
                         <Grid item>
-                            <TextField size="small" variant="outlined" placeholder="Select date" InputProps={{startAdornment: (<InputAdornment position="start"><CalendarTodayIcon fontSize="small" /></InputAdornment>),}} sx={{minWidth: '220px'}}/>
+                            <TextField size="small" variant="outlined" placeholder="Select date" InputProps={{startAdornment: (<InputAdornment position="start"><CalendarToday fontSize="small" /></InputAdornment>),}} sx={{minWidth: '220px'}}/>
                         </Grid>
                     </Grid>
                 )}
@@ -700,7 +710,7 @@ const FullProfileView = () => {
                 ) : (
                     <Tooltip title="Edit Profile">
                         <IconButton onClick={() => setIsEditing(true)} color="primary">
-                            <EditIcon />
+                            <Edit />
                         </IconButton>
                     </Tooltip>
                 )}
@@ -720,7 +730,7 @@ const FullProfileView = () => {
                         <TextField fullWidth select label="Type of Business" defaultValue={profile.businessType} variant="outlined" size="small" sx={{mb:2}}><MenuItem value="Retailer">Retailer</MenuItem></TextField>
                         <TextField fullWidth label="Company Name" defaultValue={profile.companyName} variant="outlined" size="small" sx={{mb:2}}/>
                         <TextField fullWidth required label="Display Name" defaultValue={profile.displayName} variant="outlined" size="small" sx={{mb:2}}/>
-                        <TextField fullWidth label="PAN" defaultValue={profile.pan} variant="outlined" size="small" sx={{mb:4}} InputProps={{endAdornment: <InputAdornment position="end"><InfoOutlinedIcon fontSize="small" color="action" /></InputAdornment>}}/>
+                        <TextField fullWidth label="PAN" defaultValue={profile.pan} variant="outlined" size="small" sx={{mb:4}} InputProps={{endAdornment: <InputAdornment position="end"><InfoOutlined fontSize="small" color="action" /></InputAdornment>}}/>
                         <Typography variant="h6" sx={{borderTop: '1px solid #eee', pt: 2}}>Primary Contact</Typography>
                          <TextField fullWidth label="Name" defaultValue={profile.primaryName} variant="outlined" size="small" sx={{mt: 2, mb: 2}}/>
                          <TextField fullWidth label="Contact No." defaultValue={profile.primaryContact} variant="outlined" size="small" sx={{mb: 2}}/>
@@ -765,7 +775,7 @@ const FullProfileView = () => {
                         <FormControlLabel control={<Switch defaultChecked={profile.enableBills}/>} label="Enable Bills & Payments" sx={{mb:2}}/>
                         <Typography variant="h6" sx={{borderTop: '1px solid #eee', pt: 2, mb: 1}}>Others</Typography>
                         <TextField fullWidth multiline rows={3} label="Note" defaultValue={profile.note} variant="outlined" size="small"/>
-                        <Button startIcon={<AddIcon />} sx={{mt: 2, textTransform: 'none'}}>Add Custom Field</Button>
+                        <Button startIcon={<Add />} sx={{mt: 2, textTransform: 'none'}}>Add Custom Field</Button>
                     </Grid>
                 </React.Fragment>
             ) : (
@@ -835,7 +845,7 @@ const FullAccountStatementRow = ({ row }) => {
     return (
         <React.Fragment>
             <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-                <TableCell><IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>{open ? <RemoveIcon /> : <AddIcon />}</IconButton></TableCell>
+                <TableCell><IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>{open ? <Remove /> : <Add />}</IconButton></TableCell>
                 <TableCell>{row.date}</TableCell>
                 <TableCell>{row.voucher}</TableCell>
                 <TableCell>{row.srNo}</TableCell>
@@ -866,7 +876,7 @@ const FullAccountStatementView = () => {
          <Paper sx={{ width: '100%', p: {xs: 2, md: 3}, borderRadius: '12px' }} elevation={0}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
                  <Typography variant="h5">John Doe</Typography>
-                <Button variant="outlined" color="secondary" startIcon={<SettingsIcon />} /*onClick={toggleView}*/ sx={{backgroundColor: 'white'}}>Settings (Two views)</Button>
+                <Button variant="outlined" color="secondary" startIcon={<Settings />} /*onClick={toggleView}*/ sx={{backgroundColor: 'white'}}>Settings (Two views)</Button>
             </Box>
             <TableContainer component={Paper} elevation={0} sx={{border: '1px solid #e0e0e0', borderRadius: '8px'}}>
                 <Table aria-label="account statement table">

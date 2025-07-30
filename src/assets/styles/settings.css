@@ -1,0 +1,152 @@
+/* src/assets/styles/settings.css */
+/* Styles specific to the settings page layout and components */
+
+.main-container {
+    background-color: #ecf0f1;
+    min-height: 100vh;
+    padding: 24px;
+}
+
+@media (min-width: 600px) {
+    .main-container {
+        padding: 32px;
+    }
+}
+
+.content-wrapper {
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* Form container styles */
+.form-paper {
+    border-radius: 16px !important;
+    background-color: #ffffff !important;
+    padding: 32px !important;
+    margin-top: 24px !important;
+    box-shadow: rgba(149, 157, 165, 0.1) 0px 8px 24px !important;
+    transition: box-shadow 0.3s ease-in-out !important;
+}
+
+.form-paper:hover {
+    box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px !important;
+}
+
+/* Typography */
+.h4-title {
+    font-size: 2.125rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 16px;
+}
+
+.h6-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #34495e;
+    margin-bottom: 16px;
+}
+
+/* Section dividers */
+.section-divider {
+     margin-top: 32px;
+     padding-top: 24px;
+     border-top: 1px solid #ecf0f1;
+}
+
+/* Container for form action buttons */
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #ecf0f1;
+}
+
+/* --- Styles from Country Settings Component --- */
+
+.page-header {
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actions-container {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.table-header {
+  background-color: #f5f5f5 !important;
+}
+
+.font-bold {
+  font-weight: bold !important;
+}
+
+.locked-row {
+  background-color: #fafafa !important;
+}
+
+.flag-cell {
+  font-size: 1.5rem;
+}
+
+.state-manage-button-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.state-add-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* --- Styles for Document Rules page --- */
+
+/* Styling for the tab container */
+.rules-tabs-container {
+    border-bottom: 1px solid #e0e0e0; /* divider color */
+    margin-bottom: 24px;
+    display: flex;
+    gap: 16px;
+}
+
+/* Individual tab button styles */
+.rules-tab-button {
+    padding-bottom: 8px !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    font-weight: 500 !important;
+    color: #5f6368 !important; /* Inactive tab color */
+    transition: all 0.3s ease !important;
+}
+
+.rules-tab-button.active {
+    border-bottom-color: #1976d2 !important; /* MUI primary blue */
+    color: #1976d2 !important; /* Active tab color */
+}
+
+/* Accordion header styles */
+.rule-accordion-summary {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.rule-accordion-summary .rule-name {
+    flex-grow: 1;
+    font-weight: 500;
+}
+
+/* Container for action buttons inside the accordion header */
+.rule-actions {
+    display: flex;
+    align-items: center;
+}

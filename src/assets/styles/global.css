@@ -1,0 +1,71 @@
+/* global.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* Basic styles for the entire application */
+
+body {
+    background-color: #ecf0f1;
+    margin: 0;
+    font-family: "Poppins", "Roboto", "Helvetica", "Arial", sans-serif;
+    color: #34495e;
+}
+
+/* --- Global Button Styles --- */
+
+/* Style for the primary save button */
+.btn-save {
+    background-color: #27ae60 !important; /* A pleasant green */
+    color: white !important;
+    padding: 8px 22px !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    text-transform: none !important; /* Keep button text as is */
+    transition: background-color 0.3s ease !important;
+}
+
+.btn-save:hover {
+    background-color: #2ecc71 !important; /* Lighter green on hover */
+}
+
+.btn-save:disabled {
+    background-color: #95a5a6 !important;
+    color: #ecf0f1 !important;
+}
+
+/* Container for form action buttons (e.g., Save, Next) */
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e0e0e0;
+}
+
+
+/* --- Global Tab Styles --- */
+
+/* Styling for the main tab container */
+.tabs-container {
+    border-bottom: 1px solid #e0e0e0; /* divider color */
+    margin-bottom: 24px;
+    display: flex;
+    gap: 16px;
+}
+
+/* Individual tab button styles */
+.tab-button {
+    padding-bottom: 8px !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    font-weight: 500 !important;
+    color: #5f6368 !important; /* Inactive tab color */
+    transition: all 0.3s ease !important;
+    text-transform: none !important;
+    font-size: 1rem !important;
+}
+
+.tab-button.active {
+    border-bottom-color: #1976d2 !important; /* MUI primary blue */
+    color: #1976d2 !important; /* Active tab color */
+}

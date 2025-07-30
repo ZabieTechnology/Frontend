@@ -1,354 +1,478 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import {
-    Container, Box, Grid, Card, CardContent, Button, Typography, Paper, TextField,
-    Dialog, DialogContent, DialogActions, IconButton,
-    MenuItem, Table, TableBody, TableCell, TableContainer, TableHead,
-    TableRow, Checkbox, InputAdornment, Menu, Divider, FormGroup, FormControlLabel, TableSortLabel,
-    DialogTitle
-} from '@mui/material';
-import {
-    Close as CloseIcon, Visibility as ViewIcon, Edit as EditIcon,
-    Delete as DeleteIcon, Email as EmailIcon, PictureAsPdf as PdfIcon, ArrowBack as ArrowBackIcon,
-    Add as AddIcon, FilterList as FilterListIcon, ArrowUpward, ArrowDownward, CheckCircle as CheckCircleIcon,
-    CalendarToday as CalendarIcon, Autorenew as SyncIcon, UploadFile as UploadFileIcon
-} from '@mui/icons-material';
+import React, { useState } from 'react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Container from '@mui/material/Container';
+import CssBaseline from '@mui/material/CssBaseline';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Drawer from '@mui/material/Drawer';
+import FormControl from '@mui/material/FormControl';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Select from '@mui/material/Select';
+import Stack from '@mui/material/Stack';
+import Tab from '@mui/material/Tab';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Tabs from '@mui/material/Tabs';
+import TextField from '@mui/material/TextField';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Typography from '@mui/material/Typography';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
-
-// --- Reusable Filter and Sort Menu Component ---
-const FilterSortMenu = ({
-    anchorEl, onClose, onSort, onFilter, onSelectAll, filterOptions, selectedFilters
-}) => (
-    <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={onClose}
-        PaperProps={{ elevation: 2, sx: { mt: 1, borderRadius: 2, minWidth: 220, maxHeight: 400 } }}
-    >
-        <Box>
-            <MenuItem onClick={() => { onSort('asc'); onClose(); }}>
-                <ArrowUpward fontSize="small" sx={{ mr: 1.5 }} /> Sort A to Z
-            </MenuItem>
-            <MenuItem onClick={() => { onSort('desc'); onClose(); }}>
-                <ArrowDownward fontSize="small" sx={{ mr: 1.5 }} /> Sort Z to A
-            </MenuItem>
-            <Divider sx={{ my: 1 }} />
-            <Box px={2} py={1}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>Filter by value</Typography>
-                <FormGroup>
-                    <FormControlLabel
-                        label="Select All"
-                        control={<Checkbox
-                            size="small"
-                            checked={filterOptions.length === selectedFilters.size}
-                            indeterminate={selectedFilters.size > 0 && selectedFilters.size < filterOptions.length}
-                            onChange={onSelectAll}
-                        />}
-                    />
-                    {filterOptions.map(option => (
-                        <FormControlLabel
-                            key={option}
-                            label={option || "(Blanks)"}
-                            control={<Checkbox
-                                size="small"
-                                checked={selectedFilters.has(option)}
-                                onChange={() => onFilter(option)}
-                            />}
-                        />
-                    ))}
-                </FormGroup>
-            </Box>
-        </Box>
-    </Menu>
+// --- INLINE SVG ICONS ---
+const Search = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+);
+const FilterAlt = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+);
+const Tune = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 17v2M3 5v10M7 19v-4M7 3v12M11 17v-2M11 3v10M15 19v-4M15 3v12M19 17v-2M19 3v10"/></svg>
+);
+const Close = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+);
+const Edit = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+);
+const Visibility = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+);
+const Delete = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+);
+const Warning = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
 );
 
-// --- Voucher Modal Component ---
-const VoucherModal = ({ transaction, onClose }) => {
-    if (!transaction) return null;
-    const isExpense = transaction.type === 'Expense';
-    const voucherType = isExpense ? 'Cash Payment Voucher' : 'Cash Receipt Voucher';
-    const amount = isExpense ? transaction.spent : transaction.received;
+// --- THEME DEFINITION ---
+const modernTheme = createTheme({
+    palette: {
+        primary: { main: '#007aff' },
+        secondary: { main: '#6c757d' },
+        background: { default: '#f4f6f8', paper: '#ffffff' },
+        text: { primary: '#1c1c1e', secondary: '#6c757d' },
+        error: { main: '#d32f2f' },
+        action: {
+            view: '#3f51b5',
+            edit: '#4caf50',
+            delete: '#f44336',
+        }
+    },
+    typography: {
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    },
+    components: {
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    textTransform: 'none',
+                    borderRadius: '8px',
+                }
+            }
+        },
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    borderRadius: '12px'
+                }
+            }
+        }
+    }
+});
+
+// Mock data for the table, this can be replaced with API data
+const initialAssets = [
+  { id: 1, name: 'Table', assetNumber: 'ASSET-001', purchasePrice: 252.10, purchaseDate: '2024-03-31', warrantyExpiry: '2026-03-31', assetType: 'Office Equipment', description: 'Standard office table', assetAccount: '1500 - Office Equipment', accumulatedDepreciationAccount: '1501 - Acc Dep - Office Equip', depreciationExpenseAccount: '6500 - Depreciation', depreciationStartDate: '2024-04-01', depreciationMethod: 'Straight Line', averagingMethod: 'Full Month', effectiveLife: 5, currentValue: 250.00, accumulatedDepreciation: 2.10 },
+  { id: 2, name: 'Chair', assetNumber: 'ASSET-002', purchasePrice: 150.00, purchaseDate: '2024-03-31', warrantyExpiry: '2025-03-31', assetType: 'Mobile', description: 'Ergonomic office chair', assetAccount: '1500 - Office Equipment', accumulatedDepreciationAccount: '1501 - Acc Dep - Office Equip', depreciationExpenseAccount: '6500 - Depreciation', depreciationStartDate: '2024-04-01', depreciationMethod: 'Straight Line', averagingMethod: 'Full Month', effectiveLife: 3, currentValue: 148.00, accumulatedDepreciation: 2.00 },
+];
+
+// --- Confirmation Dialog for Deletion ---
+const ConfirmationDialog = ({ open, onClose, onConfirm, title, content }) => (
+    <Dialog open={open} onClose={onClose}>
+        <DialogTitle sx={{display: 'flex', alignItems: 'center'}}><Warning sx={{mr: 1, color: 'warning.main'}}/> {title}</DialogTitle>
+        <DialogContent><Typography variant="body2">{content}</Typography></DialogContent>
+        <DialogActions>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onConfirm} color="error" variant="contained">Confirm</Button>
+        </DialogActions>
+    </Dialog>
+);
+
+
+// --- Run Depreciation Modal ---
+const RunDepreciationModal = ({ isOpen, onClose, onRun, onRollback }) => {
+    const [action, setAction] = useState(0); // 0 for 'run', 1 for 'rollback'
+    const currentYear = new Date().getFullYear();
+    const [month, setMonth] = useState(new Date().getMonth()); // 0-11
+    const [year, setYear] = useState(currentYear);
+
+    const handleAction = () => {
+        if (action === 0) {
+            onRun({ month, year });
+        } else {
+            onRollback({ month, year });
+        }
+        onClose();
+    };
+
+    const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
     return (
-        <Dialog open={!!transaction} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogContent sx={{p: 0}}>
-                <Box p={3} borderBottom={1} borderColor="grey.200">
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                        <Box>
-                            <Typography variant="h5" component="h2" fontWeight="bold">Your Company Name</Typography>
-                            <Typography variant="body2" color="text.secondary">123 Business Rd, Finance City, FC 54321</Typography>
-                        </Box>
-                        <Box textAlign="right">
-                             <Typography variant="h6" fontWeight="bold" color={isExpense ? 'error.main' : 'success.main'}>{voucherType}</Typography>
-                            <Typography variant="body2">Voucher No: <Box component="span" fontWeight="bold">{String(transaction.id).padStart(3, '0')}</Box></Typography>
-                             <Typography variant="body2">Date: <Box component="span" fontWeight="bold">{transaction.date}</Box></Typography>
-                        </Box>
-                    </Box>
-                </Box>
-                <Box p={3} my={2}>
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                        <Grid item xs={4}><Typography variant="subtitle1" fontWeight="bold">{isExpense ? 'Paid To:' : 'Received From:'}</Typography></Grid>
-                        <Grid item xs={8}><Typography variant="body1">{transaction.description}</Typography></Grid>
-                    </Grid>
-                    <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-                        <Grid item xs={4}><Typography variant="subtitle1" fontWeight="bold">Amount:</Typography></Grid>
-                        <Grid item xs={8}><Typography variant="h4" fontWeight="bold">₹{amount ? amount.toFixed(2) : '0.00'}</Typography></Grid>
-                    </Grid>
-                    <Grid container spacing={2}>
-                        <Grid item xs={4}><Typography variant="subtitle1" fontWeight="bold">Amount in Words:</Typography></Grid>
-                        <Grid item xs={8}><Typography variant="body1" fontStyle="italic">(Amount in words placeholder)</Typography></Grid>
-                    </Grid>
-                </Box>
-                 <Box mt={4} p={3} display="flex" justifyContent="space-around">
-                    <Box textAlign="center" width="40%">
-                        <Box borderTop={1} borderColor="grey.400" pt={1}><Typography variant="caption">Authorized Signature</Typography></Box>
-                    </Box>
-                    <Box textAlign="center" width="40%">
-                        <Box borderTop={1} borderColor="grey.400" pt={1}><Typography variant="caption">Receiver's Signature</Typography></Box>
-                    </Box>
+        <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
+            <DialogTitle>
+                Depreciation
+                 <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}><Close /></IconButton>
+            </DialogTitle>
+            <DialogContent dividers sx={{ p: 0 }}>
+                 <Tabs value={action} onChange={(e, newValue) => setAction(newValue)} centered>
+                    <Tab label="Run Depreciation" />
+                    <Tab label="Rollback Depreciation" />
+                </Tabs>
+                <Box p={3}>
+                    {action === 0 && (
+                        <Typography variant="body2" color="textSecondary" gutterBottom>Select the month to run depreciation for all assets. This process cannot be undone.</Typography>
+                    )}
+                    {action === 1 && (
+                        <Typography variant="body2" color="textSecondary" gutterBottom>Select the month of the depreciation run you wish to roll back.</Typography>
+                    )}
+                     <Stack direction="row" spacing={2} mt={2}>
+                        <FormControl fullWidth>
+                            <InputLabel>Month</InputLabel>
+                            <Select value={month} label="Month" onChange={(e) => setMonth(e.target.value)}>
+                                {months.map((m, i) => <MenuItem key={i} value={i}>{m}</MenuItem>)}
+                            </Select>
+                        </FormControl>
+                        <FormControl fullWidth>
+                            <InputLabel>Year</InputLabel>
+                            <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)}>
+                                {years.map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+                            </Select>
+                        </FormControl>
+                    </Stack>
                 </Box>
             </DialogContent>
-            <DialogActions sx={{ p: 2, backgroundColor: 'grey.50' }}>
-                 <Button onClick={onClose}>Close</Button>
-                <Button variant="contained" color="error" startIcon={<DeleteIcon />}>Delete</Button>
-                <Button variant="contained" startIcon={<EmailIcon />}>Email</Button>
-                <Button variant="contained" color="secondary" startIcon={<PdfIcon />}>PDF</Button>
+            <DialogActions>
+                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={handleAction} variant="contained" color={action === 0 ? 'primary' : 'error'}>
+                    {action === 0 ? 'Run Depreciation' : 'Rollback'}
+                </Button>
             </DialogActions>
         </Dialog>
     );
 };
 
-// --- Add Account Modal ---
-const AddAccountModal = ({ open, onClose }) => {
-     const StyledPillTextField = (props) => ( <TextField variant="standard" fullWidth sx={{ '& .MuiInputBase-root': { backgroundColor: '#e6ee9c', borderRadius: '50px', px: 2, py: 0.5 }, '& .MuiInput-underline:before, & .MuiInput-underline:after, & .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none', }, }} {...props} /> );
-    return ( <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"> <DialogTitle fontWeight="bold">Add Cash accounts</DialogTitle> <DialogContent> <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 2 }}>Cash Account details</Typography> <Box component="form" noValidate autoComplete="off" sx={{mt: 3}}> <Grid container spacing={2} alignItems="center"> <Grid item xs={4}><Typography>Cash head name</Typography></Grid> <Grid item xs={8}><StyledPillTextField /></Grid> <Grid item xs={4}><Typography>Code</Typography></Grid> <Grid item xs={8}><StyledPillTextField /></Grid> <Grid item xs={4}><Typography>Cash account type</Typography></Grid> <Grid item xs={8}> <StyledPillTextField select defaultValue="petty"> <MenuItem value="petty">Petty Cash</MenuItem> <MenuItem value="main">Main Cash</MenuItem> </StyledPillTextField> </Grid> </Grid> </Box> </DialogContent> <DialogActions sx={{ p: 3 }}> <Button onClick={onClose}>Cancel</Button> <Button variant="contained" onClick={onClose}>Save</Button> </DialogActions> </Dialog> );
-};
 
-
-// --- View Components ---
-const DashboardView = ({ onViewStatement, onAddAccount }) => (
-    <Box>
-        <Card elevation={0} sx={{ borderRadius: 8, backgroundColor: '#f1f8e9', p: 2, position: 'relative' }}>
-             <Button variant="contained" sx={{ position: 'absolute', top: 24, right: 24, borderRadius: '50px', textTransform: 'none', backgroundColor: '#cddc39', color: 'black', '&:hover': { backgroundColor: '#c0ca33' } }}>
-                Manage Account
-            </Button>
-            <CardContent sx={{ p: 3 }}>
-                <Typography variant="h4" component="h2" fontWeight="bold">Petty Cash</Typography>
-                <Typography variant="h3" component="p" fontWeight="bold" mt={1}>₹ 3,500.00</Typography>
-                <Typography color="text.secondary" variant="body2" mt={1}>Statement Balance as of 26 May 2025</Typography>
-                <Button variant="contained" onClick={onViewStatement} size="large" sx={{ mt: 4, borderRadius: '50px', textTransform: 'none', backgroundColor: '#cddc39', color: 'black', '&:hover': { backgroundColor: '#c0ca33' } }}>
-                    View Statement
-                </Button>
-            </CardContent>
-        </Card>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-             <Button variant="contained" startIcon={<AddIcon />} onClick={onAddAccount} sx={{ borderRadius: '50px', textTransform: 'none', px:3, backgroundColor: '#cddc39', color: 'black', '&:hover': { backgroundColor: '#c0ca33' }}}>
-                Add Cash Account
-            </Button>
-        </Box>
-    </Box>
-);
-
-const StatementView = ({ onBack, onAddExpense, onTopup }) => {
-    const initialData = useMemo(() => [ { id: 1, date: '2025-05-02', description: 'Grocery', type: 'Expense', spent: 1000.00, received: 0 }, { id: 2, date: '2025-05-06', description: 'Office Expenses', type: 'Expense', spent: 500.00, received: 0 }, { id: 3, date: '2025-05-08', description: 'Cash Topup', type: 'Topup', spent: 0, received: 1000.00 }, { id: 4, date: '2025-05-01', description: 'Stationery', type: 'Expense', spent: 150.00, received: 0 }, ], []);
-    const [selectedRows, setSelectedRows] = useState(new Set());
-    const [selectedTransaction, setSelectedTransaction] = useState(null);
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [currentColumn, setCurrentColumn] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
-    const [filters, setFilters] = useState(() => { const initialFilters = {}; const headersToFilter = ['id', 'date', 'description', 'type']; headersToFilter.forEach(key => { const uniqueValues = Array.from(new Set(initialData.map(item => item[key]))); initialFilters[key] = new Set(uniqueValues); }); return initialFilters; });
-    const handleMenuOpen = (event, columnKey) => { setAnchorEl(event.currentTarget); setCurrentColumn(columnKey); };
-    const handleMenuClose = () => { setAnchorEl(null); setCurrentColumn(null); };
-    const handleSort = (direction) => { setSortConfig({ key: currentColumn, direction }); };
-    const handleFilterChange = useCallback((column, value) => { setFilters(prev => ({...prev, [column]: new Set(prev[column].has(value) ? [...prev[column]].filter(v => v !== value) : [...prev[column], value])})); }, []);
-    const handleSelectAllForColumn = useCallback((column, allOptions, isChecked) => { setFilters(prev => ({ ...prev, [column]: isChecked ? new Set(allOptions) : new Set() })); }, []);
-    const dataWithRunningBalance = useMemo(() => { const chronologicallySorted = [...initialData].sort((a, b) => new Date(a.date) - new Date(b.date)); let runningBalance = 0; return chronologicallySorted.map(item => { runningBalance += item.received - item.spent; return { ...item, balance: runningBalance }; }); }, [initialData]);
-    const sortedAndFilteredData = useMemo(() => { let filteredData = dataWithRunningBalance; Object.keys(filters).forEach(key => { const filterValues = filters[key]; filteredData = filteredData.filter(item => filterValues.has(item[key])); }); if (sortConfig.key) { filteredData.sort((a, b) => { const valA = a[sortConfig.key]; const valB = b[sortConfig.key]; if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0; }); } return filteredData; }, [dataWithRunningBalance, sortConfig, filters]);
-    const handleSelectAllClick = (event) => { setSelectedRows(event.target.checked ? new Set(sortedAndFilteredData.map(n => n.id)) : new Set()); };
-    const handleRowCheckboxClick = (event, id) => { event.stopPropagation(); setSelectedRows(prev => { const newSet = new Set(prev); if (newSet.has(id)) newSet.delete(id); else newSet.add(id); return newSet; }); };
-    const tableHeaders = [ { id: 'id', label: 'Sr no', numeric: true, filterable: true }, { id: 'date', label: 'Date', numeric: false, filterable: true }, { id: 'description', label: 'Description', numeric: false, filterable: true }, { id: 'type', label: 'Type', numeric: false, filterable: true }, { id: 'spent', label: 'Spent', numeric: true, filterable: false }, { id: 'received', label: 'Received', numeric: true, filterable: false }, { id: 'balance', label: 'Balance', numeric: true, filterable: false } ];
-    const currentFilterOptions = useMemo(() => currentColumn ? Array.from(new Set(initialData.map(item => item[currentColumn]))) : [], [initialData, currentColumn]);
-    return ( <> <VoucherModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} /> {currentColumn && ( <FilterSortMenu anchorEl={anchorEl} onClose={handleMenuClose} onSort={handleSort} onFilter={(value) => handleFilterChange(currentColumn, value)} onSelectAll={(e) => handleSelectAllForColumn(currentColumn, currentFilterOptions, e.target.checked)} filterOptions={currentFilterOptions} selectedFilters={filters[currentColumn] || new Set()} /> )} <Box> <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={4}> <Button onClick={onBack} startIcon={<ArrowBackIcon />}>Back to Dashboard</Button> <Box> <Button variant="contained" onClick={onTopup} sx={{ mr: 2, ...pillButtonStyles}}>Topup Cash</Button> <Button variant="contained" startIcon={<AddIcon />} onClick={onAddExpense} sx={pillButtonStyles}>Add New Expense</Button> </Box> </Box> <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 2, border: '1px solid #dcedc8' }}> <Table> <TableHead sx={{ backgroundColor: '#dcedc8' }}> <TableRow> <TableCell padding="checkbox"><Checkbox color="primary" indeterminate={selectedRows.size > 0 && selectedRows.size < sortedAndFilteredData.length} checked={sortedAndFilteredData.length > 0 && sortedAndFilteredData.length === selectedRows.size} onChange={handleSelectAllClick} /></TableCell> {tableHeaders.map((headCell) => ( <TableCell key={headCell.id} align={headCell.numeric ? 'right' : 'left'} sortDirection={sortConfig.key === headCell.id ? sortConfig.direction : false}> <Box display="flex" alignItems="center" justifyContent={headCell.numeric ? 'flex-end' : 'flex-start'}> <TableSortLabel active={sortConfig.key === headCell.id} direction={sortConfig.key === headCell.id ? sortConfig.direction : 'asc'} onClick={() => setSortConfig({ key: headCell.id, direction: (sortConfig.key === headCell.id && sortConfig.direction === 'asc') ? 'desc' : 'asc' })}>{headCell.label}</TableSortLabel> {headCell.filterable && <IconButton size="small" sx={{ ml: 0.5 }} onClick={(e) => handleMenuOpen(e, headCell.id)}><FilterListIcon fontSize="small" /></IconButton>} </Box> </TableCell> ))} <TableCell align="center">Actions</TableCell> </TableRow> </TableHead> <TableBody> {sortedAndFilteredData.map((row) => { const isItemSelected = selectedRows.has(row.id); return ( <TableRow key={row.id} hover role="checkbox" aria-checked={isItemSelected} tabIndex={-1} selected={isItemSelected} onClick={() => setSelectedTransaction(row)}> <TableCell padding="checkbox"><Checkbox color="primary" checked={isItemSelected} onClick={(event) => handleRowCheckboxClick(event, row.id)} /></TableCell> <TableCell>{row.id}</TableCell><TableCell>{row.date}</TableCell><TableCell>{row.description}</TableCell><TableCell>{row.type}</TableCell> <TableCell align="right">{row.spent ? row.spent.toFixed(2) : '-'}</TableCell><TableCell align="right">{row.received ? row.received.toFixed(2) : '-'}</TableCell> <TableCell align="right">{row.balance.toFixed(2)}</TableCell> <TableCell align="center"><Box onClick={(e) => e.stopPropagation()}><IconButton size="small"><ViewIcon fontSize="small" /></IconButton><IconButton size="small"><EditIcon fontSize="small" /></IconButton><IconButton size="small"><DeleteIcon fontSize="small" /></IconButton></Box></TableCell> </TableRow> )})} </TableBody> </Table> </TableContainer> </Box> </> );
-};
-
-const AddExpenseView = ({ onBack }) => {
-    const [formValues, setFormValues] = useState({
-        billNo: '', billDate: '', billSource: '', supplierGst: '', supplier: '', dueDate: '',
-        expenseHead: '', narration: '', totalAmount: '', gstPercentage: '', gstAmount: '', netAmount: ''
-    });
-
-    useEffect(() => {
-        const total = parseFloat(formValues.totalAmount) || 0;
-        const gst = parseFloat(formValues.gstPercentage) || 0;
-        const gstAmt = (total * gst) / 100;
-        const netAmt = total + gstAmt;
-        setFormValues(prev => ({...prev, gstAmount: gstAmt.toFixed(2), netAmount: netAmt.toFixed(2) }));
-    }, [formValues.totalAmount, formValues.gstPercentage]);
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormValues({ ...formValues, [name]: value });
+// --- Advanced Search Drawer ---
+const AdvancedSearchDrawer = ({ isOpen, onClose, onApply }) => {
+    const handleApply = () => {
+        console.log("Applying filters...");
+        onApply({});
+        onClose();
     };
 
-    const FormTextField = (props) => (
-         <TextField variant="standard" fullWidth InputProps={{ disableUnderline: true, ...props.InputProps, sx: {backgroundColor: 'white', border: '1px solid #e0e0e0', borderRadius: 1, px: 1.5, py: 0.5, mt: 0.5, ...props.InputProps?.sx} }} {...props} />
-    );
-
     return (
-         <Box>
-             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h5" fontWeight="bold">Add New Expense / Bill</Typography>
-                <Box>
-                    <Button variant="outlined" size="small" sx={{mr:1, color: 'text.secondary', borderColor: 'divider', textTransform: 'none'}}>Note</Button>
-                    <Button variant="outlined" size="small" sx={{mr:1, color: 'text.secondary', borderColor: 'divider', textTransform: 'none'}}>History</Button>
-                    <IconButton onClick={onBack}><ArrowBackIcon /></IconButton>
+       <Drawer anchor="right" open={isOpen} onClose={onClose}>
+            <Box sx={{ width: 400, p: 3 }}>
+                <Typography variant="h6" gutterBottom>Advanced Search</Typography>
+                <Stack spacing={3} mt={2}>
+                    <TextField label="Search term" variant="outlined" fullWidth />
+                    <FormControl fullWidth>
+                        <InputLabel>Supplier</InputLabel>
+                        <Select label="Supplier"><MenuItem value=""><em>None</em></MenuItem></Select>
+                    </FormControl>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <TextField label="Amount from" type="number" fullWidth/>
+                        <Typography>to</Typography>
+                        <TextField label="Amount to" type="number" fullWidth/>
+                    </Stack>
+                    <TextField label="Date from" type="date" InputLabelProps={{ shrink: true }} fullWidth />
+                    <TextField label="Date to" type="date" InputLabelProps={{ shrink: true }} fullWidth />
+                    <TextField label="Document reference" variant="outlined" fullWidth />
+                     <FormControl fullWidth>
+                        <InputLabel>Category</InputLabel>
+                        <Select label="Category"><MenuItem value=""><em>None</em></MenuItem></Select>
+                    </FormControl>
+                </Stack>
+                 <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button sx={{ mr: 1 }}>Reset</Button>
+                    <Button variant="contained" onClick={handleApply}>Apply</Button>
                 </Box>
-             </Box>
-            <Grid container spacing={4} sx={{p:2, borderRadius: 4}}>
-                <Grid item xs={12} md={4}>
-                    <Paper sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent:'center', alignItems: 'center', border: '1px solid #e0e0e0' }} elevation={0}>
-                         <Typography variant="h6" fontWeight="bold" mb={2}>Upload Invoice</Typography>
-                         <Button component="label" variant="outlined" startIcon={<UploadFileIcon />} sx={{width: '100%', py: 1, color: 'text.primary', borderColor: 'text.primary', textTransform: 'none'}}>
-                             Choose Invoice File
-                             <input type="file" hidden />
-                         </Button>
-                         <Typography variant="caption" color="text.secondary" sx={{mt: 2, textAlign: 'center'}}>Upload an invoice to auto-fill details using Google Document AI.</Typography>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={8}>
-                     <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid #e0e0e0' }} elevation={0}>
-                         <Grid container spacing={2}>
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">Bill No.</Typography> <FormTextField name="billNo" value={formValues.billNo} onChange={handleInputChange} /> </Grid>
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">Bill Date **</Typography> <FormTextField type="text" name="billDate" value={formValues.billDate} onChange={handleInputChange} placeholder="MM/DD/YYYY" InputProps={{endAdornment: <InputAdornment position="end"><CalendarIcon fontSize="small"/></InputAdornment>}}/> </Grid>
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">Bill Source</Typography> <FormTextField select name="billSource" value={formValues.billSource} onChange={handleInputChange}><MenuItem value="direct">Direct Upload</MenuItem></FormTextField> </Grid>
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">Due Date</Typography> <FormTextField type="text" name="dueDate" value={formValues.dueDate} onChange={handleInputChange} placeholder="MM/DD/YYYY" InputProps={{endAdornment: <InputAdornment position="end"><CalendarIcon fontSize="small"/></InputAdornment>}}/> </Grid>
-
-                            <Grid item xs={6} md={6}> <Typography variant="caption" color="text.secondary">Supplier GST</Typography> <FormTextField name="supplierGst" value={formValues.supplierGst} onChange={handleInputChange} /> </Grid>
-                            <Grid item xs={6} md={6}> <Typography variant="caption" color="text.secondary">Supplier **</Typography> <FormTextField name="supplier" value={formValues.supplier} onChange={handleInputChange} /> </Grid>
-
-                            <Grid item xs={12}> <Typography variant="caption" color="text.secondary">Expense Head **</Typography> <FormTextField select name="expenseHead" value={formValues.expenseHead} onChange={handleInputChange}><MenuItem value="office">Office Supplies</MenuItem></FormTextField> </Grid>
-
-                            <Grid item xs={12}> <Typography variant="caption" color="text.secondary">Narration / Description</Typography> <TextField fullWidth name="narration" value={formValues.narration} onChange={handleInputChange} multiline rows={3} variant="outlined" sx={{backgroundColor: 'white', borderRadius: 2}} /> </Grid>
-
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">Total Amount</Typography> <FormTextField type="number" name="totalAmount" value={formValues.totalAmount} onChange={handleInputChange} /> </Grid>
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">GST %</Typography> <FormTextField type="number" name="gstPercentage" value={formValues.gstPercentage} onChange={handleInputChange} /> </Grid>
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">GST Amount</Typography> <FormTextField type="number" name="gstAmount" value={formValues.gstAmount} InputProps={{ readOnly: true }} /> </Grid>
-                            <Grid item xs={6} md={3}> <Typography variant="caption" color="text.secondary">Net Amount</Typography> <FormTextField type="number" name="netAmount" value={formValues.netAmount} InputProps={{ readOnly: true }} /> </Grid>
-                         </Grid>
-                     </Paper>
-                </Grid>
-            </Grid>
-         </Box>
+            </Box>
+       </Drawer>
     );
 };
 
-const pillButtonStyles = { borderRadius: '50px', textTransform: 'none', px:3, py: 1.5, backgroundColor: '#cddc39', color: 'black', '&:hover': { backgroundColor: '#c0ca33' }};
-const TopupView = ({ onBack }) => {
-    const [entryType, setEntryType] = useState('cash');
-    const [formValues, setFormValues] = useState({
-        date: '',
-        receiptAmount: '',
-        cashAccount: '',
-        note: '',
-        cashReceiptFrom: '',
-        cashReceiptVoucherNo: '',
-        contraAccount: '',
-        contraVoucherNo: ''
-    });
 
-    const handleInputChange = (e) => {
+// --- Asset Modal (Add/Edit) ---
+const AssetModal = ({ isOpen, onClose, asset, onSave }) => {
+    const [formData, setFormData] = useState(asset || {});
+
+    React.useEffect(() => {
+        setFormData(asset || {});
+    }, [asset]);
+
+    if (!isOpen) return null;
+
+    const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormValues({ ...formValues, [name]: value });
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const StyledPillTextField = (props) => (
-         <TextField
-            variant="standard"
-            fullWidth
-            sx={{
-                '& .MuiInputBase-root': { backgroundColor: '#f5f5f5', borderRadius: '50px', px: 2, py: 1 },
-                '& .MuiInput-underline:before, & .MuiInput-underline:after, & .MuiInput-underline:hover:not(.Mui-disabled):before': {
-                    borderBottom: 'none',
-                },
-            }}
-            {...props}
-        />
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    const renderSection = (title, fields) => (
+         <Box>
+            <Typography variant="h6" gutterBottom sx={{ backgroundColor: 'grey.200', p: 1, borderRadius: 1, textAlign: 'center' }}>{title}</Typography>
+            <Stack spacing={2} mt={2}>
+                 {fields.map(field => (
+                    <TextField
+                        key={field.name}
+                        label={field.label}
+                        name={field.name}
+                        type={field.type || 'text'}
+                        value={formData[field.name] || ''}
+                        onChange={handleChange}
+                        fullWidth
+                        variant="filled"
+                        InputLabelProps={{ shrink: true }}
+                    />
+                 ))}
+            </Stack>
+        </Box>
     );
 
     return (
-        <Paper elevation={0} sx={{ p: 4, borderRadius: 4 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-                <Typography variant="h5" fontWeight="bold">Cash Receipt Voucher Form</Typography>
-                <Button onClick={onBack} startIcon={<CloseIcon />} sx={{color: 'text.secondary', textTransform: 'none'}}>Quick Shortcut</Button>
-            </Box>
-            <Grid container spacing={4} alignItems="flex-start">
-                 {/* Left Column */}
-                 <Grid item xs={12} md={6}>
-                    <Grid container spacing={3} direction="column">
-                        <Grid item><Typography variant="subtitle2" color="text.secondary">Date</Typography><StyledPillTextField name="date" value={formValues.date} onChange={handleInputChange} type="date" InputProps={{startAdornment: <InputAdornment position="start"><CalendarIcon fontSize="small" /></InputAdornment>}} /></Grid>
-                        <Grid item><Typography variant="subtitle2" color="text.secondary">Receipt Amount</Typography><StyledPillTextField name="receiptAmount" value={formValues.receiptAmount} onChange={handleInputChange} type="number" /></Grid>
-                        <Grid item><Typography variant="subtitle2" color="text.secondary">Cash Account</Typography><StyledPillTextField name="cashAccount" value={formValues.cashAccount} onChange={handleInputChange} /></Grid>
-                        <Grid item><Typography variant="subtitle2" color="text.secondary">Note</Typography><TextField fullWidth name="note" value={formValues.note} onChange={handleInputChange} multiline rows={4} sx={{'& .MuiOutlinedInput-root': { borderRadius: '20px', backgroundColor: '#f5f5f5' }}} /></Grid>
-                    </Grid>
-                 </Grid>
-                 {/* Right Column */}
-                 <Grid item xs={12} md={6}>
-                     <Grid container spacing={3} direction="column">
-                        <Grid item>
-                             <Typography variant="subtitle2" gutterBottom fontWeight="medium">Entry Type</Typography>
-                             <Box display="flex" gap={2}>
-                                <Button fullWidth variant={entryType === 'cash' ? "contained" : "outlined"} onClick={() => setEntryType('cash')} sx={{...pillButtonStyles, backgroundColor: entryType === 'cash' ? '#cddc39' : 'transparent', borderColor: '#cddc39', color: 'black'}}>CASH RECEIPT <CheckCircleIcon fontSize="small" sx={{ ml: 1, visibility: entryType === 'cash' ? 'visible' : 'hidden' }} /></Button>
-                                <Button fullWidth variant={entryType === 'contra' ? "contained" : "outlined"} onClick={() => setEntryType('contra')} sx={{...pillButtonStyles, backgroundColor: entryType === 'contra' ? '#cddc39' : 'transparent', borderColor: '#cddc39', color: 'black'}}>CONTRA ENTRY</Button>
-                             </Box>
-                        </Grid>
-                        {entryType === 'cash' ?
-                            <>
-                                <Grid item><Typography variant="subtitle2" color="text.secondary">Cash Receipt from</Typography><StyledPillTextField select name="cashReceiptFrom" value={formValues.cashReceiptFrom} onChange={handleInputChange}><MenuItem value=""><em>None</em></MenuItem><MenuItem value="1">Option 1</MenuItem></StyledPillTextField></Grid>
-                                <Grid item><Typography variant="subtitle2" color="text.secondary">Cash Receipt Vocuer No.</Typography><Box display="flex" alignItems="center" gap={1}><IconButton size="small"><SyncIcon /></IconButton><StyledPillTextField name="cashReceiptVoucherNo" value={formValues.cashReceiptVoucherNo} onChange={handleInputChange} /></Box></Grid>
-                            </>
-                            :
-                            <>
-                                <Grid item><Typography variant="subtitle2" color="text.secondary">Contra Accounts</Typography><StyledPillTextField select name="contraAccount" value={formValues.contraAccount} onChange={handleInputChange}><MenuItem value=""><em>None</em></MenuItem><MenuItem value="1">Account 1</MenuItem></StyledPillTextField></Grid>
-                                <Grid item><Typography variant="subtitle2" color="text.secondary">Contra Voucher No.</Typography><StyledPillTextField name="contraVoucherNo" value={formValues.contraVoucherNo} onChange={handleInputChange} /></Grid>
-                            </>
-                        }
-                    </Grid>
-                 </Grid>
-                 <Grid item xs={12} sx={{ textAlign: 'center', mt: 4 }}>
-                    <Button variant="contained" size="large" sx={{ borderRadius: '50px', px: 8, backgroundColor: '#212121', color: 'white', '&:hover': { backgroundColor: 'black'} }}>Topup</Button>
-                 </Grid>
-            </Grid>
-        </Paper>
+        <Dialog open={isOpen} onClose={onClose} maxWidth="md" fullWidth>
+            <DialogTitle>
+                {asset && asset.id ? 'Edit Asset' : 'Add New Asset'}
+                <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}><Close /></IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+                <form id="asset-form" onSubmit={handleSubmit}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} sx={{p: 2}}>
+                        {renderSection('Details', [
+                            { name: 'name', label: 'Asset name' },
+                            { name: 'assetNumber', label: 'Asset number' },
+                            { name: 'purchasePrice', label: 'Purchase price', type: 'number' },
+                            { name: 'purchaseDate', label: 'Purchase date', type: 'date' },
+                            { name: 'warrantyExpiry', label: 'Warranty expiry', type: 'date' },
+                            { name: 'assetType', label: 'Asset type' },
+                            { name: 'description', label: 'Description' },
+                        ])}
+                        {renderSection('Accounts', [
+                            { name: 'assetAccount', label: 'Asset account' },
+                            { name: 'accumulatedDepreciationAccount', label: 'Accumulated depreciation account' },
+                            { name: 'depreciationExpenseAccount', label: 'Depreciation expense account' },
+                        ])}
+                         {renderSection('Book depreciation settings', [
+                            { name: 'depreciationStartDate', label: 'Depreciation start date', type: 'date' },
+                            { name: 'depreciationMethod', label: 'Depreciation method' },
+                            { name: 'averagingMethod', label: 'Averaging method' },
+                            { name: 'effectiveLife', label: 'Effective life (years)', type: 'number' },
+                        ])}
+                    </Stack>
+                </form>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Cancel</Button>
+                <Button type="submit" form="asset-form" variant="contained">Save</Button>
+            </DialogActions>
+        </Dialog>
     );
 };
+
+// --- Main App Component ---
+function FixedAssetRegister() {
+  const [assets, setAssets] = useState(initialAssets);
+  const [activeTab, setActiveTab] = useState('Fixed asset');
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState(null);
+  const [isAdvancedSearchOpen, setAdvancedSearchOpen] = useState(false);
+  const [isDepreciationModalOpen, setIsDepreciationModalOpen] = useState(false);
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState(null);
+  const [selected, setSelected] = useState([]);
+
+  const handleSelectAllClick = (event) => {
+    if (event.target.checked) {
+      const newSelecteds = assets.map((n) => n.id);
+      setSelected(newSelecteds);
+      return;
+    }
+    setSelected([]);
+  };
+
+  const handleRowClick = (event, id) => {
+    const selectedIndex = selected.indexOf(id);
+    let newSelected = [];
+
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selected, id);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selected.slice(1));
+    } else if (selectedIndex === selected.length - 1) {
+      newSelected = newSelected.concat(selected.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(selected.slice(0, selectedIndex), selected.slice(selectedIndex + 1));
+    }
+    setSelected(newSelected);
+  };
+
+  const isSelected = (id) => selected.indexOf(id) !== -1;
+
+  const openAssetModalToAdd = () => {
+    setEditingAsset(null);
+    setIsAssetModalOpen(true);
+  };
+
+  const openAssetModalToEdit = (asset) => {
+    setEditingAsset(asset);
+    setIsAssetModalOpen(true);
+  };
+
+  const handleSaveAsset = (savedAsset) => {
+    if (savedAsset.id) {
+        setAssets(assets.map(asset => asset.id === savedAsset.id ? savedAsset : asset));
+    } else {
+        const newAsset = { ...savedAsset, id: Date.now(), currentValue: savedAsset.purchasePrice, accumulatedDepreciation: 0 };
+        setAssets([...assets, newAsset]);
+    }
+    setIsAssetModalOpen(false);
+  };
+
+   const handleDeleteClick = (id) => {
+        setAssetToDelete(id);
+        setConfirmOpen(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        setAssets(assets.filter(asset => asset.id !== assetToDelete));
+        setSelected(selected.filter(selId => selId !== assetToDelete));
+        setConfirmOpen(false);
+        setAssetToDelete(null);
+    };
+
+   const handleApplyFilter = (criteria) => {
+      console.log("Filtering with:", criteria);
+  };
+
+  const handleRunDepreciation = ({month, year}) => {
+      console.log(`Running depreciation for ${month + 1}/${year}...`);
+  }
+
+  const handleRollbackDepreciation = ({month, year}) => {
+       console.log(`Rolling back depreciation for ${month + 1}/${year}...`);
+  }
+
+
+  return (
+    <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
+        <ToggleButtonGroup
+            value={activeTab}
+            exclusive
+            onChange={(e, newTab) => newTab && setActiveTab(newTab)}
+            sx={{ mb: 2 }}
+        >
+            <ToggleButton value="Expenses" sx={{bgcolor: activeTab === 'Expenses' ? 'action.hover' : 'background.paper'}}>Expenses</ToggleButton>
+            <ToggleButton value="Fixed asset" sx={{bgcolor: activeTab === 'Fixed asset' ? 'action.hover' : 'background.paper'}}>Fixed Asset</ToggleButton>
+        </ToggleButtonGroup>
+
+        <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Stack direction={{xs: 'column', md: 'row'}} justifyContent="space-between" alignItems="center" sx={{p: 2}} spacing={2}>
+                <Typography variant="h5" component="h2">Fixed Asset Register</Typography>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <Button variant="contained" onClick={() => setIsDepreciationModalOpen(true)}>Run Depreciation</Button>
+                    <Button variant="contained" color="primary" onClick={openAssetModalToAdd}>Add New asset</Button>
+                    <TextField
+                        size="small"
+                        placeholder="Search..."
+                        InputProps={{
+                            startAdornment: (<InputAdornment position="start"><Search /></InputAdornment>),
+                        }}
+                    />
+                    <IconButton onClick={() => setAdvancedSearchOpen(true)}><FilterAlt /></IconButton>
+                    <IconButton><Tune /></IconButton>
+                </Stack>
+            </Stack>
+
+            <TableContainer>
+                <Table>
+                    <TableHead sx={{ bgcolor: 'grey.200' }}>
+                        <TableRow>
+                            <TableCell padding="checkbox"><Checkbox indeterminate={selected.length > 0 && selected.length < assets.length} checked={assets.length > 0 && selected.length === assets.length} onChange={handleSelectAllClick} /></TableCell>
+                            <TableCell>Asset name</TableCell>
+                            <TableCell>Type</TableCell>
+                            <TableCell>Purchase date</TableCell>
+                            <TableCell align="right">Cost</TableCell>
+                            <TableCell align="right">Current Value</TableCell>
+                            <TableCell align="right">Accumulated Depreciation</TableCell>
+                            <TableCell align="center">Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {assets.map((asset) => {
+                            const isItemSelected = isSelected(asset.id);
+                            return (
+                                <TableRow key={asset.id} hover onClick={(event) => handleRowClick(event, asset.id)} role="checkbox" aria-checked={isItemSelected} selected={isItemSelected}>
+                                    <TableCell padding="checkbox"><Checkbox checked={isItemSelected} /></TableCell>
+                                    <TableCell>{asset.name}</TableCell>
+                                    <TableCell>{asset.assetType}</TableCell>
+                                    <TableCell>{asset.purchaseDate}</TableCell>
+                                    <TableCell align="right">${(asset.purchasePrice || 0).toFixed(2)}</TableCell>
+                                    <TableCell align="right">${(asset.currentValue || 0).toFixed(2)}</TableCell>
+                                    <TableCell align="right">${(asset.accumulatedDepreciation || 0).toFixed(2)}</TableCell>
+                                    <TableCell align="center">
+                                         <Stack direction="row" spacing={0} justifyContent="center">
+                                            <IconButton size="small" sx={{color: 'action.view'}} onClick={(e) => { e.stopPropagation(); openAssetModalToEdit(asset); }}><Visibility /></IconButton>
+                                            <IconButton size="small" sx={{color: 'action.edit'}} onClick={(e) => { e.stopPropagation(); openAssetModalToEdit(asset); }}><Edit /></IconButton>
+                                            <IconButton size="small" sx={{color: 'action.delete'}} onClick={(e) => { e.stopPropagation(); handleDeleteClick(asset.id); }}><Delete /></IconButton>
+                                         </Stack>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Paper>
+
+        <AssetModal isOpen={isAssetModalOpen} onClose={() => setIsAssetModalOpen(false)} asset={editingAsset} onSave={handleSaveAsset} />
+        <AdvancedSearchDrawer isOpen={isAdvancedSearchOpen} onClose={() => setAdvancedSearchOpen(false)} onApply={handleApplyFilter} />
+        <RunDepreciationModal isOpen={isDepreciationModalOpen} onClose={() => setIsDepreciationModalOpen(false)} onRun={handleRunDepreciation} onRollback={handleRollbackDepreciation} />
+        <ConfirmationDialog
+            open={isConfirmOpen}
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            title="Delete Asset"
+            content="Are you sure you want to delete this asset? This action cannot be undone."
+        />
+    </Container>
+  );
+}
+
 
 export default function App() {
-    const [activeTab, setActiveTab] = useState('Cash');
-    const [view, setView] = useState('dashboard');
-    const [isAddAccountOpen, setAddAccountOpen] = useState(false);
-    const TABS = ['Overview', 'Bank', 'Credit Card', 'Cheque', 'Cash', 'Loan', 'Wallet'];
-
-    const renderContent = () => {
-        switch(view) {
-            case 'statement': return <StatementView onBack={() => setView('dashboard')} onAddExpense={() => setView('addExpense')} onTopup={() => setView('topup')} />;
-            case 'addExpense': return <AddExpenseView onBack={() => setView('statement')} />;
-            case 'topup': return <TopupView onBack={() => setView('statement')} />;
-            default: return <DashboardView onViewStatement={() => setView('statement')} onAddAccount={() => setAddAccountOpen(true)} />;
-        }
-    };
-
     return (
-        <Container maxWidth="xl" sx={{ py: 4, backgroundColor: 'white' }}>
-             <AddAccountModal open={isAddAccountOpen} onClose={() => setAddAccountOpen(false)} />
-             <Box display="flex" justifyContent="center" flexWrap="wrap" gap={2} mb={5}>
-                {TABS.map(tab => (
-                    <Button key={tab} variant="contained" disableElevation onClick={() => setActiveTab(tab)}
-                        sx={{ borderRadius: '50px', textTransform: 'none', px: 3, py: 1.5, fontWeight: 'normal', fontSize: '1rem',
-                            backgroundColor: activeTab === tab ? '#cddc39' : '#e0e0e0', color: 'black', '&:hover': { backgroundColor: activeTab === tab ? '#c0ca33' : '#d5d5d5' }
-                        }}
-                    >{tab}</Button>
-                ))}
-            </Box>
-            {renderContent()}
-        </Container>
+        <ThemeProvider theme={modernTheme}>
+            <CssBaseline />
+            <FixedAssetRegister />
+        </ThemeProvider>
     );
 }

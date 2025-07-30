@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 import theme from "./theme";
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -12,7 +13,6 @@ import Protected from "./components/Protected";
 // Settings Pages
 import CompanyInformation from "./pages/settings/organizationsettings/companyinfo";
 import ContactDetails from "./pages/settings/organizationsettings/contactinfo";
-import NatureOfBusiness from "./pages/settings/organizationsettings/businessnature";
 import FinancialDetails from "./pages/settings/organizationsettings/financialconf"; // Corrected path
 import DropdownManagement from "./pages/settings/globalsettings/dropdowndata";
 import GSTManagement from "./pages/settings/taxsettings/gstsettings"; // Corrected path
@@ -23,11 +23,13 @@ import InvoiceSettingsPage from "./pages/settings/invoicesettings/invoiceinfoset
 import QuotationSettingsPage from "./pages/settings/invoicesettings/salesquotsettings";
 import OfficialDocumentSettings from "./pages/settings/globalsettings/docrules";
 import COAClassifications from "./pages/settings/finance/coaclassification";
+import RegionalSettings from "./pages/settings/globalsettings/regionalsettings";
+import IndustryClassification from "./pages/settings/globalsettings/IndustryClassification";
 
 // import InvoicePreview from "./pages/settings/invoicesettings/InvoicePreview"; // Not used as a direct route
 
 // Account Transaction Pages
-import CustomerList from "./pages/accounttransaction/customerlist";
+import CustomerList from "./pages/accounttransaction/CustomerList";
 import CustomerForm from "./pages/accounttransaction/customerform";
 import VendorListPage from "./pages/accounttransaction/vendorlist";
 import VendorForm from "./pages/accounttransaction/vendorform";
@@ -154,7 +156,6 @@ function App() {
             {/* Settings Routes */}
             <Route path="settings/organizationsetting/companyinformation" element={<CompanyInformation />} />
             <Route path="settings/organizationsettings/contactdetails" element={<ContactDetails />} />
-            <Route path="settings/organizationsettings/natureofbusiness" element={<NatureOfBusiness />} />
             <Route path="settings/organizationsettings/financialdetails" element={<FinancialDetails />} />
             <Route path="settings/global-settings/dropdown" element={<DropdownManagement />} />
             <Route path="settings/taxcompliancedetails/GSTManagement" element={<GSTManagement />} />
@@ -162,6 +163,8 @@ function App() {
             <Route path="tdssettings" element={<TDSManagement />} />
             <Route path="tcssettings" element={<TCSManagement />} />
             <Route path="coaclass" element={<COAClassifications />} />
+            <Route path="RegionalSettings" element={<RegionalSettings />} />
+            <Route path="IndustryClassification" element={<IndustryClassification />} />
 
 
             {/* Corrected Invoice Settings Route to match Layout.js link */}
